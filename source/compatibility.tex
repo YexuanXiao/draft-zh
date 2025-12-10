@@ -1,0 +1,3366 @@
+%!TEX root = std.tex
+\infannex{diff}{兼容性}
+
+\rSec1[diff.cpp23]{\Cpp{} 与 ISO \CppXXIII{}}
+
+\rSec2[diff.cpp23.general]{概述}
+
+\pnum
+\indextext{summary!compatibility with ISO \CppXXIII{}}%
+子条款 \ref{diff.cpp23} 按本文件的章节列出了 \Cpp{} 与 ISO \CppXXIII{} 之间的差异。
+
+\rSec2[diff.cpp23.lex]{\ref{lex}: 词法约定}
+
+\diffref{lex.operators}
+\change
+新增运算符 \tcode{\caret\caret}。
+\rationale
+新功能所需。
+\effect
+包含两个连续 \tcode{\caret} 记号的合法 \CppXXIII{} 代码在此版 \Cpp{} 中可能非良构。
+\begin{example}
+\begin{codeblock}
+struct C { int operator^(int); };
+int operator^(int (C::*p)(int), C);
+int i = &C::operator^^C{};              // 非良构；先前良构
+\end{codeblock}
+\end{example}
+
+\diffref{lex.key}
+\change
+新增关键词。
+\rationale
+新功能所需。
+\begin{itemize}
+\item
+添加 \keyword{contract_assert} 关键词，以通过 \grammarterm{assertion-statement}\iref{stmt.contract.assert} 引入契约断言。
+\end{itemize}
+\effect
+将 \keyword{contract_assert} 用作标识符的合法 \CppXXIII{} 代码在此版 \Cpp{} 中无效。
+
+\rSec2[diff.cpp23.expr]{\ref{expr}: 表达式}
+
+\diffref{expr.arith.conv}
+\change
+混合一个枚举类型的值和一个不同的枚举类型值或浮点类型值的操作不再有效。
+\rationale
+强化类型安全。
+\effect
+一个有效的 \CppXXIII{} 程序，若执行混合枚举类型值与不同枚举类型值或浮点类型值的操作，则为非良构。
+\begin{example}
+\begin{codeblock}
+enum E1 { e };
+enum E2 { f };
+bool b = e <= 3.7;      // 非良构；先前良构
+int  k = f - e;         // 非良构；先前良构
+auto x = true ? e : f;  // 非良构；先前良构
+\end{codeblock}
+\end{example}
+
+\diffref{expr.rel,expr.eq}
+\change
+比较两个数组类型的对象不再有效。
+\rationale
+旧行为令人困惑，因为它比较的不是数组内容而是地址。
+\effect
+一个有效的 \CppXXIII{} 程序若直接比较两个数组对象，在本标准中被判定为非良构。
+\begin{example}
+\begin{codeblock}
+int arr1[5];
+int arr2[5];
+bool same = arr1 == arr2;       // 非良构；先前良构
+bool idem = arr1 == +arr2;      // 比较地址
+bool less = arr1 < +arr2;       // 比较地址，结果未指明
+\end{codeblock}
+\end{example}
+
+\diffref{expr.delete}
+\change
+对指向不完整类的指针调用 \tcode{delete} 为非良构。
+\rationale
+减少未定义行为。
+\effect
+一个有效的 \CppXXIII{} 程序若对不完整类类型调用 \tcode{delete}，则为非良构。
+\begin{example}
+\begin{codeblock}
+struct S;
+
+void f(S *p) {
+  delete p;             // 非良构；先前良构
+}
+
+struct S {};
+\end{codeblock}
+\end{example}
+
+\rSec2[diff.cpp23.dcl.dcl]{\ref{dcl}：声明}
+
+\diffref{dcl.decl.general}
+\change
+引入\tcode{trivially_relocatable_if_eligible}与\tcode{replaceable_if_eligible}作为具有特殊含义的标识符\iref{lex.name}。
+\rationale
+支持可平凡重定位及可替换类型的声明\iref{class.prop}。
+\effect
+原本有效的\CppXXIII{}代码可能变为非良构。
+\begin{example}
+\begin{codeblock}
+struct C {};
+struct C replaceable_if_eligible {};    // 先前为良构（新变量\tcode{replaceable_if_eligible}）
+                                        // 现在为非良构（重定义了\tcode{C}）
+\end{codeblock}
+\end{example}
+
+\diffref{dcl.init.list}
+\change
+\tcode{initializer_list}对象背后数组间的指针比较结果未指明。
+\rationale
+允许实现将背后数组存储于静态只读内存中。
+\effect
+依赖背后数组间指针比较结果的有效\CppXXIII{}代码可能改变行为。
+\begin{example}
+\begin{codeblock}
+bool ne(std::initializer_list<int> a, std::initializer_list<int> b) {
+  return a.begin() != b.begin() + 1;
+}
+bool b = ne({2,3}, {1,2,3});    // 未指明的结果；先前为\tcode{false}
+\end{codeblock}
+\end{example}
+
+\diffref{dcl.array}
+\change
+此前，\tcode{T...[n]}会声明一个函数形参包。现在\tcode{T...[n]}是一个\grammarterm{pack-index-specifier}。
+\rationale
+改进对包的处理。
+\effect
+未指定\grammarterm{declarator-id}而声明形参包的有效\CppXXIII{}代码变为非良构。
+\begin{example}
+\begin{codeblock}
+template <typename... T>
+void f(T... [1]);
+template <typename... T>
+void g(T... ptr[1]);
+int main() {
+  f<int, double>(nullptr, nullptr);     // 非良构，先前为\tcode{void f<int, double>(int [1], double [1])}
+  g<int, double>(nullptr, nullptr);     // 良构
+}
+\end{codeblock}
+\end{example}
+
+\diffref{dcl.attr.grammar}
+\change
+新增记号\tcode{:]}。
+\rationale
+新功能所需。
+\effect
+在此版\Cpp{}中，含有带\grammarterm{attribute-using-prefix}但无属性且无空白的\grammarterm{attribute-specifier}的有效\CppXXIII{}代码变为非良构。
+\begin{example}
+\begin{codeblock}
+struct [[using CC:]] C;                 // 非良构；先前为良构
+struct [[using DD: ]] D;                // 良构
+\end{codeblock}
+\end{example}
+
+\rSec2[diff.cpp23.temp]{\ref{temp}: 模板}
+
+\diffref{temp.constr}
+\change
+部分原子约束变为折叠展开约束。
+\rationale
+允许对折叠表达式进行子约束。
+\effect
+合法的 \CppXXIII{} 代码可能变为非良构。
+\begin{example}
+\begin{codeblock}
+template <typename ...V> struct A;
+struct S {
+  static constexpr int compare(const S&) { return 1; }
+};
+
+template <typename ...T, typename ...U>
+void f(A<T ...> *, A<U ...> *)
+requires (T::compare(U{}) && ...);      // 曾是良构（类型为 \tcode{bool} 的原子约束），
+                                        // 现在为非良构（得到类型为 \tcode{int} 的原子约束）
+void g(A<S, S> *ap) {
+  f(ap, ap);
+}
+\end{codeblock}
+\end{example}
+
+\diffref{temp.deduct.call}
+\change
+从重载集合进行的模板实参推导在更多情况下成功。
+\rationale
+允许考虑约束来消解在函数调用中作为参数使用的重载集合的歧义。
+\effect
+合法的 \CppXXIII{} 代码可能变为非良构。
+\begin{example}
+\begin{codeblock}
+template <typename T>
+void f(T &&, void (*)(T &&));
+
+void g(int &);              // \#1
+inline namespace A {
+  void g(short &&);         // \#2
+}
+inline namespace B {
+  void g(short &&);         // \#3
+}
+
+void q() {
+  int x;
+  f(x, g);          // 非良构；先前良构，推导得到 \tcode{T = int\&}
+}
+\end{codeblock}
+对于各个 \tcode{g} 候选函数的适用推导规则没有变化：
+从 \#1 进行的类型推导不成功；
+从 \#2 和 \#3 进行的类型推导均成功。
+\end{example}
+
+\rSec2[diff.cpp23.library]{\ref{library}: 库简介}
+
+\diffref{headers}
+\change
+新头文件。
+\rationale
+新功能。
+\effect
+以下 \Cpp{} 头文件是新增的：
+\libheaderrefx{contracts}{support.contract}、
+\libheaderref{debugging}、
+\libheaderrefx{hazard_pointer}{hazard.pointer.syn}、
+\libheaderref{hive}、
+\libheaderrefx{inplace_vector}{inplace.vector.syn}、
+\libheaderref{linalg}、
+\libheaderref{meta}、
+\libheaderref{rcu}、
+\libheaderref{simd}、
+\libheaderref{stdbit.h}、
+\libheaderref{stdckdint.h}，以及
+\libheaderrefx{text_encoding}{text.encoding.syn}。
+有效 \CppXXIII{} 代码若 \tcode{\#include} 这些名称的头文件，在此修订的 \Cpp{} 中可能无效。
+
+\diffref{res.on.macro.definitions}
+\change
+对宏名称的额外限制。
+\rationale
+避免难以诊断或不可移植的结构。
+\effect
+特殊标识符的名称不得用作宏名称。
+有效 \CppXXIII{} 代码若将 \tcode{replaceable_if_eligible} 或
+\tcode{trivially_relocatable_if_eligible} 定义为宏，在此修订的 \Cpp{} 中无效。
+
+\rSec2[diff.cpp23.mem]{\ref{mem}：内存管理库}
+
+\diffref{c.malloc}
+\change
+使用非空指针和零大小调用\tcode{realloc}的行为是未定义的。
+\rationale
+C标准库对此未作规定。
+\effect
+在\CppXXIII{}中，调用\tcode{realloc}时传入非空指针和零大小的原本有效代码现在为错误代码，其行为可能发生变化。
+
+\rSec2[diff.cpp23.containers]{\ref{containers}: 容器库}
+
+\diffref{span.overview}
+\change
+\tcode{span<const T>} 可从 \tcode{initializer_list<T>} 构造。
+\rationale
+允许将花括号初始化列表传递给接受 \tcode{span} 的函数。
+\effect
+依赖于缺少此构造函数的合法 \CppXXIII{} 代码可能无法编译，或在此 \Cpp{} 修订版中行为改变。
+\begin{example}
+\begin{codeblock}
+void one(pair<int, int>);       // \#1
+void one(span<const int>);      // \#2
+void t1() { one({1, 2}); }      // 在 \#1 与 \#2 间存在歧义；此前调用 \#1
+
+void two(span<const int, 2>);
+void t2() { two({{1, 2}}); }    // 非良构；此前为良构
+
+void *a[10];
+int x = span<void* const>{a, 0}.size();     // \tcode{x} 为 \tcode{2}；此前为 \tcode{0}
+any b[10];
+int y = span<const any>{b, b + 10}.size();  // \tcode{y} 为 \tcode{2}；此前为 \tcode{10}
+\end{codeblock}
+\end{example}
+
+\rSec2[diff.cpp23.strings]{\ref{strings}: 字符串库}
+
+\diffref{string.conversions}
+\change
+\tcode{to_string} 和 \tcode{to_wstring} 的浮点数重载的输出。
+\rationale
+防止信息丢失，并提高与其他格式化设施的一致性。
+\effect
+接受浮点参数的 \tcode{to_string} 和 \tcode{to_wstring} 函数调用可能会产生不同的输出。
+\begin{example}
+\begin{codeblock}
+auto s = std::to_string(1e-7);  // \tcode{"1e-07"}
+                                // 以前是 \tcode{"0.000000"}，其中 \tcode{'.'} 可能
+                                // 根据全局 C 区域设置而改变
+\end{codeblock}
+\end{example}
+
+\rSec2[diff.cpp23.io]{\ref{input.output}：输入/输出库}
+
+\diffref{istream.unformatted}
+\change
+重载了 \tcode{std::basic_istream<char, traits>::ignore}。
+\rationale
+允许将 \tcode{char} 值用作分隔符。
+\effect
+对 \tcode{istream::ignore} 的调用，若其第二实参为 \tcode{char} 类型，则可能改变行为。
+对 \tcode{istream::ignore} 的调用，若其第二实参既非 \tcode{int} 类型也非 \tcode{char} 类型，则可能变为非良构。
+\begin{example}
+\begin{codeblock}
+std::istringstream in("\xF0\x9F\xA4\xA1 Clown Face");
+in.ignore(100, '\xA1');     // 忽略直到 \tcode{'\textbackslash{}xA1'} 分隔符，
+                            // 先前可能忽略到 EOF
+in.ignore(100, -1L);        // 重载歧义，
+                            // 先前等价于 \tcode{(int)-1L}
+\end{codeblock}
+\end{example}
+
+\rSec2[diff.cpp23.depr]{\ref{depr}: 兼容性特性}
+
+\nodiffref
+\change
+移除类型别名 \tcode{allocator<T>::is_always_equal}。
+\rationale
+派生自 \tcode{allocator} 的非空分配器类需要显式定义 \tcode{is_always_equal} 成员类型，以免 \tcode{allocator_traits} 使用来自分配器基类的那一个。
+\effect
+对于拥有分配器基类的分配器类，正确定义其变得更为简单。
+\begin{example}
+\begin{codeblock}
+template <class T>
+struct MyAlloc : allocator<T> {
+  int tag;
+};
+
+static_assert(!allocator_traits<MyAlloc<int>>::is_always_equal);        // 在 \CppXXIII{} 中错误，
+                                                                        // 在 \CppXXVI{} 中正确
+\end{codeblock}
+\end{example}
+
+\nodiffref
+\change
+移除 \tcode{shared_ptr} 对象的原子访问 API。
+\rationale
+旧行为较为脆弱。使用旧 API 的 \tcode{shared_ptr} 对象不受类型系统保护，且在某些情况下，与不使用此 API 的代码进行某些交互会静默地产生未定义行为。现已以 \tcode{atomic<shared_ptr<T>>} 的形式提供了完整的类型安全的替代方案。
+\effect
+依赖于已移除函数存在的有效 \CppXXIII{} 程序可能无法编译。
+
+\nodiffref
+\change
+移除无参 \tcode{basic_string::reserve()} 重载。
+\rationale
+无参 \tcode{reserve} 重载是冗余的。可以改用 \tcode{shrink_to_fit} 成员函数。
+\effect
+对 \tcode{basic_string} 对象调用 \tcode{reserve()} 的有效 \CppXXIII{} 程序可能无法编译。旧功能可通过调用 \tcode{shrink_to_fit()} 实现，或可直接安全移除该调用而无副作用。
+
+\nodiffref
+\change
+移除头文件 \libnoheader{codecvt} 及其全部内容。
+\rationale
+该头文件已在之前三版标准中被弃用，不再实现当前 Unicode 标准，仅支持已废弃的 UCS-2 编码。是否继续支持由实现自行决定，行使 \ref{zombie.names} 赋予的自由。
+\effect
+包含该头文件或导入其头文件单元的有效 \CppXXIII{} 程序可能无法编译。通过导入标准库模块使用下列任一标识符的代码也可能无法编译：
+\begin{itemize}
+\item \tcode{codecvt_mode},
+\item \tcode{codecvt_utf16},
+\item \tcode{codecvt_utf8},
+\item \tcode{codecvt_utf8_utf16},
+\item \tcode{consume_header},
+\item \tcode{generate_header}, 以及
+\item \tcode{little_endian}.
+\end{itemize}
+
+\nodiffref
+\change
+移除头文件 \libnoheader{strstream} 及其全部内容。
+\rationale
+该头文件自初代 \Cpp{} 标准起已被弃用；\libheader{spanstream} 头文件提供了更新、更安全的替代设施。是否继续支持由实现自行决定，行使 \ref{zombie.names} 赋予的自由。
+\effect
+包含该头文件或导入其头文件单元的有效 \CppXXIII{} 程序可能变为非良构。通过导入某个标准库模块使用下列任一类的代码也可能变为非良构：
+\begin{itemize}
+\item \tcode{istrstream},
+\item \tcode{ostrstream},
+\item \tcode{strstream},
+\item \tcode{strstreambuf}.
+\end{itemize}
+
+\nodiffref
+\change
+移除便捷接口 \tcode{wstring_convert} 与 \tcode{wbuffer_convert}。
+\rationale
+这些功能规范不足，缺乏清晰的错误报告机制，且在前三版标准中均已被弃用。是否继续支持由实现自行决定，行使 \ref{zombie.names} 赋予的自由。
+\effect
+使用这些接口的有效 \CppXXIII{} 程序可能变为非良构。
+
+\rSec1[diff.cpp20]{\Cpp{} 与 ISO \CppXX{}}
+
+\rSec2[diff.cpp20.general]{概述}
+
+\pnum
+\indextext{summary！与 ISO \CppXX{} 的兼容性}%
+除了上面所列的差异外，子条款 \ref{diff.cpp20} 按本文档的章节列出了 \Cpp{} 与 ISO \CppXX{} 之间的差异。
+
+\rSec2[diff.cpp20.lex]{\ref{lex}: 词汇约定}
+
+\diffref{lex.name}
+\indextext{XID_Start}%
+\indextext{XID_Continue}%
+\change
+先前有效的包含未在\UAX{44}属性 XID_Start 或 XID_Continue 中出现的字符，
+或未采用规范化形式 C 的标识符，现被拒绝。
+\rationale
+防止标识符中出现易混淆的字符。
+要求名称的规范化确保了链接器行为的一致性。
+\effect
+某些标识符不再是良构的。
+
+\diffref{lex.string}
+\change
+拼接的\grammarterm{string-literal}不再允许具有冲突的\grammarterm{encoding-prefix}。
+\rationale
+移除未实现的条件性支持特性。
+\effect
+将具有不同\grammarterm{encoding-prefix}的\grammarterm{string-literal}进行拼接，
+现在是非良构的。
+\begin{example}
+\begin{codeblock}
+auto c = L"a" U"b";             // 过去是条件性支持的；现在是非良构的
+\end{codeblock}
+\end{example}
+
+\rSec2[diff.cpp20.expr]{\ref{expr}: 表达式}
+
+\diffref{expr.prim.id.unqual}
+\change
+将符合移动条件的 \grammarterm{id-expression} 从左值更改为亡值。
+\rationale
+简化隐式移动的规则。
+\effect
+依赖于返回的 \grammarterm{id-expression} 是左值的有效 \CppXX{} 代码可能会改变行为或编译失败。
+\begin{example}
+\begin{codeblock}
+decltype(auto) f(int&& x) { return (x); }       // 返回 \tcode{int\&\&}；先前返回 \tcode{int\&}
+int& g(int&& x) { return x; }                   // 非良构；先前良构
+\end{codeblock}
+\end{example}
+
+\diffref{expr.sub}
+\change
+改变下标表达式中逗号的含义。
+\rationale
+重新利用已弃用的语法以支持多维索引。
+\effect
+在下标表达式中使用逗号表达式的有效 \CppXX{} 代码可能编译失败。
+\begin{example}
+\begin{codeblock}
+arr[1, 2]               // 原等价于 \tcode{arr[(1, 2)]}，
+                        // 现等价于 \tcode{arr.operator[](1, 2)} 或为非良构
+\end{codeblock}
+\end{example}
+
+\rSec2[diff.cpp20.stmt]{\ref{stmt}: 语句}
+
+\diffref{stmt.ranged}
+\change
+\grammarterm{for-range-initializer} 中的临时对象的生命周期被延长至循环结束\iref{class.temporary}。
+\rationale
+提升基于范围的 \keyword{for} 语句的可用性。
+\effect
+某些临时对象的析构函数将稍后被调用。
+\begin{example}
+\begin{codeblock}
+void f() {
+  std::vector<int> v = { 42, 17, 13 };
+  std::mutex m;
+
+  for (int x :
+       static_cast<void>(std::lock_guard<std::mutex>(m)), v) {  // 在 \CppXX{} 中锁被释放
+    std::lock_guard<std::mutex> guard(m);                       // 在 \CppXX{} 中 OK，现在会造成死锁
+  }
+}
+\end{codeblock}
+\end{example}
+
+\rSec2[diff.cpp20.dcl]{\ref{dcl}: 声明}
+
+\diffref{dcl.init.string}
+\change
+UTF-8 字符串字面量可以初始化 \keyword{char} 数组或
+\tcode{\keyword{unsigned} \keyword{char}} 数组。
+\rationale
+与先前版本的本文档所符合的先前编写的代码保持兼容。
+\effect
+\keyword{char} 数组或 \tcode{\keyword{unsigned} \keyword{char}} 数组
+现在可以用 UTF-8 字符串字面量进行初始化。
+这可能会影响类类型（通常是聚合类型）中直接初始化的数组的初始化。
+\begin{example}
+\begin{codeblock}
+struct A {
+  char8_t s[10];
+};
+struct B {
+  char s[10];
+};
+
+void f(A);
+void f(B);
+
+int main() {
+  f({u8""});            // ambiguous
+}
+\end{codeblock}
+\end{example}
+
+\rSec2[diff.cpp20.temp]{\ref{temp}: 模板}
+
+\diffref{temp.deduct.type}
+\change
+从异常规范推导模板参数。
+\rationale
+便于对可能抛出异常的函数和不抛出异常的函数进行泛型处理。
+\effect
+原本有效的 ISO \CppXX{} 代码在此 \Cpp{} 修订版中可能为非良构。
+\begin{example}
+\begin{codeblock}
+template<bool> struct A { };
+template<bool B> void f(void (*)(A<B>) noexcept(B));
+void g(A<false>) noexcept;
+void h() {
+  f(g);                         // 非良构；先前为良构
+}
+\end{codeblock}
+\end{example}
+
+\rSec2[diff.cpp20.library]{\ref{library}: 库介绍}
+
+\diffref{headers}
+\change
+新头文件。
+\rationale
+新增功能。
+\effect
+以下 \Cpp{} 头文件为新增：
+\libheaderref{expected},
+\libheaderrefx{flat_map}{flat.map.syn},
+\libheaderrefx{flat_set}{flat.set.syn},
+\libheaderref{generator},
+\libheaderref{mdspan},
+\libheaderref{print},
+\libheaderref{spanstream},
+\libheaderref{stacktrace},
+\libheaderref{stdatomic.h}，以及
+\libheaderref{stdfloat}。
+包含这些名称头文件的有效 \Cpp{} XX 代码在此 \Cpp{} 修订版中可能无效。
+
+\rSec2[diff.cpp20.concepts]{\ref{concepts}: 概念库}
+
+\diffref{cmp.concept,concept.equalitycomparable,concept.totallyordered}
+\change
+将 \tcode{three_way_comparable_with}、\tcode{equality_comparable_with} 和 \tcode{totally_ordered_with} 中的 \tcode{common_reference_with} 替换为一个仅用于阐述的概念。
+\rationale
+允许不可复制但可移动的类型满足这些概念。
+\effect
+依赖 \tcode{common_reference_with} 进行蕴含的合法 \CppXX{} 代码在此修订的 \Cpp{} 中可能无法编译。
+\begin{example}
+\begin{codeblock}
+template<class T, class U>
+  requires @\libconcept{equality_comparable_with}@<T, U>
+bool attempted_equals(const T&, const U& u);    // 先前选中的重载
+
+template<class T, class U>
+  requires @\libconcept{common_reference_with}@<const remove_reference_t<T>&, const remove_reference_t<U>&>
+bool attempted_equals(const T& t, const U& u);  // 有歧义的重载；先前通过偏序被拒绝
+bool test(shared_ptr<int> p) {
+  return attempted_equals(p, nullptr);          // 非良构；先前为良构
+}
+\end{codeblock}
+\end{example}
+
+\Sec2[diff.cpp20.memory]{\ref{mem}: 内存管理库}
+
+\diffref{allocator.traits.general}
+\change
+禁止部分及显式的程序定义特化
+\tcode{allocator_traits}。
+\rationale
+允许向\tcode{allocator_traits}中添加\tcode{allocate_at_least}，以及将来可能添加的其他成员。
+\effect
+部分或显式特化\tcode{allocator_traits}的合法 \CppXX{} 代码，在此 \Cpp{} 修订中成为非良构，且不要求诊断。
+
+\rSec2[diff.cpp20.utilities]{\ref{utilities}：通用工具库}
+
+\diffref{format}
+\change
+签名更改：\tcode{format}、\tcode{format_to}、\tcode{vformat_to}、
+\tcode{format_to_n}、\tcode{formatted_size}。
+移除 \tcode{format_args_t}。
+\rationale
+通过编译期格式字符串检查提高安全性，
+避免不必要的模板实例化。
+\effect
+原本有效的 \CppXX{} 代码若
+包含格式字符串错误或
+依赖先前的格式字符串签名或
+\tcode{format_args_t} 可能变为非良构。
+\begin{example}
+\begin{codeblock}
+auto s = std::format("{:d}", "I am not a number");      // 非良构，
+                                                        // 先前抛出 \tcode{format_error}
+\end{codeblock}
+\end{example}
+
+\diffref{format}
+\change
+签名更改：\tcode{format}、\tcode{format_to}、\tcode{format_to_n}、
+\tcode{formatted_size}。
+\rationale
+启用对视图的格式化，
+该视图在 const 限定时不支持迭代且不可复制。
+\effect
+原本有效的 \CppXX{} 代码若将位域传递给格式化函数
+可能变为非良构。
+\begin{example}
+\begin{codeblock}
+struct tiny {
+  int bit: 1;
+};
+
+auto t = tiny();
+std::format("{}", t.bit);       // 非良构，先前返回 \tcode{"0"}
+\end{codeblock}
+\end{example}
+
+\diffref{format.string.std}
+\change
+限制在 \fmtgrammarterm{std-format-spec} 中
+用作 \fmtgrammarterm{width} 或 \fmtgrammarterm{precision} 的
+格式化实参类型。
+\rationale
+禁止不具有实用或可移植语义的类型作为
+格式化宽度或精度。
+\effect
+原本有效的 \CppXX{} 代码若将布尔或字符类型作为
+\fmtgrammarterm{arg-id} 将变为无效。
+\begin{example}
+\begin{codeblock}
+std::format("{:*^{}}", "", true);   // 非良构，先前返回 \tcode{"*"}
+std::format("{:*^{}}", "", '1');    // 非良构，先前返回一个
+                                    // 实现定义数量的 \tcode{'*'} 字符
+\end{codeblock}
+\end{example}
+
+\diffref{format.formatter.spec}
+\change
+移除 \tcode{formatter} 特化：
+\begin{codeblock}
+template<size_t N> struct formatter<const charT[N], charT>;
+\end{codeblock}
+\rationale
+该特化与 \tcode{formatter} 的设计不一致，
+后者仅预期以不含 cv 限定的对象类型进行实例化。
+\effect
+原本有效的 \CppXX{} 代码若实例化了已移除的特化
+可能变为非良构。
+
+\rSec2[diff.cpp20.strings]{\ref{strings}: 字符串库}
+
+\diffref{string.classes}
+\change
+为成员函数 \tcode{substr} 及相应构造函数添加额外的右值重载。
+\rationale
+提高对右值操作的效率。
+\effect
+合法 \CppXX{} 代码中，若通过对类型为 \tcode{S}（\tcode{basic_string} 的特化）的亡值表达式调用 \tcode{substr}（或相应构造函数）来创建子串，则在此 \Cpp{} 修订版中含义可能改变。
+\begin{example}
+\begin{codeblock}
+std::string s1 = "some long string that forces allocation", s2 = s1;
+std::move(s1).substr(10, 5);
+assert(s1 == s2);       // 未指定，先前保证为 \tcode{true}
+std::string s3(std::move(s2), 10, 5);
+assert(s1 == s2);       // 未指定，先前保证为 \tcode{true}
+\end{codeblock}
+\end{example}
+
+\rSec2[diff.cpp20.containers]{\ref{containers}: 容器库}
+
+\diffref{associative.reqmts,unord.req}
+\change
+关联容器的异构 \tcode{extract} 与 \tcode{erase} 重载。
+\rationale
+提升从关联容器中删除元素的效率。
+\effect
+有效的 \CppXX{} 代码在此 \Cpp{} 修订版中可能无法编译。
+\begin{example}
+\begin{codeblock}
+struct B {
+  auto operator<=>(const B&) const = default;
+};
+
+struct D : private B {
+  void f(std::set<B, std::less<>>& s) {
+    s.erase(*this);             // 非良构；先前为良构
+  }
+};
+\end{codeblock}
+\end{example}
+
+\rSec2[diff.cpp20.thread]{\ref{thread}: 并发支持库}
+
+\diffref{thread.barrier}
+\change
+在 \Cpp{} 的本修订中，
+若无线程调用 \tcode{wait}，屏障的阶段完成步骤是否运行由实现定义。
+先前保证阶段完成步骤在阶段内最后一个调用 \tcode{arrive} 或 \tcode{arrive_and_drop} 的线程上运行。
+在 \Cpp{} 的本修订中，
+它可以在阶段内在屏障处抵达或等待的任一线程上运行。
+\rationale
+修正了矛盾的措辞，并提高了性能方面的实现灵活性。
+\effect
+使用屏障的有效 \CppXX{} 代码若依赖于完成函数的副作用恰好发生一次，
+依赖于运行阶段完成步骤的特定线程，或
+依赖于在未调用 \tcode{wait} 的情况下发生完成函数的副作用，
+则可能在 \Cpp{} 的本修订中具有不同的语义。
+\begin{example}
+\begin{codeblock}
+auto b0 = std::barrier(1);
+b0.arrive();
+b0.arrive();            // 由实现定义；先前是良定义的
+
+int data = 0;
+auto b1 = std::barrier(1, [&] { data++; });
+b1.arrive();
+assert(data == 1);      // 由实现定义；先前是良定义的
+b1.arrive();            // 由实现定义；先前是良定义的
+\end{codeblock}
+\end{example}
+
+\rSec1[diff.cpp17]{\Cpp{} 与 ISO \CppXVII{}}
+
+\rSec2[diff.cpp17.general]{一般说明}
+
+\pnum
+\indextext{summary!compatibility with ISO \CppXVII{}}%
+除上文所列差异外，
+本子条款\ref{diff.cpp17}按照本文档的章节列出了
+\Cpp{} 与 ISO \CppXVII{} 之间的差异。
+
+\rSec2[diff.cpp17.lex]{\ref{lex}: 词法约定}
+
+\diffref{lex.pptoken,module.unit,module.import,cpp.pre,cpp.module,cpp.import}
+\change
+具有特殊含义的新标识符。
+\rationale
+新特性所需。
+\effect
+以 \tcode{module} 或 \tcode{import} 开始的逻辑行在本 \Cpp{} 修订版本中可能有不同的解释。
+\begin{example}
+\begin{codeblock}
+class module {};
+module m1;          // 曾是变量声明；现为 \grammarterm{module-declaration}
+module *m2;         // 变量声明
+
+class import {};
+import j1;          // 曾是变量声明；现为 \grammarterm{module-import-declaration}
+::import j2;        // 变量声明
+\end{codeblock}
+\end{example}
+
+\diffref{lex.header}
+\change
+\grammarterm{header-name} 词符在更多上下文中形成。
+\rationale
+新特性所需。
+\effect
+当标识符 \tcode{import} 后接一个 \tcode{<} 字符时，可能会形成一个 \grammarterm{header-name} 词符。
+\begin{example}
+\begin{codeblock}
+template<typename> class import {};
+import<int> f();                // 非良构；先前为良构
+::import<int> g();              // OK
+\end{codeblock}
+\end{example}
+
+\diffref{lex.key}
+\change
+新关键字。
+\rationale
+新特性所需。
+\begin{itemize}
+\item
+\indextext{UTF-8}%
+增加 \keyword{char8_t} 关键字以区分普通字面量和 UTF-8 字面量的类型\iref{lex.string}。
+\item
+增加 \tcode{concept} 关键字以启用概念的定义\iref{temp.concept}。
+\item
+增加 \keyword{consteval} 关键字以声明立即函数\iref{dcl.constexpr}。
+\item
+增加 \keyword{constinit} 关键字以防止意外的动态初始化\iref{dcl.constinit}。
+\item
+增加 \keyword{co_await}、\keyword{co_yield} 和 \keyword{co_return} 关键字以启用协程的定义\iref{dcl.fct.def.coroutine}。
+\item
+增加 \tcode{requires} 关键字以通过 \grammarterm{requires-clause}\iref{temp.pre} 或 \grammarterm{requires-expression}\iref{expr.prim.req} 引入约束。
+\end{itemize}
+\effectafteritemize
+使用
+\keyword{char8_t}、
+\tcode{concept}、
+\keyword{consteval}、
+\keyword{constinit}、
+\keyword{co_await}、\keyword{co_yield}、\keyword{co_return}、
+或 \tcode{requires}
+作为标识符的有效 \CppXVII{} 代码在本 \Cpp{} 修订版本中无效。
+
+\diffref{lex.operators}
+\change
+新运算符 \tcode{<=>}。
+\rationale
+新功能所需。
+\effect
+包含紧邻着一个 \tcode{>} 词符的 \tcode{<=} 词符的有效 \CppXVII{} 代码
+可能在本 \Cpp{} 修订版本中非良构或具有不同语义。
+\begin{example}
+\begin{codeblock}
+namespace N {
+  struct X {};
+  bool operator<=(X, X);
+  template<bool(X, X)> struct Y {};
+  Y<operator<=> y;              // 非良构；先前为良构
+}
+\end{codeblock}
+\end{example}
+
+\diffref{lex.literal}
+\indextext{UTF-8}%
+\change
+UTF-8 字符串和字符字面量的类型。
+\rationale
+新特性所需。
+改变后的类型使函数重载、模板特化和类型推导能够区分普通字符串与字符字面量和 UTF-8 字符串与字符字面量。
+\effect
+依赖于 UTF-8 字符串字面量具有“array of \tcode{const char}”类型以及
+UTF-8 字符字面量具有“\tcode{char}”类型的
+有效 \CppXVII{} 代码在本 \Cpp{} 修订版本中无效。
+\begin{example}
+\begin{codeblock}
+const auto *u8s = u8"text";     // \tcode{u8s} 先前推导为 \tcode{const char*}；现推导为 \tcode{const char8_t*}
+const char *ps = u8s;           // 非良构；先前为良构
+
+auto u8c = u8'c';               // \tcode{u8c} 先前推导为 \tcode{char}；现推导为 \keyword{char8_t}
+char *pc = &u8c;                // 非良构；先前为良构
+
+std::string s = u8"text";       // 非良构；先前为良构
+
+void f(const char *s);
+f(u8"text");                    // 非良构；先前为良构
+
+template<typename> struct ct;
+template<> struct ct<char> {
+  using type = char;
+};
+ct<decltype(u8'c')>::type x;    // 非良构；先前为良构。
+\end{codeblock}
+\end{example}
+
+\rSec2[diff.cpp17.basic]{\ref{basic}: 基础}
+
+\diffref{basic.life}
+\change
+伪析构函数调用会结束其所作用对象的生存期。
+\rationale
+提高语言模型的一致性。
+\effect
+有效的 ISO \CppXVII{} 代码在此版本的 \Cpp{} 中可能非良构或具有未定义行为。
+\begin{example}
+\begin{codeblock}
+int f() {
+  int a = 123;
+  using T = int;
+  a.~T();
+  return a;         // 未定义行为；之前返回 123
+}
+\end{codeblock}
+\end{example}
+
+\diffref{intro.races}
+\change
+除了最初的释放操作，释放序列仅由原子的读‑修改‑写操作组成。
+\rationale
+移除极少使用且令人困惑的特性。
+\effect
+如果同一线程的 \tcode{memory_order_release} 原子存储之后，
+紧接着对同一变量进行 \tcode{memory_order_relaxed} 存储，
+那么用 \tcode{memory_order_acquire} 载入读取后者的值，
+即使在没有其他线程的插入存储的情况下，
+也不再提供任何“先发生于”保证。
+
+\rSec2[diff.cpp17.expr]{\ref{expr}: 表达式}
+
+\diffref{expr.prim.lambda.capture}
+\change
+隐式 lambda 捕获可能会捕获额外的实体。
+\rationale
+规则简化，解决与 constexpr if 的交互所需。
+\effect
+带有 \grammarterm{capture-default} 的 lambda
+可能会捕获在 \CppXVII{} 中未被捕获的局部实体，
+前提是这些实体仅在不会导致 odr-use 的上下文中被引用。
+
+\rSec2[diff.cpp17.dcl.dcl]{\ref{dcl}: declarations}
+
+\diffref{dcl.typedef}
+\change
+Unnamed classes with a typedef name for linkage purposes
+can contain only C-compatible constructs.
+\rationale
+Necessary for implementability.
+\effect
+Valid \CppXVII{} code may be ill-formed in this revision of \Cpp{}.
+\begin{example}
+\begin{codeblock}
+typedef struct {
+  void f() {}           // ill-formed; previously well-formed
+} S;
+\end{codeblock}
+\end{example}
+
+\diffref{dcl.fct.default}
+\change
+A function cannot have different default arguments
+in different translation units.
+\rationale
+Required for modules support.
+\effect
+Valid \CppXVII{} code may be ill-formed in this revision of \Cpp{},
+with no diagnostic required.
+\begin{example}
+\begin{codeblock}
+// Translation unit 1
+int f(int a = 42);
+int g() { return f(); }
+
+// Translation unit 2
+int f(int a = 76) { return a; }         // ill-formed, no diagnostic required; previously well-formed
+int g();
+int main() { return g(); }              // used to return 42
+\end{codeblock}
+\end{example}
+
+\diffref{dcl.init.aggr}
+\change
+A class that has user-declared constructors is never an aggregate.
+\rationale
+Remove potentially error-prone aggregate initialization
+which may apply notwithstanding the declared constructors of a class.
+\effect
+Valid \CppXVII{} code that aggregate-initializes
+a type with a user-declared constructor
+may be ill-formed or have different semantics
+in this revision of \Cpp{}.
+\begin{example}
+\begin{codeblock}
+struct A {              // not an aggregate; previously an aggregate
+  A() = delete;
+};
+
+struct B {              // not an aggregate; previously an aggregate
+  B() = default;
+  int i = 0;
+};
+
+struct C {              // not an aggregate; previously an aggregate
+  C(C&&) = default;
+  int a, b;
+};
+
+A a{};                  // ill-formed; previously well-formed
+B b = {1};              // ill-formed; previously well-formed
+auto* c = new C{2, 3};  // ill-formed; previously well-formed
+
+struct Y;
+
+struct X {
+  operator Y();
+};
+
+struct Y {              // not an aggregate; previously an aggregate
+  Y(const Y&) = default;
+  X x;
+};
+
+Y y{X{}};               // copy constructor call; previously aggregate-initialization
+\end{codeblock}
+\end{example}
+
+\diffref{dcl.init.list}
+\change
+Boolean conversion from a pointer or pointer-to-member type
+is now a narrowing conversion.
+\rationale
+Catches bugs.
+\effect
+Valid \CppXVII{} code may fail to compile
+in this revision of \Cpp{}.
+\begin{example}
+\begin{codeblock}
+bool y[] = { "bc" };    // ill-formed; previously well-formed
+\end{codeblock}
+\end{example}
+
+\rSec2[diff.cpp17.class]{\ref{class}: 类}
+
+\diffref{class.ctor,class.conv.fct}
+\change
+在构造函数声明中，
+类名不能再紧接在 \keyword{explicit} \grammarterm{decl-specifier} 后加括号。
+在转换函数声明中，
+\grammarterm{conversion-function-id} 不能再紧接在 \keyword{explicit} \grammarterm{decl-specifier} 后加括号。
+\rationale
+新功能需要。
+\effect
+有效的 \CppXVII{} 代码在此 \Cpp{} 修订版本中可能无法编译。
+\begin{example}
+\begin{codeblock}
+struct S {
+  explicit (S)(const S&);       // 非良构；之前为良构
+  explicit (operator int)();    // 非良构；之前为良构
+  explicit(true) (S)(int);      // 良构
+};
+\end{codeblock}
+\end{example}
+
+\diffref{class.ctor,class.dtor}
+\change
+\grammarterm{simple-template-id}
+不再能作为构造函数或析构函数的 \grammarterm{declarator-id}。
+\rationale
+消除可能导致错误的冗余选项。
+\effect
+有效的 \CppXVII{} 代码在此 \Cpp{} 修订版本中可能无法编译。
+\begin{example}
+\begin{codeblock}
+template<class T>
+struct A {
+  A<T>();           // 错误：\grammarterm{simple-template-id} 不允许用于构造函数
+  A(int);           // 良构，使用了注入类名
+  ~A<T>();          // 错误：\grammarterm{simple-template-id} 不允许用于析构函数
+};
+\end{codeblock}
+\end{example}
+
+\diffref{class.copy.elision}
+\change
+返回隐式可移动实体的函数
+可能调用接受与返回表达式类型不同的右值引用的构造函数。
+函数和 catch 子句参数可以通过移动构造函数抛出。
+\rationale
+使利用移动语义编写更高效代码更简单的副作用。
+\effect
+有效的 \CppXVII{} 代码在此 \Cpp{} 修订版本中可能无法编译或具有不同的语义。
+\begin{example}
+\begin{codeblock}
+struct base {
+  base();
+  base(base const &);
+private:
+  base(base &&);
+};
+
+struct derived : base {};
+
+base f(base b) {
+  throw b;                      // 错误：\tcode{base(base \&\&)} 是私有的
+  derived d;
+  return d;                     // 错误：\tcode{base(base \&\&)} 是私有的
+}
+
+struct S {
+  S(const char *s) : m(s) { }
+  S(const S&) = default;
+  S(S&& other) : m(other.m) { other.m = nullptr; }
+  const char * m;
+};
+
+S consume(S&& s) { return s; }
+
+void g() {
+  S s("text");
+  consume(static_cast<S&&>(s));
+  char c = *s.m;                // 未定义行为；之前为良构
+}
+\end{codeblock}
+\end{example}
+
+\rSec2[diff.cpp17.over]{\ref{over}: 重载}
+
+\diffref{over.match.oper}
+\change
+相等与不相等表达式现在能够找到反转后的和重写的候选函数。
+\rationale
+提高相等性与三路比较的一致性，并更易于编写完整的相等性操作集。
+\effect
+对于某些类型对，其中一种可转换至另一种，则一个类型的对象与另一个类型的对象之间的相等或不相等表达式将调用不同的运算符。
+此外，对于某些类型，该类型两个对象之间的相等或不相等表达式会变得有歧义。
+\begin{example}
+\begin{codeblock}
+struct A {
+  operator int() const;
+};
+
+bool operator==(A, int);        // \#1
+// \#2 是内置候选：\tcode{bool operator==(int, int);}
+// \#3 是内置候选：\tcode{bool operator!=(int, int);}
+
+int check(A x, A y) {
+  return (x == y) +             // 非良构；先前为良构
+    (10 == x) +                 // 调用 \#1，先前选择 \#2
+    (10 != x);                  // 调用 \#1，先前选择 \#3
+}
+\end{codeblock}
+\end{example}
+
+\diffref{over.match.oper}
+\change
+针对相等运算符的重载决议可能会发生更改\iref{expr.eq}。
+\rationale
+支持以反转参数顺序的方式调用 \tcode{operator==}。
+\effect
+使用了带有转换函数的相等运算符的、有效的 \CppXVII{} 代码可能在本 \Cpp{} 修订中为非良构或具有不同的语义。
+\begin{example}
+\begin{codeblock}
+struct A {
+  operator int() const { return 10; }
+};
+
+bool operator==(A, int);        // \#1
+// \#2 是内置候选：\tcode{bool operator==(int, int);}
+bool b = 10 == A();             // 以反转的参数顺序调用 \#1；先前选择 \#2
+
+struct B {
+  bool operator==(const B&);    // 无 cv 限定符的成员函数
+};
+B b1;
+bool eq = (b1 == b1);           // 有歧义；先前为良构
+\end{codeblock}
+\end{example}
+
+\rSec2[diff.cpp17.temp]{\ref{temp}: 模板}
+
+\diffref{temp.names}
+\change
+后接 \tcode{<} 的 \grammarterm{unqualified-id}，若名字查找未发现任何结果或仅发现函数，则会被视为 \grammarterm{template-name}，从而可能触发实参依赖查找。
+\rationale
+通过实参依赖查找使用显式模板实参列表调用函数模板存在问题，因为需要借助普通查找可见的同名模板。
+\effect
+先前有效的将函数名用作 \tcode{<} 运算符左操作数的代码将变为非良构。
+\begin{example}
+\begin{codeblock}
+struct A {};
+bool operator<(void (*fp)(), A);
+void f() {}
+int main() {
+  A a;
+  f < a;    // 非良构；此前为良构
+  (f) < a;  // 仍为良构
+}
+\end{codeblock}
+\end{example}
+
+\rSec2[diff.cpp17.except]{\ref{except}：异常处理}
+
+\diffref{except.spec}
+\change
+移除 \tcode{throw()} 异常规范。
+\rationale
+移除已被 \keyword{noexcept} 替代的过时功能。
+\effect
+有效的 \CppXVII{} 函数声明、成员函数声明、函数指针声明或函数引用声明，若使用 \tcode{throw()} 作为其异常规范，在此 \Cpp{} 修订版中将被视为非良构。只需将其替换为 \keyword{noexcept}，语义不变。
+\begin{note}
+除通过预处理器为每种情况生成不同的记号序列外，无法写出在此 \Cpp{} 修订版中为非抛出且在 \CppIII{} 中也为非抛出的函数声明。
+\end{note}
+
+\rSec2[diff.cpp17.library]{\ref{library}: 库引言}
+
+\diffref{headers}
+\change
+新增头文件。
+\rationale
+新增功能。
+\effect
+下列 \Cpp{} 头文件为新增：
+\libheaderref{barrier},
+\libheaderref{bit},
+\libheaderref{charconv},
+\libheaderref{compare},
+\libheaderref{concepts},
+\libheaderref{coroutine},
+\libheaderref{format},
+\libheaderref{latch},
+\libheaderref{numbers},
+\libheaderref{ranges},
+\libheaderref{semaphore},
+\libheaderrefx{source_location}{source.location.syn},
+\libheaderref{span},
+\libheaderrefx{stop_token}{thread.stoptoken.syn},
+\libheaderref{syncstream}, 及
+\libheaderrefx{version}{support.limits.general}。
+包含这些名称头文件的合法 \CppXVII{} 代码，在本修订版 \Cpp{} 中可能变为非法。
+
+\diffref{headers}
+\change
+移除无实质内容的 \Cpp{} 头文件。
+\rationale
+空头文件意味着为达成 C 与 \Cpp{} 头文件的兼容性而产生了一个虚假需求。
+\effect
+包含下列任一头文件的合法 \CppXVII{} 程序可能编译失败：
+\libnoheader{ccomplex},
+\libnoheader{ciso646},
+\libnoheader{cstdalign},
+\libnoheader{cstdbool}, 及
+\libnoheader{ctgmath}。
+为保持相同行为：
+\begin{itemize}
+\item
+\libnoheader{ccomplex} 的 \tcode{\#include} 可被替换为
+\libheaderref{complex} 的 \tcode{\#include}，
+\item
+\libnoheader{ctgmath} 的 \tcode{\#include} 可被替换为
+\libheaderref{cmath} 的 \tcode{\#include} 与
+\libheaderref{complex} 的 \tcode{\#include}，
+以及
+\item
+\libnoheader{ciso646},
+\libnoheader{cstdalign}, 或
+\libnoheader{cstdbool} 的
+\tcode{\#include} 可简单地移除。
+\end{itemize}
+
+\rSec2[diff.cpp17.containers]{\ref{containers}: containers library}
+
+\diffref{forward.list,list}
+\change
+\tcode{remove}、\tcode{remove_if} 和 \tcode{unique} 的返回类型从 \keyword{void} 改为 \tcode{container::size_type}。
+\rationale
+提高查找被移除元素数量的效率和便利性。
+\effect
+依赖这些返回类型的代码在此次 \Cpp{} 修订版中可能会有不同的语义。
+针对此版本 \Cpp{} 编译的翻译单元可能与针对 \CppXVII{} 编译的翻译单元不兼容，可能导致链接失败或出现未定义行为。
+
+\rSec2[diff.cpp17.iterators]{\ref{iterators}: 迭代器库}
+
+\diffref{iterator.traits}
+\change
+\tcode{iterator_traits} 对于 \tcode{void*} 以及函数指针类型的特化不再包含任何嵌套的类型定义。
+\rationale
+修正了一个将不可递增的指针类型误识别为迭代器类型的问题。
+\effect
+依赖于这些类型定义存在的有效 \CppXVII{} 程序可能无法编译，或者表现出不同的行为。
+
+\rSec2[diff.cpp17.alg.reqs]{\ref{algorithms}: 算法库}
+
+\diffref{algorithms.requirements}
+\change
+算法声明中可推导的模板参数的数量和顺序现在变为未指明，
+而非如其声明所示。
+\rationale
+增加实现者的自由度，并允许某些函数模板以带有模板化调用运算符的函数对象的形式实现。
+\effect
+一个有效的\CppXVII{}程序，若向本版本\Cpp{}中未明确指定允许此操作的算法传递显式模板实参，
+则可能编译失败或具有未定义行为。
+
+\rSec2[diff.cpp17.input.output]{\ref{input.output}：输入/输出库}
+
+\diffref{istream.extractors}
+\change
+字符数组提取仅接受数组类型。
+\rationale
+通过在编译时防止缓冲区溢出以提高安全性。
+\effect
+有效的 \CppXVII{} 代码可能在此 \Cpp{} 修订版中无法编译。
+\begin{example}
+\begin{codeblock}
+auto p = new char[100];
+char q[100];
+std::cin >> std::setw(20) >> p;         // 非良构；先前为良构
+std::cin >> std::setw(20) >> q;         // 良构
+\end{codeblock}
+\end{example}
+
+\diffref{ostream.inserters.character}
+\indextext{UTF-8}%
+\change
+用于 UTF-8 字面量的 ostream 插入器的重载决议。
+\rationale
+新功能所需。
+\effect
+将 UTF-8 字面量传递给
+\tcode{basic_ostream<char, ...>::operator<<} 或
+\tcode{basic_ostream<wchar_t, ...>::operator<<} 的有效 \CppXVII{} 代码现为非良构。
+\begin{example}
+\begin{codeblock}
+std::cout << u8"text";          // 先前调用 \tcode{operator<<(const char*)} 并打印字符串；
+                                // 现为非良构
+std::cout << u8'X';             // 先前调用 \tcode{operator<<(char)} 并打印字符；
+                                // 现为非良构
+\end{codeblock}
+\end{example}
+
+\diffref{ostream.inserters.character}
+\change
+用于 \keyword{wchar_t}、\keyword{char16_t} 或 \keyword{char32_t} 类型的 ostream 插入器的重载决议。
+\rationale
+消除异常行为。
+\effect
+将
+\keyword{wchar_t}、\keyword{char16_t} 或 \keyword{char32_t} 字符或字符串
+传递给 \tcode{basic_ostream<char, ...>::operator<<}，或
+将 \keyword{char16_t} 或 \keyword{char32_t} 字符或字符串
+传递给 \tcode{basic_ostream<wchar_t, ...>::operator<<} 的有效 \CppXVII{} 代码现为非良构。
+\begin{example}
+\begin{codeblock}
+std::cout << u"text";           // 先前将字符串格式化为指针值；
+                                // 现为非良构
+std::cout << u'X';              // 先前将字符格式化为整数值；
+                                // 现为非良构
+\end{codeblock}
+\end{example}
+
+\diffref{fs.class.path}
+\change
+文件系统路径格式观察器成员函数的返回类型。
+\rationale
+新功能所需。
+\effect
+依赖 \tcode{std::filesystem::path} 的 \tcode{u8string()} 和
+\tcode{generic_u8string()} 成员函数返回 \tcode{std::string} 的有效 \CppXVII{} 代码在此 \Cpp{} 修订版中无效。
+\begin{example}
+\begin{codeblock}
+std::filesystem::path p;
+std::string s1 = p.u8string();          // 非良构；先前为良构
+std::string s2 = p.generic_u8string();  // 非良构；先前为良构
+\end{codeblock}
+\end{example}
+
+\rSec2[diff.cpp17.depr]{\ref{depr}: 兼容性特性}
+
+\nodiffref
+\change
+移除 \tcode{uncaught_exception}。
+\rationale
+当存在多个活跃异常时，该函数没有明确规范，且已被 \tcode{uncaught_exceptions} 取代。
+\effect
+调用 \tcode{std::uncaught_exception} 的有效 \CppXVII{} 程序可能无法编译。可将其修改为使用 \tcode{std::uncaught_exceptions}，以获得清晰且可移植的语义。
+
+\nodiffref
+\change
+移除对可适配函数 API 的支持。
+\rationale
+弃用的支持依赖于一种有限的惯例，无法扩展以支持一般情况或新语言特性。它已被 \keyword{decltype} 的直接语言支持以及 \tcode{std::bind} 和 \tcode{std::not_fn} 函数模板取代。
+\effect
+依赖标准库类中存在 \tcode{result_type}、\tcode{argument_type}、\tcode{first_argument_type} 或 \tcode{second_argument_type} 的有效 \CppXVII{} 程序可能无法编译。调用 \tcode{not1} 或 \tcode{not2}，或使用类模板 \tcode{unary_negate} 或 \tcode{binary_negate} 的有效 \CppXVII{} 程序可能无法编译。
+
+\nodiffref
+\change
+移除 \tcode{std::allocator} 中的冗余成员。
+\rationale
+\tcode{std::allocator} 被过度指定，鼓励在用户容器中直接使用，而非依赖 \tcode{std::allocator_traits}，导致容器质量不佳。
+\effect
+直接使用 \tcode{std::allocator} 的 \tcode{pointer}、\tcode{const_pointer}、\tcode{reference}、\tcode{const_reference}、\tcode{rebind}、\tcode{address}、\tcode{construct}、\tcode{destroy} 或 \tcode{max_size} 成员，或直接使用额外提示参数调用 \tcode{allocate} 的有效 \CppXVII{} 程序可能无法编译。
+
+\nodiffref
+\change
+移除 \tcode{raw_storage_iterator}。
+\rationale
+该迭代器鼓励使用可能抛出的算法，却未返回成功构造的元素数量，而这是销毁它们所必需的。
+\effect
+使用此迭代器类的有效 \CppXVII{} 程序可能无法编译。
+
+\nodiffref
+\change
+移除临时缓冲区 API。
+\rationale
+临时缓冲区设施旨在为小内存请求提供高效优化，但几乎没有证据表明其实践效果，同时要求用户在许多情况下提供自己的异常安全包装器以保护使用该设施。
+\effect
+调用 \tcode{get_temporary_buffer} 或 \tcode{return_temporary_buffer} 的有效 \CppXVII{} 程序可能无法编译。
+
+\nodiffref
+\change
+移除 \tcode{shared_ptr::unique}。
+\rationale
+在存在多线程和弱指针时，该成员函数的返回值不可靠。成员函数 \tcode{use_count} 同样不可靠，但在这些情况下契约更清晰，且在单线程场景中仍有明确定义的用途。
+\effect
+对 \tcode{shared_ptr} 对象调用 \tcode{unique} 的有效 \CppXVII{} 程序可能无法编译。
+
+\diffref{depr.meta.types}
+\change
+移除已弃用的类型特征。
+\rationale
+这些特征接口不可靠或笨拙。\tcode{is_literal_type} 特征无法检测类型的哪些成员函数子集被声明为 \keyword{constexpr}。\tcode{result_of} 特征语法出人意料，且不直接支持函数类型。它已被 \tcode{invoke_result} 特征取代。
+\effect
+依赖 \tcode{is_literal_type} 或 \tcode{result_of} 类型特征，或依赖变量模板 \tcode{is_literal_type_v}，或依赖别名模板 \tcode{result_of_t} 的有效 \CppXVII{} 程序可能无法编译。
+
+\rSec1[diff.cpp14]{\Cpp{} 与 ISO \CppXIV{} 的差异}
+
+\rSec2[diff.cpp14.general]{概述}
+
+\pnum
+\indextext{summary!compatibility with ISO \CppXIV{}}%
+除了上面列出的差异之外，
+子节 \ref{diff.cpp14} 还按本文档的章节列出了 \Cpp{} 与
+ISO \CppXIV{} 的差异。
+
+\rSec2[diff.cpp14.lex]{\ref{lex}: 词法约定}
+
+\diffref{lex.phases}
+\indextext{trigraph sequence}%
+\change
+移除了对三字符序列作为必需功能的支持。
+\rationale
+防止在非原始字符串字面量和注释中意外使用三字符序列。
+\effect
+使用了三字符序列的有效 \CppXIV{} 代码，在本修订版的 \Cpp{} 中可能变得无效，或可能具有不同的语义。
+如果它们出现在原始字符串字面量之外，作为从输入源文件字符到翻译字符集的
+\impldef{输入文件字符映射到翻译字符集}
+映射的一部分，实现可以选择按照 \CppXIV{} 的规定来翻译这些三字符序列。
+
+\diffref{lex.ppnumber}
+\change
+\grammarterm{pp-number} 可以包含 \tcode{p} \grammarterm{sign} 和
+\tcode{P} \grammarterm{sign}。
+\rationale
+为支持 \grammarterm{hexadecimal-floating-point-literal} 所必需。
+\effect
+有效的 \CppXIV{} 代码在本修订版的 \Cpp{} 中可能无法编译或产生不同的结果。
+具体来说，像 \tcode{0p+0} 和 \tcode{0e1_p+0} 这样的字符序列在 \CppXIV{} 中是三个独立的记号，但在本修订版的 \Cpp{} 中是一个单一记号。
+\begin{example}
+\begin{codeblock}
+#define F(a) b ## a
+int b0p = F(0p+0);  // 非良构；在 \CppXIV{} 中等价于 ``\tcode{int b0p = b0p + 0;}\!''
+\end{codeblock}
+\end{example}
+
+\rSec2[diff.cpp14.expr]{\ref{expr}: 表达式}
+
+\diffref{expr.post.incr,expr.pre.incr}
+\change
+移除以 \tcode{bool} 操作数进行的自增运算符。
+\rationale
+具有偶尔令人惊讶语义的过时特性。
+\effect
+使用 \tcode{bool} 左值进行自增运算符的有效的 \CppXIV{} 表达式在本 \Cpp{} 修订中是非良构的。
+
+\diffref{expr.new,expr.delete}
+\change
+用于超对齐类型的动态分配机制。
+\rationale
+简化超对齐类型的使用。
+\effect
+在 \CppXIV{} 代码中，若使用 \grammarterm{new 表达式} 分配一个具有超对齐类类型的对象，且该类没有自定义分配函数，则将使用 \tcode{::operator new(std::size_t)} 分配内存。在本修订的 \Cpp{} 中，则改用 \tcode{::operator new(std::size_t, std::align_val_t)}。
+
+\rSec2[diff.cpp14.dcl.dcl]{\ref{dcl}: 声明}
+
+\diffref{dcl.stc}
+\indextext{\idxcode{register} 存储类}%
+\change
+移除 \keyword{register} \grammarterm{storage-class-specifier}。
+\rationale
+为在 \Cpp{} 的未来修订中重新利用已弃用的关键字提供可能。
+\effect
+使用了 \keyword{register} \grammarterm{storage-class-specifier} 的有效 \CppXIV{} 声明，在此版本的 \Cpp{} 中属于非良构。
+只需移除该说明符即可保留原意。
+
+\diffref{dcl.spec.auto}
+\change
+从 \grammarterm{braced-init-list} 推导 \keyword{auto}。
+\rationale
+更直观的推导行为。
+\effect
+有效的 \CppXIV{} 代码在此版本的 \Cpp{} 中可能编译失败或改变含义。
+\begin{example}
+\begin{codeblock}
+auto x1{1};         // 曾是 \tcode{std::initializer_list<int>}，现为 \tcode{int}
+auto x2{1, 2};      // 曾是 \tcode{std::initializer_list<int>}，现为非良构
+\end{codeblock}
+\end{example}
+
+\diffref{dcl.fct}
+\change
+使异常规范成为类型系统的一部分。
+\rationale
+提高类型安全性。
+\effect
+有效的 \CppXIV{} 代码在此版本的 \Cpp{} 中可能编译失败或改变含义。
+\begin{example}
+\begin{codeblock}
+void g1() noexcept;
+void g2();
+template<class T> int f(T *, T *);
+int x = f(g1, g2);              // 非良构；先前为良构
+\end{codeblock}
+\end{example}
+
+\diffref{dcl.init.aggr}
+\change
+聚合的定义被扩展，以适用于具有基类的用户定义类型。
+\rationale
+增加聚合初始化的便利性。
+\effect
+有效的 \CppXIV{} 代码在此版本的 \Cpp{} 中可能编译失败或产生不同结果；来自空初始化器列表的初始化将对受影响的类型执行聚合初始化，而非调用其默认构造函数。
+\begin{example}
+\begin{codeblock}
+struct derived;
+struct base {
+  friend struct derived;
+private:
+  base();
+};
+struct derived : base {};
+
+derived d1{};       // 错误；此代码在 \CppXIV{} 中为良构
+derived d2;         // 仍然正确
+\end{codeblock}
+\end{example}
+
+\rSec2[diff.cpp14.class]{\ref{class}: 类}
+
+\diffref{class.inhctor.init}
+\change
+继承构造函数不再向派生类注入构造函数。
+\rationale
+与其他语言特性更好交互。
+\effect
+使用继承构造函数的有效 \CppXIV{} 代码可能失效或语义改变。命名构造函数的 \grammarterm{using-declaration} 如今令对应基类构造函数对派生类初始化可见，而非声明额外的派生类构造函数。
+\begin{example}
+\begin{codeblock}
+struct A {
+  template<typename T> A(T, typename T::type = 0);
+  A(int);
+};
+struct B : A {
+  using A::A;
+  B(int);
+};
+B b(42L);           // 现在调用 \tcode{B(int)}，过去调用 \tcode{B<long>(long)}，
+                    // 后者因 \tcode{A<long>(long)} 替换失败而调用 \tcode{A(int)}。
+\end{codeblock}
+\end{example}
+
+\rSec2[diff.cpp14.temp]{\ref{temp}: 模板}
+
+\diffref{temp.deduct.type}
+\change
+允许从常量模板实参的类型进行推导。
+\rationale
+结合能够使用占位符类型声明常量模板实参的能力，允许偏特化从为常量模板实参推导出的类型进行分解。
+\effect
+在\CppXIV{}中有效的代码在此修订版的\Cpp{}中可能无法编译或产生不同的结果。
+\begin{example}
+\begin{codeblock}
+template <int N> struct A;
+template <typename T, T N> int foo(A<N> *) = delete;
+void foo(void *);
+void bar(A<0> *p) {
+  foo(p);           // 非良构；此前良构
+}
+\end{codeblock}
+\end{example}
+
+\rSec2[diff.cpp14.except]{\ref{except}：异常处理}
+
+\diffref{except.spec}
+\change
+移除动态异常规格说明。
+\rationale
+动态异常规格说明是一项已被弃用的功能，其使用复杂且脆弱。它们与类型系统的交互状况不佳，这在 \Cpp{} 的本修订版中成为了一个更为重要的问题，因为（非动态的）异常规格说明已成为函数类型的一部分。
+\effect
+一个有效的 \CppXIV{} 函数声明、成员函数声明、函数指针声明或函数引用声明，若其含有一个可能抛出的动态异常规格说明，则在 \Cpp{} 的本修订版中会被作为非良构而拒绝。违反一个不抛出的动态异常规格说明会调用 \tcode{terminate} 而非 \tcode{unexpected}，并且在此类调用前是否执行栈回溯是未指明的。
+
+\rSec2[diff.cpp14.library]{\ref{library}: 库引言}
+
+\diffref{headers}
+\change
+新增头文件。
+\rationale
+新增功能。
+\effect
+以下 \Cpp{} 头文件为新增：
+\libheaderrefx{any}{any.synop}、
+\libheaderref{charconv}、
+\libheaderref{execution}、
+\libheaderrefx{filesystem}{fs.filesystem.syn}、
+\libheaderrefx{memory_resource}{mem.res.syn}、
+\libheaderref{optional}、\\
+\libheaderrefx{string_view}{string.view.synop}、
+以及
+\libheaderref{variant}。
+包含了这些名称头文件的合法 \CppXIV{} 代码，在此 \Cpp{} 修订版中可能失效。
+
+\diffref{namespace.future}
+\change
+新增保留名字空间。
+\rationale
+为标准库未来修订保留名字空间，以免与现有程序不兼容。
+\effect
+以 \tcode{std} 开头后接任意 \grammarterm{digit}{s}\iref{lex.name} 序列的全局名字空间，被保留以供将来标准化。
+使用了此类顶层名字空间（例如 \tcode{std2}）的合法 \CppXIV{} 代码，在此 \Cpp{} 修订版中可能失效。
+
+\rSec2[diff.cpp14.utilities]{\ref{utilities}: 通用工具库}
+
+\diffref{func.wrap}
+\change
+移除接受分配器的构造函数。
+\rationale
+实现未达成共识。
+\effect
+有效的 \CppXIV{} 代码在此版 \Cpp{} 中可能无法编译或含义改变。具体而言，用分配器构造 \tcode{std::function} 在该版 \Cpp{} 中是非法的，并使用分配器构造时不会将分配器传递给 \tcode{std::function} 的构造函数。
+
+\diffref{util.smartptr.shared}
+\change
+对来自 \tcode{unique_ptr} 的转换施加不同的限制。
+\rationale
+通过语法 \tcode{shared_ptr<T[]>} 和 \tcode{shared_ptr<T[N]>} 为 \tcode{shared_ptr} 添加数组支持。
+\effect
+有效的 \CppXIV{} 代码在此版 \Cpp{} 中可能无法编译或含义改变。
+\begin{example}
+\begin{codeblock}
+#include <memory>
+std::unique_ptr<int[]> arr(new int[1]);
+std::shared_ptr<int> ptr(std::move(arr));   // 错误：\tcode{int(*)[]} 与 \tcode{int*} 不兼容
+\end{codeblock}
+\end{example}
+
+\rSec2[diff.cpp14.string]{\ref{strings}：strings library}
+
+\diffref{basic.string}
+\change
+增加了非 const 的 \tcode{.data()} 成员。
+\rationale
+缺乏非 const 的 \tcode{.data()} 使其与 \tcode{std::vector} 的类似成员不一致。
+此变更使行为规范化。
+\effect
+对于 \tcode{char*} 和 \tcode{const char*} 参数具有不同代码路径的重载函数，
+在此版本的 \Cpp{} 中，当以非 const 字符串的 \tcode{.data()} 成员调用时，将会执行不同的路径。
+\begin{example}
+\begin{codeblock}
+int f(char *) = delete;
+int f(const char *);
+string s;
+int x = f(s.data());            // 非良构；先前为良构
+\end{codeblock}
+\end{example}
+
+\rSec2[diff.cpp14.containers]{\ref{containers}：容器库}
+
+\diffref{associative.reqmts}
+\change
+需求变更：
+\rationale
+提升可移植性，阐明关联容器的需求。
+\effect
+尝试使用比较对象的函数调用运算符为非 const 的关联容器的有效 \CppXIV{} 代码，在此修订的 \Cpp{} 中可能无法编译。
+\begin{example}
+\begin{codeblock}
+#include <set>
+
+struct compare
+{
+  bool operator()(int a, int b)
+  {
+    return a < b;
+  }
+};
+
+int main() {
+  const std::set<int, compare> s;
+  s.find(0);
+}
+\end{codeblock}
+\end{example}
+
+\rSec2[diff.cpp14.depr]{\ref{depr}: 兼容性功能}
+
+\nodiffref
+\change
+类模板
+\tcode{auto_ptr}、
+\tcode{unary_function} 和
+\tcode{binary_function}，
+函数模板
+\tcode{random_shuffle}，
+以及函数模板（及其返回类型）
+\tcode{ptr_fun}、
+\tcode{mem_fun}、
+\tcode{mem_fun_ref}、
+\tcode{bind1st} 和
+\tcode{bind2nd}
+未被定义。
+\rationale
+已被新功能取代。
+\effect
+使用这些类模板和函数模板的有效 \CppXIV{} 代码可能在此修订版本的 \Cpp{} 中无法编译。
+
+\nodiffref
+\change
+移除旧 iostream 成员 [depr.ios.members]。
+\rationale
+用于兼容前标准代码的冗余功能已完成其使命。
+\effect
+使用这些标识符的有效 \CppXIV{} 程序在此修订版本的 \Cpp{} 中可能为病态。
+
+\rSec1[diff.cpp11]{\Cpp{} 与 ISO \CppXI{}}
+
+\rSec2[diff.cpp11.general]{一般说明}
+
+\pnum
+\indextext{summary!compatibility with ISO \CppXI{}}%
+除上文所列差异外，子条款\ref{diff.cpp11}按本文件各章列出\Cpp{}与ISO \CppXI{}之间的差异。
+
+\rSec2[diff.cpp11.lex]{\ref{lex}: 词汇约定}
+
+\diffref{lex.ppnumber}
+\change
+\grammarterm{pp-number} 可以包含一个或多个单引号。
+\rationale
+启用单引号作为数字分隔符所必需。
+\effect
+有效的 \CppXI{} 代码在此 \Cpp{} 修订版中可能无法编译或含义改变。例如，以下代码在 \CppXI{} 和本 \Cpp{} 修订版中均有效，但宏调用产生不同结果，因为单引号在 \CppXI{} 中界定 \grammarterm{character-literal}，而在本 \Cpp{} 修订版中则是数字分隔符。
+\begin{example}
+\begin{codeblock}
+#define M(x, ...) __VA_ARGS__
+int x[2] = { M(1'2,3'4, 5) };
+// \tcode{int x[2] = \{ 5 \};\ \ \ \ \ } --- \CppXI{}
+// \tcode{int x[2] = \{ 3'4, 5 \};} --- 本 \Cpp{} 修订版
+\end{codeblock}
+\end{example}
+
+\rSec2[diff.cpp11.basic]{\ref{basic}: 基础}
+
+\diffref{basic.stc.dynamic.deallocation}
+\change
+新增一般（非布置）释放函数。
+\rationale
+支持带大小释放所必需。
+\effect
+合法的\CppXI{}代码可如下声明全局布置分配函数及释放函数：
+\begin{codeblock}
+void* operator new(std::size_t, std::size_t);
+void operator delete(void*, std::size_t) noexcept;
+\end{codeblock}
+然而在\Cpp{}本修订中，\tcode{operator delete}的声明可能匹配预定义的一般（非布置）
+\tcode{operator delete}\iref{basic.stc.dynamic}。若如此，则程序为非法，类同于类成员分配函数和
+释放函数的情形\iref{expr.new}。
+
+\rSec2[diff.cpp11.expr]{\ref{expr}: 表达式}
+
+\diffref{expr.cond}
+\change
+条件表达式若以 throw 表达式作为第二或第三操作数，则保持另一操作数的类型和值类别。
+\rationale
+原先强制的转换（左值到右值\iref{conv.lval}、数组到指针\iref{conv.array}、函数到指针\iref{conv.func}标准转换），特别是因左值到右值转换而创建的临时对象，被视为多余且令人意外。
+\effect
+依赖这些转换的有效 \CppXI{} 代码在本版 \Cpp{} 中可能表现不同。
+\begin{example}
+\begin{codeblock}
+struct S {
+  int x = 1;
+  void mf() { x = 2; }
+};
+int f(bool cond) {
+  S s;
+  (cond ? s : throw 0).mf();
+  return s.x;
+}
+\end{codeblock}
+在 \CppXI{} 中，\tcode{f(true)} 返回 \tcode{1}；在本版 \Cpp{} 中，返回 \tcode{2}。
+\begin{codeblock}
+sizeof(true ? "" : throw 0)
+\end{codeblock}
+在 \CppXI{} 中，该表达式求得 \tcode{sizeof(const char*)}；在本版 \Cpp{} 中，求得 \tcode{sizeof(const char[1])}。
+\end{example}
+
+\rSec2[diff.cpp11.dcl.dcl]{\ref{dcl}: 声明}
+
+\diffref{dcl.constexpr}
+\change
+\keyword{constexpr} 非静态成员函数不会被隐式地视为 \keyword{const} 成员函数。
+\rationale
+为了让 \keyword{constexpr} 成员函数能够修改对象，这是必要的。
+\effect
+有效的 \CppXI{} 代码在此 \Cpp{} 修订版中可能无法编译。
+\begin{example}
+\begin{codeblock}
+struct S {
+  constexpr const int &f();
+  int &f();
+};
+\end{codeblock}
+这段代码在 \CppXI{} 中是有效的，
+但在本 \Cpp{} 修订版中是无效的，因为它用不同的返回类型声明了相同的成员函数两次。
+\end{example}
+
+\diffref{dcl.init.aggr}
+\change
+具有默认成员初始值设定项的类可以是聚合体。
+\rationale
+为了让聚合初始化能够使用默认成员初始值设定项，这是必要的。
+\effect
+有效的 \CppXI{} 代码在此 \Cpp{} 修订版中可能无法编译，或其含义可能改变。
+\begin{example}
+\begin{codeblock}
+struct S {          // 在 \CppXIV{} 及之后是聚合体。
+  int m = 1;
+};
+struct X {
+  operator int();
+  operator S();
+};
+X a{};
+S b{a};             // 在 \CppXI{} 中使用复制构造函数，
+                    // 在本 \Cpp{} 修订版中执行聚合初始化
+\end{codeblock}
+\end{example}
+
+\rSec2[diff.cpp11.library]{\ref{library}: 库引言}
+
+\diffref{headers}
+\change
+新头文件。
+\rationale
+新功能。
+\effect
+\Cpp{} 头文件 \libheaderrefx{shared_mutex}{shared.mutex.syn} 是新的。
+有效 \CppXI{} 代码若 \tcode{\#include} 该名称的头文件，在此版 \Cpp{} 中可能无效。
+
+\rSec2[diff.cpp11.input.output]{\ref{input.output}: 输入/输出库}
+
+\diffref{c.files}
+\change
+未定义 \tcode{gets}。
+\rationale
+使用 \tcode{gets} 被认为是危险的。
+\effect
+使用 \tcode{gets} 函数的有效 \CppXI{} 代码在此修订版 \Cpp{} 中可能无法编译。
+
+\rSec1[diff.cpp03]{\Cpp{} 与 ISO \CppIII{}}
+
+\rSec2[diff.cpp03.general]{一般说明}
+
+\pnum
+\indextext{summary!compatibility with ISO \CppIII{}}%
+除上文所列内容外，
+分节 \ref{diff.cpp03} 依本文档各章节，
+列出 \Cpp{} 与 ISO \CppIII{} 之差异。
+
+\rSec2[diff.cpp03.lex]{\ref{lex}: 词法约定}
+
+\diffref{lex.pptoken}
+\change
+新型的 \grammarterm{string-literal}。
+\rationale
+新功能所需。
+\effect
+有效的 \CppIII{} 代码在此修订版本的 \Cpp{} 中可能无法编译或产生不同的结果。
+具体来说，名为 \tcode{R}、\tcode{u8}、\tcode{u8R}、\tcode{u}、\tcode{uR}、
+\tcode{U}、\tcode{UR} 或 \tcode{LR} 的宏在与 \grammarterm{string-literal} 相邻时不会被展开，
+而是会被解释为 \grammarterm{string-literal} 的一部分。
+\begin{example}
+\begin{codeblock}
+#define u8 "abc"
+const char* s = u8"def";        // 以前是 \tcode{"abcdef"}，现在是 \tcode{"def"}
+\end{codeblock}
+\end{example}
+
+\diffref{lex.pptoken}
+\change
+用户定义的字符串字面量支持。
+\rationale
+新功能所需。
+\effect
+有效的 \CppIII{} 代码在此修订版本的 \Cpp{} 中可能无法编译或产生不同的结果。
+\begin{example}
+\begin{codeblock}
+#define _x "there"
+"hello"_x           // \#1
+\end{codeblock}
+
+以前，\#1 会由两个独立的预处理令牌组成，并且宏 \tcode{_x} 会被展开。
+在此修订版本的 \Cpp{} 中，\#1 由单个预处理令牌组成，因此宏不会被展开。
+\end{example}
+
+\diffref{lex.key}
+\change
+新的关键词。
+\rationale
+新功能所需。
+\effect
+添加到 \tref{lex.key} 中，以下标识符为新的关键词：
+\tcode{alignas}、
+\tcode{alignof}、
+\keyword{char16_t}、
+\keyword{char32_t}、
+\keyword{constexpr}、
+\keyword{decltype}、
+\keyword{noexcept}、
+\keyword{nullptr}、
+\keyword{static_assert}、
+和
+\keyword{thread_local}。
+使用这些标识符的有效 \CppIII{} 代码在此修订版本的 \Cpp{} 中是无效的。
+
+\diffref{lex.icon}
+\change
+整数字面量的类型。
+\rationale
+C99 兼容性。
+\effect
+某些大于 \tcode{long} 可表示的整数字面量可能从无符号整数类型变为 \tcode{signed long long}。
+
+\rSec2[diff.cpp03.expr]{\ref{expr}: 表达式}
+
+\diffref{conv.ptr}
+\change
+仅字面量是整数空指针常量。
+\rationale
+消除与模板和常量表达式令人惊讶的交互。
+\effect
+有效的 \CppIII{} 代码在此修订版的 \Cpp{} 中可能编译失败或产生不同的结果。
+\begin{example}
+\begin{codeblock}
+void f(void *);     // \#1
+void f(...);        // \#2
+template<int N> void g() {
+  f(0*N);           // 调用 \#2；曾经调用 \#1
+}
+\end{codeblock}
+\end{example}
+
+\diffref{expr.typeid}
+\change
+对 \keyword{typeid} 中操作数的求值。
+\rationale
+引入额外的表达式值类别。
+\effect
+使用将亡值作为 \keyword{typeid} 操作数的有效 \CppIII{} 代码在此修订版的 \Cpp{} 中可能改变行为。
+\begin{example}
+\begin{codeblock}
+void f() {
+  struct B {
+    B() {}
+    virtual ~B() { }
+  };
+
+  struct C { B b; };
+  typeid(C().b);    // 在 \CppIII{} 中不求值，在 \CppXI{} 中求值
+}
+\end{codeblock}
+\end{example}
+
+\diffref{expr.mul}
+\change
+规定整数 \tcode{/} 和 \tcode{\%} 结果的舍入方式。
+\rationale
+增加可移植性，兼容 C99。
+\effect
+使用整数除法将结果向 0 或向负无穷舍入的有效 \CppIII{} 代码，在此修订版的 \Cpp{} 中总是向 0 舍入结果。
+
+\diffref{expr.log.and}
+\change
+\tcode{\&\&} 在 \grammarterm{type-name} 中是有效的。
+\rationale
+新功能所需。
+\effect
+有效的 \CppIII{} 代码在此修订版的 \Cpp{} 中可能编译失败或产生不同的结果。
+\begin{example}
+\begin{codeblock}
+bool b1 = new int && false;             // 以前为 \tcode{false}，现在为非良构
+struct S { operator int(); };
+bool b2 = &S::operator int && false;    // 以前为 \tcode{false}，现在为非良构
+\end{codeblock}
+\end{example}
+
+\diffref{expr.cond}
+\change
+条件运算符中更少的复制。
+\rationale
+引入额外的表达式值类别。
+\effect
+使用将亡值作为条件运算符操作数的有效 \CppIII{} 代码在此修订版的 \Cpp{} 中可能改变行为。
+\begin{example}
+\begin{codeblock}
+void f() {
+  struct B {
+    B() {}
+    B(const B&) { }
+  };
+  struct D : B {};
+
+  struct BB { B b; };
+  struct DD { D d; };
+
+  true ? BB().b : DD().d;       // 在 \CppIII{} 中有额外复制，在 \CppXI{} 中无复制或移动
+}
+\end{codeblock}
+\end{example}
+
+\rSec2[diff.cpp03.dcl.dcl]{\ref{dcl}: 声明}
+
+\diffref{dcl.spec}
+\change
+移除 \keyword{auto} 作为存储类说明符。
+\rationale
+新特性。
+\effect
+使用关键词 \keyword{auto} 作为存储类说明符的有效 \CppIII{} 代码
+在此修订版 \Cpp{} 中可能无效。
+在此修订版 \Cpp{} 中，
+\keyword{auto} 指示变量的类型将从其初始化器表达式推导。
+
+\diffref{dcl.init.list}
+\change
+聚合初始化中的窄化限制。
+\rationale
+捕捉错误。
+\effect
+有效的 \CppIII{} 代码在此修订版 \Cpp{} 中可能无法编译。
+\begin{example}
+\begin{codeblock}
+int x[] = { 2.0 };
+\end{codeblock}
+此代码在 \CppIII{} 中有效，但在
+此修订版 \Cpp{} 中无效，因为 \tcode{double} 到 \tcode{int} 是窄化
+转换。
+\end{example}
+
+\diffref{dcl.link}
+\change
+在匿名名字空间中声明的名称
+从外部链接改为内部链接；
+语言链接仅适用于具有外部链接的名称。
+\rationale
+与用户预期保持一致。
+\effect
+有效的 \CppIII{} 代码在此修订版 \Cpp{} 中可能违反单一定义规则\iref{basic.def.odr}。
+\begin{example}
+\begin{codeblock}
+namespace { extern "C" { extern int x; } }  // \#1，先前为外部链接和 C 语言链接，
+                                            // 现为内部链接和 \Cpp{} 语言链接
+namespace A { extern "C" int x = 42; }      // \#2，外部链接和 C 语言链接
+int main(void) { return x; }
+\end{codeblock}
+此代码在 \CppIII{} 中有效，
+但在此修订版 \Cpp{} 中，\tcode{\#2} 并非 \tcode{\#1} 的定义，
+违反了单一定义规则。
+\end{example}
+
+\rSec2[diff.cpp03.class]{\ref{class}: 类}
+
+\diffref{class.default.ctor,class.dtor,class.copy.ctor,class.copy.assign}
+\change
+当隐式定义会非良构时，隐式声明的特殊成员函数被定义为删除。
+\rationale
+改进模板实参推导失败。
+\effect
+某个合法的\CppIII{}程序若在无需定义的上下文中（例如，在一个不被潜在求值的表达式中）使用了这些特殊成员函数之一，则变为非良构。
+
+\diffref{class.dtor}
+\change
+用户声明的析构函数具有隐式异常规范。
+\rationale
+澄清析构函数的要求。
+\effect
+合法的\CppIII{}代码在此修订的\Cpp{}中可能表现出不同的执行行为。具体而言，若其异常规范为不抛出，抛出异常的析构函数将调用\tcode{std::terminate}（而不会调用\tcode{std::unexpected}）。
+
+\rSec2[diff.cpp03.temp]{\ref{temp}: 模板}
+
+\diffref{temp.param}
+\change
+将 \keyword{export} 改用于模块\iref{module,cpp.module,cpp.import}。
+\rationale
+对 \CppIII{} 中 \keyword{export} 的含义未达成实现共识。
+\effect
+包含 \tcode{export} 的有效 \CppIII{} 程序在此 \Cpp{} 修订版本中为**非良构**。
+
+\diffref{temp.arg}
+\change
+移除了嵌套闭合模板右尖括号的空白符要求。
+\rationale
+被认为是一个长期存在但较小的困扰。表示非类类型的模板别名会加剧空白符问题。
+\effect
+更改了良定义表达式的语义。一个有效的 \CppIII{} 表达式若包含一个右尖括号（``\tcode{>}''）后立即跟随另一个右尖括号，现在可能被视为闭合两个模板。
+\begin{example}
+\begin{codeblock}
+template <class T> struct X { };
+template <int N> struct Y { };
+X< Y< 1 >> 2 > > x;
+\end{codeblock}
+这段代码在 \CppIII{} 中是有效的，因为 ``\tcode{>>}'' 是一个右移运算符，但在此 \Cpp{} 修订版本中是无效的，因为 ``\tcode{>>}'' 闭合了两个模板。
+\end{example}
+
+\diffref{temp.dep.candidate}
+\change
+允许依赖调用具有内部链接的函数。
+\rationale
+约束过于严格，简化了重载决议规则。
+\effect
+一个有效的 \CppIII{} 程序在此 \Cpp{} 修订版本中可能得到不同的结果。
+
+\rSec2[diff.cpp03.library]{\ref{library}：库介绍}
+
+\pnum
+\textbf{受影响：}\ref{library} -- \ref{\lastlibchapter}
+\change
+新增保留标识符。
+\rationale
+新功能所需。
+\effect
+使用后续\Cpp{}修订版添加到\Cpp{}标准库的任何标识符的合法\CppIII{}代码，在此\Cpp{}修订版中可能无法编译或产生不同结果。本文件中使用的\Cpp{}标准库标识符完整列表可在库名称索引中找到。
+
+\diffref{headers}
+\change
+新增头文件。
+\rationale
+新功能。
+\effect
+以下\Cpp{}头文件为新增：
+\libheaderref{array}、
+\libheaderrefx{atomic}{atomics.syn}、
+\libheaderrefx{chrono}{time.syn}、
+\libheaderrefx{condition_variable}{condition.variable.syn}、
+\libheaderrefx{forward_list}{forward.list.syn}、
+\libheaderref{future}、
+\libheaderrefxx{initializer_list}{initiali\-zer_list}{initializer.list.syn}、
+\libheaderref{mutex}、
+\libheaderrefx{random}{rand.synopsis}、
+\libheaderref{ratio}、
+\libheaderrefx{regex}{re.syn}、
+\libheaderrefx{scoped_allocator}{allocator.adaptor.syn}、
+\libheaderrefx{system_error}{system.error.syn}、
+\libheaderref{thread}、
+\libheaderref{tuple}、
+\libheaderrefxx{typeindex}{type\-index}{type.index.synopsis}、
+\libheaderrefx{type_traits}{meta.type.synop}、
+\libheaderrefx{unordered_map}{unord.map.syn}、
+以及
+\libheaderrefx{unordered_set}{unord.set.syn}。
+此外，以下C兼容头文件为新增：
+\libheaderref{cfenv}、
+\libheaderref{cinttypes}、
+\libheaderref{cstdint}、
+以及
+\libheaderref{cuchar}。
+包含这些头文件名称的合法\CppIII{}代码在此\Cpp{}修订版中可能无效。
+
+\diffref{swappable.requirements}
+\change
+函数\tcode{swap}移至不同头文件。
+\rationale
+消除\tcode{swap}对\libheaderref{algorithm}的依赖。
+\effect
+原先编译时期望\tcode{swap}位于\libheaderref{algorithm}的合法\CppIII{}代码，可能需要改为包含\libheaderref{utility}。
+
+\diffref{namespace.posix}
+\change
+新增保留命名空间。
+\rationale
+新功能。
+\effect
+全局命名空间\tcode{posix}现保留用于标准化。使用顶层命名空间\tcode{posix}的合法\CppIII{}代码在此\Cpp{}修订版中可能无效。
+
+\diffref{macro.names}
+\change
+对宏名称的额外限制。
+\rationale
+避免难以诊断或不可移植的构造。
+\effect
+属性标识符的名称不得用作宏名称。将\tcode{override}、\tcode{final}或\tcode{noreturn}定义为宏的合法\CppIII{}代码在此\Cpp{}修订版中无效。
+
+\rSec2[diff.cpp03.language.support]{\ref{support}: 语言支持库}
+
+\diffref{new.delete.single}
+\change
+\tcode{operator new} 除了 \tcode{std::bad_alloc} 之外还可能抛出其他异常。
+\rationale
+与 \keyword{noexcept} 的一致应用。
+\effect
+假定全局 \tcode{operator new} 仅抛出 \tcode{std::bad_alloc} 的有效 \CppIII{} 代码在此 \Cpp{} 修订版本中可能表现出不同的行为。
+替换全局可替换 \tcode{operator new} 的有效 \CppIII{} 代码在此 \Cpp{} 修订版本中属于非良构，因为已移除 \tcode{throw(std::bad_alloc)} 的异常规范。
+
+\rSec2[diff.cpp03.diagnostics]{\ref{diagnostics}: 诊断库}
+
+\diffref{errno}
+\change
+线程局部错误号。
+\rationale
+支持新的线程设施。
+\effect
+有效但实现特定的 \CppIII{} 代码，如果依赖于跨线程间 \tcode{errno} 保持一致，则在此 \Cpp{} 修订版中行为可能发生变化。
+
+\rSec2[diff.cpp03.utilities]{\ref{utilities}: 通用工具库}
+
+\diffref{refwrap,arithmetic.operations,comparisons,logical.operations,bitwise.operations}
+\change
+标准函数对象类型不再派生自
+\tcode{std::unary_function} 或 \tcode{std::binary_function}。
+\rationale
+被新特性所取代；\tcode{unary_function} 与
+\tcode{binary_function} 不再被定义。
+\effect
+依赖于函数对象类型派生自
+\tcode{unary_function} 或 \tcode{binary_function} 的有效 \CppIII{} 代码
+可能在此修订版本的 \Cpp{} 中无法编译。
+
+\rSec2[diff.cpp03.strings]{\ref{strings}: strings library}
+
+\diffref{string.classes}
+\change
+\tcode{basic_string} 要求不再允许引用计数字符串。
+\rationale
+引用计数字符串在失效方面存在细微差异。
+此变更使行为规范化。
+\effect
+有效的 \CppIII{} 代码在此 \Cpp{} 修订版中可能执行不同。
+
+\diffref{string.require}
+\change
+放宽 \tcode{basic_string} 的失效规则。
+\rationale
+允许小字符串优化。
+\effect
+有效的 \CppIII{} 代码在此 \Cpp{} 修订版中可能执行不同。
+某些 \keyword{const} 成员函数（如 \tcode{data} 和 \tcode{c_str}）
+不再使迭代器失效。
+
+\rSec2[diff.cpp03.containers]{\ref{containers}: 容器库}
+
+\diffref{container.requirements}
+\change
+现在 \tcode{size()} 成员函数具有常数复杂度。
+\rationale
+缺乏对 \tcode{size()} 复杂度的规定导致出现了性能特征不一致的不同实现。
+\effect
+某些符合 \CppIII{} 的容器实现可能不符合此 \Cpp{} 修订版中指定的 \tcode{size()} 要求。将容器（如 \tcode{std::list}）调整到更严格的要求可能需要不兼容的更改。
+
+\diffref{container.requirements}
+\change
+要求变更：放宽。
+\rationale
+澄清。
+\effect
+原本尝试满足指定容器要求的有效 \CppIII{} 代码现在可能规格过严。尝试跨容器移植的代码可能需要按如下方式调整：
+\begin{itemize}
+\item 并非所有容器都提供 \tcode{size()}；用 \tcode{empty()} 代替 \tcode{size() == 0}；
+\item 并非所有容器在构造后为空（\tcode{array}）；
+\item 并非所有容器对于 \tcode{swap()} 具有常数复杂度（\tcode{array}）。
+\end{itemize}
+
+\diffref{container.requirements}
+\change
+要求变更：可默认构造。
+\rationale
+澄清容器要求。
+\effect
+尝试使用没有默认构造函数的用户定义类型显式实例化容器的有效 \CppIII{} 代码可能无法编译。
+
+\diffref{sequence.reqmts,associative.reqmts}
+\change
+签名更改：自 \keyword{void} 返回类型。
+\rationale
+旧签名丢弃了可能重新计算代价高昂的有用信息。
+\effect
+以下成员函数已更改：
+\begin{itemize}
+\item \tcode{set}, \tcode{multiset}, \tcode{map}, \tcode{multimap} 的 \tcode{erase(iter)}
+\item \tcode{set}, \tcode{multiset}, \tcode{map}, \tcode{multimap} 的 \tcode{erase(begin, end)}
+\item \tcode{vector}, \tcode{deque}, \tcode{list}, \tcode{forward_list} 的 \tcode{insert(pos, num, val)}
+\item \tcode{vector}, \tcode{deque}, \tcode{list}, \tcode{forward_list} 的 \tcode{insert(pos, beg, end)}
+\end{itemize}
+
+依赖这些函数返回 \keyword{void} 的有效 \CppIII{} 代码（例如，创建指向这些函数之一的成员函数指针的代码）将无法在此 \Cpp{} 修订版下编译。
+
+\diffref{sequence.reqmts,associative.reqmts}
+\change
+签名更改：从 \tcode{iterator} 到 \tcode{const_iterator} 参数。
+\rationale
+过严规定。
+\effect
+以下成员函数的签名从接受一个 \tcode{iterator} 更改为接受一个 \tcode{const_iterator}：
+
+\begin{itemize}
+\item \tcode{vector}, \tcode{deque}, \tcode{list},
+\tcode{set}, \tcode{multiset}, \tcode{map}, \tcode{multimap} 的 \tcode{insert(iter, val)}
+\item \tcode{vector}, \tcode{deque}, \tcode{list},
+\tcode{forward_list} 的 \tcode{insert(pos, beg, end)}
+\item \tcode{set}, \tcode{multiset}, \tcode{map}, \tcode{multimap} 的 \tcode{erase(begin, end)}
+\item 所有形式的 \tcode{list::splice}
+\item 所有形式的 \tcode{list::merge}
+\end{itemize}
+
+使用这些函数的有效 \CppIII{} 代码可能无法在此 \Cpp{} 修订版下编译。
+
+\diffref{sequence.reqmts,associative.reqmts}
+\change
+签名更改：\tcode{resize}。
+\rationale
+性能，与移动语义兼容。
+\effect
+对于 \tcode{vector}, \tcode{deque}, 和 \tcode{list}，
+传递给 \tcode{resize} 的填充值现在通过引用而非值传递，并且添加了 \tcode{resize} 的一个额外重载。使用此函数的有效 \CppIII{} 代码可能无法在此 \Cpp{} 修订版下编译。
+
+\rSec2[diff.cpp03.algorithms]{\ref{algorithms}: 算法库}
+
+\diffref{algorithms.general}
+\change
+某些算法应用后输入的结果状态。
+\rationale
+新功能所需。
+\effect
+一个有效的 \CppIII{} 程序可能会检测到，在此 \Cpp 修订版中，一个具有有效但未指定状态的对象，其有效但未指定的状态与之前不同。例如，\tcode{std::remove} 和 \tcode{std::remove_if} 可能使得输入序列的尾部留下与之前不同的一组值。
+
+\rSec2[diff.cpp03.numerics]{\ref{numerics}: 数值库}
+
+\diffref{complex.numbers}
+\change
+指定复数的表示方式。
+\rationale
+与C99兼容。
+\effect
+有效\CppIII{}代码若依赖\tcode{std::complex}所需模板特化的二进制表示的实现特定知识，则可能与此版\Cpp{}不兼容。
+
+\clearpage
+\rSec2[diff.cpp03.locale]{\ref{localization}: 本地化库}
+
+\diffref{facet.num.get.virtuals}
+\change
+\tcode{num_get} facet 现在可识别十六进制浮点值。
+\rationale
+由新功能所需。
+\effect
+有效的 \CppIII{} 代码在此 \Cpp{} 修订中可能表现出不同行为。
+
+\rSec2[diff.cpp03.input.output]{\ref{input.output}: 输入/输出库}
+
+\diffref{istream.sentry,ostream.sentry,iostate.flags}
+\change
+在现有布尔转换函数中指定使用\keyword{explicit}。
+\rationale
+阐明意图，避免变通方法。
+\effect
+依赖隐式布尔转换的有效\CppIII{}代码将无法使用此修订版\Cpp{}编译。此类转换出现在如下情形：
+
+\begin{itemize}
+\item 向接受\tcode{bool}类型参数的函数传值；
+\item 使用\tcode{operator==}与\tcode{false}或\tcode{true}比较；
+\item 从返回类型为\tcode{bool}的函数返回值；
+\item 通过聚合初始化初始化\tcode{bool}类型成员；
+\item 初始化会绑定到临时对象的\tcode{const bool\&}。
+\end{itemize}
+
+\diffref{ios.failure}
+\change
+更改\tcode{std::ios_base::failure}的基类。
+\rationale
+提供更详细的错误信息。
+\effect
+\tcode{std::ios_base::failure}不再直接派生自\tcode{std::exception}，而是改为派生自\tcode{std::system_error}，后者再派生自\tcode{std::runtime_error}。假定\tcode{std::ios_base::failure}直接派生自\tcode{std::exception}的有效\CppIII{}代码在此修订版\Cpp{}中可能表现不同。
+
+\diffref{ios.base}
+\change
+\tcode{std::ios_base}中的标志类型现为位掩码，其值以constexpr静态成员定义。
+\rationale
+新功能所需。
+\effect
+依赖\tcode{std::ios_base}标志类型被表示为\tcode{std::bitset}或整数类型的有效\CppIII{}代码可能无法在此修订版\Cpp{}中编译。
+\begin{example}
+\begin{codeblock}
+#include <iostream>
+
+int main() {
+  int flag = std::ios_base::hex;
+  std::cout.setf(flag);         // 错误：\tcode{setf}不接受\tcode{int}类型的实参
+}
+\end{codeblock}
+\end{example}
+
+\rSec1[diff.iso]{\Cpp{} 与 C}
+
+\rSec2[diff.iso.general]{一般}
+
+\pnum
+\indextext{summary!compatibility with C}%
+子条款 \ref{diff.iso} 按本文档章节列出了 \Cpp{} 与 C 之间的差异，
+除上述已列出的差异之外。
+
+\rSec2[diff.lex]{\ref{lex}：词法约定}
+
+\diffref{lex.key}
+\change
+新关键字。\\
+向 \Cpp{} 添加了新关键字；
+见 \ref{lex.key}。
+\rationale
+为实现 \Cpp{} 的新语义而添加这些关键字。
+\effect
+对良定义特性的语义进行更改。
+任何将这些关键字用作标识符的 C 程序都不是有效的 \Cpp{} 程序。
+\difficulty
+语法转换。
+转换单个具体程序简单。
+转换大量相关程序需更多工作。
+\howwide
+常见。
+
+\diffref{lex.ccon}
+\change
+\grammarterm{character-literal} 的类型由 \tcode{int} 改为 \tcode{char}。
+\rationale
+改进重载函数参数类型匹配。
+\begin{example}
+\begin{codeblock}
+int function( int i );
+int function( char c );
+
+function( 'x' );
+\end{codeblock}
+应优先匹配函数的第二个版本，而非第一个。
+\end{example}
+\effect
+对良定义特性的语义进行更改。
+依赖
+\begin{codeblock}
+sizeof('x') == sizeof(int)
+\end{codeblock}
+的 C 程序在 \Cpp{} 中行为不同。
+\difficulty
+简单。
+\howwide
+依赖 \tcode{sizeof('x')} 的程序极少。
+
+\diffref{lex.string}
+\change
+连接的 \grammarterm{string-literal} 不再允许冲突的 \grammarterm{encoding-prefix}。
+\rationale
+移除不可移植特性。
+\effect
+连接具有不同 \grammarterm{encoding-prefix} 的 \grammarterm{string-literal} 现为病态。
+\difficulty
+语法转换。
+\howwide
+罕见。
+
+\diffref{lex.string}
+\change
+字符串字面量为 const。\\
+\grammarterm{string-literal} 的类型由“\tcode{char} 的数组”
+改为“\tcode{const char} 的数组”。
+\indextext{UTF-8}%
+UTF-8 字符串字面量的类型由“\tcode{char} 的数组”
+改为“\tcode{const char8_t} 的数组”。
+\indextext{UTF-16}%
+UTF-16 字符串字面量的类型由“\textit{some-integer-type} 的数组”
+改为“\tcode{const char16_t} 的数组”。
+\indextext{UTF-32}%
+UTF-32 字符串字面量的类型由“\textit{some-integer-type} 的数组”
+改为“\tcode{const char32_t} 的数组”。
+宽字符串字面量的类型由“\keyword{wchar_t} 的数组”
+改为“\tcode{const wchar_t} 的数组”。
+\rationale
+防止调用不当的重载函数，该函数可能试图修改其参数。
+\effect
+对良定义特性的语义进行更改。
+\difficulty
+语法转换。修复方式：添加强制转换：
+\begin{codeblock}
+char* p = "abc";                // C 中有效，\Cpp{} 中无效
+void f(char*) {
+  char* p = (char*)"abc";       // 有效，已添加转换
+  f(p);
+  f((char*)"def");              // 有效，已添加转换
+}
+\end{codeblock}
+\howwide
+有正当理由将字符串字面量视为可修改内存的程序极少。
+
+\rSec2[diff.basic]{\ref{basic}: 基础}
+
+\diffref{basic.def}
+\change
+\Cpp{} 没有 C 中的“暂定定义”。
+\begin{example}
+在文件作用域，
+\begin{codeblock}
+int i;
+int i;
+\end{codeblock}
+在 C 中有效，在 \Cpp{} 中无效。
+\end{example}
+这使得如果初始化器受限于 C 的语法形式，则不可能定义具有静态存储期的互相引用的文件局部对象。
+\begin{example}
+\begin{codeblock}
+struct X { int i; struct X* next; };
+
+static struct X a;
+static struct X b = { 0, &a };
+static struct X a = { 1, &b };
+\end{codeblock}
+\end{example}
+\rationale
+这避免了基本类型和用户定义类型具有不同的初始化规则。
+\effect
+删除了语义上良定义的特性。
+\difficulty
+语义转换。
+在 \Cpp{} 中，一组具有静态存储期的互相引用的文件局部对象之一，其初始化器必须调用一个函数调用来完成初始化。
+\howwide
+很少。
+
+\diffref{basic.scope}
+\change
+在 \Cpp{} 中 \keyword{struct} 是一个作用域，而在 C 中不是。
+\begin{example}
+\begin{codeblock}
+struct X {
+  struct Y { int a; } b;
+};
+struct Y c;
+\end{codeblock}
+在 C 中有效但在 \Cpp{} 中无效，后者要求 \tcode{X::Y c;}。
+\end{example}
+\rationale
+类作用域对 \Cpp{} 至关重要，而结构体是一个类。
+\effect
+改变了语义上良定义的特性。
+\difficulty
+语义转换。
+\howwide
+C 程序非常频繁地使用 \keyword{struct}，但此更改仅在 \keyword{struct}、枚举或枚举符名称在 \keyword{struct} 之外被引用时才明显。后者可能很少见。
+
+\diffref{basic.link} [亦见 \ref{dcl.type}]
+\change
+文件作用域的名称若显式声明为 \keyword{const}，且未显式声明为 \keyword{extern}，则具有内部链接，而在 C 中它会具有外部链接。
+\rationale
+因为在 \Cpp{} 中常量对象可能在翻译期间被用作值，此特性促使程序员为每个常量对象提供一个显式的初始化器。此特性允许用户将常量对象放在被多个翻译单元包含的源文件中。
+\effect
+改变了语义上良定义的特性。
+\difficulty
+语义转换。
+\howwide
+很少。
+
+\diffref{basic.start.main}
+\change
+\tcode{main} 函数不能递归调用，也不能取其地址。
+\rationale
+\tcode{main} 函数可能需要特殊操作。
+\effect
+删除了语义上良定义的特性。
+\difficulty
+微小：创建一个中间函数，如 \tcode{mymain(argc, argv)}。
+\howwide
+很少。
+
+\diffref{basic.types}
+\change
+C 在多个地方允许“兼容类型”，而 \Cpp{} 不允许。\\
+例如，具有不同标签名称但其他方面相同的 \keyword{struct} 类型在 C 中“兼容”，但在 \Cpp{} 中是截然不同的类型。
+\rationale
+更严格的类型检查对 \Cpp{} 至关重要。
+\effect
+删除了语义上良定义的特性。
+\difficulty
+语义转换。
+“类型安全链接”机制会发现许多但并非所有此类问题。
+未通过类型安全链接发现的问题将继续正常运作，依据本文档的“布局兼容性规则”。
+\howwide
+常见。
+
+\rSec2[diff.expr]{\ref{expr}: 表达式}
+
+\diffref{conv.ptr}
+\change
+将类型为“指向 \cv{} \tcode{void} 的指针”的纯右值转换为指向对象类型的指针需要类型转换。
+\begin{example}
+\begin{codeblock}
+char a[10];
+void* b=a;
+void foo() {
+  char* c=b;
+}
+\end{codeblock}
+
+C 接受将“指向 \keyword{void} 的指针”赋值给指向对象类型指针的这种用法。
+\Cpp{} 不接受。
+\end{example}
+\rationale
+\Cpp{} 比 C 更努力地强制编译时类型安全。
+\effect
+删除了语义明确的功能。
+\difficulty
+可以自动化处理。
+违规将由 \Cpp{} 翻译器诊断。
+修复方法是添加类型转换。
+\begin{example}
+\begin{codeblock}
+char* c = (char*) b;
+\end{codeblock}
+\end{example}
+
+\howwide
+常见。
+
+\diffref{expr.arith.conv}
+\change
+混合枚举类型的值与另一个枚举类型值或浮点数类型值的操作是无效的。
+\begin{example}
+\begin{codeblock}
+enum E1 { e };
+enum E2 { f };
+int b = e <= 3.7;       // C 中有效；\Cpp{} 中非良构
+int k = f - e;          // C 中有效；\Cpp{} 中非良构
+int x = 1 ? e : f;      // C 中有效；\Cpp{} 中非良构
+\end{codeblock}
+\end{example}
+\rationale
+强化 \Cpp{} 中的类型安全。
+\effect
+良构的 C 代码将无法在本国际标准下编译。
+\difficulty
+违规将被 \Cpp{} 翻译器诊断。
+可以通过类型转换或整型提升恢复原始行为。
+\begin{example}
+\begin{codeblock}
+enum E1 { e };
+enum E2 { f };
+int b = (int)e <= 3.7;
+int k = +f - e;
+\end{codeblock}
+\end{example}
+\howwide
+不常见。
+
+\diffref{expr.post.incr,expr.pre.incr}
+\change
+不允许对 \keyword{bool} 操作数使用递减运算符。
+\rationale
+具有令人惊讶语义的功能。
+\effect
+在 \keyword{bool} 左值上使用递减运算符的有效 C 表达式（例如，通过 \libheaderref{stdbool.h} 中的 C 类型定义）在 \Cpp{} 中是非良构的。
+
+\diffref{expr.sizeof,expr.cast}
+\change
+在 \Cpp{} 中，类型只能在声明中定义，不能在表达式中定义。\\
+在 C 中，\keyword{sizeof} 表达式或强制转换表达式可以定义新类型。
+\begin{example}
+\begin{codeblock}
+p = (void*)(struct x {int i;} *)0;
+\end{codeblock}
+定义了一个新类型，struct \tcode{x}。
+\end{example}
+\rationale
+此禁令有助于明确源代码中定义的位置。
+\effect
+删除了语义明确的功能。
+\difficulty
+语法转换。
+\howwide
+少见。
+
+\diffref{expr.rel,expr.eq}
+\change
+C 允许直接比较两个数组类型的对象；\Cpp{} 不允许。
+\rationale
+该行为令人困惑，因为它比较的不是两个数组的内容，而是它们的地址。
+\effect
+删除了在常见用例中具有未指定行为的语义明确功能。
+\difficulty
+违规将被 \Cpp{} 翻译器诊断。
+可以通过显式地将任一数组转换为指针（例如，使用一元 \tcode{+}）来复制原始行为。
+\begin{example}
+\begin{codeblock}
+int arr1[5];
+int arr2[5];
+int same = arr1 == arr2;        // 有效的 C，非良构的 C++
+int idem = arr1 == +arr2;       // C 和 C++ 中均有效
+\end{codeblock}
+\end{example}
+\howwide
+罕见。
+
+\diffref{expr.cond,expr.assign,expr.comma}
+\indextext{conversion!lvalue-to-rvalue}%
+\indextext{rvalue!lvalue conversion to}%
+\indextext{lvalue}%
+\change
+条件表达式、赋值表达式或逗号表达式的结果可能是左值。
+\rationale
+\Cpp{} 是一种面向对象的语言，相对更重视左值。例如，函数调用可以产生左值。
+\effect
+更改了良构功能的语义。
+一些隐式依赖左值到右值转换的 C 表达式将产生不同的结果。
+\begin{example}
+\begin{codeblock}
+char arr[100];
+sizeof(0, arr)
+\end{codeblock}
+在 \Cpp{} 中结果为
+\tcode{100}
+而在 C 中结果为
+\tcode{sizeof(char*)}.
+\end{example}
+\difficulty
+程序必须添加显式转换为适当的右值。
+\howwide
+罕见。
+
+\rSec2[diff.stat]{\ref{stmt}: 语句}
+
+\diffref{stmt.switch,stmt.goto}
+\change
+现在跳过带有显式或隐式初始化器的声明（除非跨越未被进入的整个块）是无效的。
+\rationale
+初始化器中使用的构造函数可能分配资源，这些资源需要在离开块时被释放。
+允许跳过初始化器将需要复杂的运行时分配判断。
+此外，对此类未初始化对象的许多操作具有未定义行为。
+通过这个简单的编译时规则，\Cpp{} 保证如果一个已初始化的变量在作用域内，那么它必定已被初始化。
+\effect
+语义良定义特性的删除。
+\difficulty
+语义转换。
+\howwide
+少见。
+
+\diffref{stmt.return}
+\change
+现在从声明返回一个值但未实际返回值的函数中返回（显式或隐式）是无效的。
+\rationale
+调用者和被调用者可能为类对象的返回设想相当复杂的返回值机制。
+如果某些执行路径执行了返回而未指定任何值，实现必须包含更多的复杂性。
+此外，承诺返回给定类型的值却不返回该值，一直被视作一种有问题的做法，之所以被容忍，仅仅是因为非常古老的 C 语言不区分返回 \keyword{void} 和 \keyword{int} 类型的函数。
+\effect
+语义良定义特性的删除。
+\difficulty
+语义转换。
+向源代码添加适当的返回值，例如零。
+\howwide
+少见。
+多年以来，许多现有的 C 实现在此情况下都会产生警告。
+
+\rSec2[diff.dcl]{\ref{dcl}: 声明}
+
+\diffref{dcl.stc}
+\change
+在 \Cpp{} 中，\keyword{static} 或 \keyword{extern} 说明符只能用于对象或函数的名称。\\
+在 \Cpp{} 中，将这些说明符用于类型声明是非法的。
+在 C 中，这些说明符在用于类型声明时会被忽略。
+
+\begin{example}
+\begin{codeblock}
+static struct S {               // 在 C 中有效，在 \Cpp{} 中无效
+  int i;
+};
+\end{codeblock}
+\end{example}
+
+\rationale
+存储类说明符与类型关联时没有任何意义。
+在 \Cpp{} 中，类成员可以用 \keyword{static} 存储类说明符声明。
+类型声明上的存储类说明符可能使用户困惑。
+\effect
+删除了语义上良好定义的特征。
+\difficulty
+语法变换。
+\howwide
+很少。
+
+\diffref{dcl.stc}
+\change
+在 \Cpp{} 中，\keyword{register} 不是存储类说明符。
+\rationale
+该存储类说明符在 \Cpp{} 中没有效果。
+\effect
+删除了语义上良好定义的特征。
+\difficulty
+语法变换。
+\howwide
+常见。
+
+\diffref{dcl.typedef}
+\change
+一个 \Cpp{} \grammarterm{typedef-name} 必须与同一作用域中声明的任何类类型名称不同（除非该 typedef 是与该类名同名的同义词）。在 C 中，同一作用域中声明的 \grammarterm{typedef-name} 和结构体标签名称可以相同（因为它们处于不同的名字空间中）。
+
+\begin{example}
+\begin{codeblock}
+typedef struct name1 { @\commentellip@ } name1;         // 在 C 和 \Cpp{} 中均有效
+struct name { @\commentellip@ };
+typedef int name;               // 在 C 中有效，在 \Cpp{} 中无效
+\end{codeblock}
+\end{example}
+
+\rationale
+为了易用性，\Cpp{} 不要求在对象声明或类型转换中使用类型名称时前置 \keyword{class}、\keyword{struct} 或 \keyword{union} 关键词。
+
+\begin{example}
+\begin{codeblock}
+class name { @\commentellip@ };
+name i;                         // \tcode{i} 拥有类型 \tcode{class name}
+\end{codeblock}
+\end{example}
+
+\effect
+删除了语义上良好定义的特征。
+\difficulty
+语义变换。
+两个类型之一必须重命名。
+\howwide
+很少。
+
+\diffref{dcl.type} [亦见 \ref{basic.link}]
+\change
+在 \Cpp{} 中，const 对象必须被初始化，但在 C 中可以保持未初始化。
+\rationale
+const 对象不能被赋值，因此必须初始化以持有有用的值。
+\effect
+删除了语义上良好定义的特征。
+\difficulty
+语义变换。
+\howwide
+很少。
+
+\diffref{dcl.spec.auto}
+\change
+关键词 \keyword{auto} 不能用作存储类说明符。
+
+\begin{example}
+\begin{codeblock}
+void f() {
+  auto int x;       // 在 C 中有效，在 \Cpp{} 中无效
+}
+\end{codeblock}
+\end{example}
+
+\rationale
+允许使用 \keyword{auto} 从初始化器推导变量类型，在某些上下文中导致将 \keyword{auto} 不期望地解释为存储类说明符。
+\effect
+删除了语义上良好定义的特征。
+\difficulty
+语法变换。
+\howwide
+极少。
+
+\diffref{dcl.fct}
+\change
+在 \Cpp{} 中，带有空参数列表声明的函数不接受任何参数。
+在 C 中，空参数列表表示函数的参数数量和类型未知。
+
+\begin{example}
+\begin{codeblock}
+int f();            // 在 \Cpp{} 中表示 \tcode{int f(void)}
+                    // 在 C 中表示 \tcode{int f(} 未知 \tcode{)}
+\end{codeblock}
+\end{example}
+
+\rationale
+这是为了避免使用错误数量或类型的参数调用函数。
+\effect
+改变了良好定义特征的语义。
+此特征在 C 中被标记为“废弃的”。
+\difficulty
+语法变换。
+使用 C 不完全声明风格的函数声明必须补全为完整原型声明。
+若对同一（非原型）函数的不同调用具有不同数量的参数或对应参数的类型不同，则程序可能还需要进一步更新。
+\howwide
+常见。
+
+\diffref{dcl.fct} [见 \ref{expr.sizeof}]
+\change
+在 \Cpp{} 中，不能在返回类型或参数类型中定义类型。
+在 C 中，允许这些类型定义。
+
+\begin{example}
+\begin{codeblock}
+void f( struct S { int a; } arg ) {}    // 在 C 中有效，在 \Cpp{} 中无效
+enum E { A, B, C } f() {}               // 在 C 中有效，在 \Cpp{} 中无效
+\end{codeblock}
+\end{example}
+
+\rationale
+比较不同翻译单元中的类型时，\Cpp{} 依赖名称等价性，而 C 依赖结构等价性。
+关于参数类型：由于参数列表中定义的类型将在函数的作用域内，\Cpp{} 中唯一合法的调用将来自函数内部。
+\effect
+删除了语义上良好定义的特征。
+\difficulty
+语义变换。
+类型定义必须移到文件作用域或头文件中。
+\howwide
+很少。
+这种类型定义风格被视为不良的编码风格。
+
+\diffref{dcl.fct.def}
+\change
+在 \Cpp{} 中，函数定义的语法排除了 C 的“旧式”函数。
+在 C 中，“旧式”语法被允许，但被弃用并标记为“废弃的”。
+\rationale
+原型对于类型安全至关重要。
+\effect
+删除了语义上良好定义的特征。
+\difficulty
+语法变换。
+\howwide
+在旧程序中常见，但已知是废弃的。
+
+\diffref{dcl.init.aggr}
+\change
+在 \Cpp{} 中，指派初始化支持相比 C 的对应功能有所限制。
+在 \Cpp{} 中，
+非静态数据成员的指派符
+必须按声明顺序指定，
+数组元素的指派符和嵌套的指派符
+不被支持，
+且
+指派与非指派的初始化器
+不能在同一初始化器列表中混合。
+
+\begin{example}
+\begin{codeblock}
+struct A { int x, y; };
+struct B { struct A a; };
+struct A a = {.y = 1, .x = 2};  // 在 C 中有效，在 \Cpp{} 中无效
+int arr[3] = {[1] = 5};         // 在 C 中有效，在 \Cpp{} 中无效
+struct B b = {.a.x = 0};        // 在 C 中有效，在 \Cpp{} 中无效
+struct A c = {.x = 1, 2};       // 在 C 中有效，在 \Cpp{} 中无效
+\end{codeblock}
+\end{example}
+\rationale
+在 \Cpp{} 中，成员以构造的相反顺序销毁，
+并且初始化器列表的元素按词法顺序求值，
+因此成员初始化器必须按顺序指定。
+数组指派符与 \grammarterm{lambda表达式} 语法冲突。
+嵌套的指派符很少使用。
+\effect
+删除了与 \Cpp{} 不兼容的特征。
+\difficulty
+语法变换。
+\howwide
+不按顺序的初始化器常见。
+其他特征很少使用。
+
+\diffref{dcl.init.string}
+\change
+在 \Cpp{} 中，用字符串初始化字符数组时，字符串中的字符数（包括终止符 \tcode{'\textbackslash 0'}）不得超过数组的元素数。在 C 中，即使数组不够大以包含字符串终止符 \tcode{'\textbackslash 0'}，也能用字符串初始化数组。
+
+\begin{example}
+\begin{codeblock}
+char array[4] = "abcd";         // 在 C 中有效，在 \Cpp{} 中无效
+\end{codeblock}
+\end{example}
+\rationale
+当这些未终止的数组被标准字符串函数操作时，存在重大灾难的潜在风险。
+\effect
+删除了语义上良好定义的特征。
+\difficulty
+语义变换。
+数组必须声明为多一个元素以包含字符串终止符 \tcode{'\textbackslash 0'}。
+\howwide
+很少。
+这种数组初始化风格被视为不良的编码风格。
+
+\diffref{dcl.enum}
+\change
+枚举类型的 \Cpp{} 对象只能被赋以相同枚举类型的值。
+在 C 中，枚举类型的对象可以被赋以任何整数类型的值。
+
+\begin{example}
+\begin{codeblock}
+enum color { red, blue, green };
+enum color c = 1;               // 在 C 中有效，在 \Cpp{} 中无效
+\end{codeblock}
+\end{example}
+
+\rationale
+\Cpp{} 的类型安全性质。
+\effect
+删除了语义上良好定义的特征。
+\difficulty
+语法变换。
+（赋值产生的类型错误可以通过应用显式转换自动更正。）
+\howwide
+常见。
+
+\diffref{dcl.enum}
+\change
+在 \Cpp{} 中，枚举项的类型是其枚举。在 C 中，枚举项的类型是 \keyword{int}。
+
+\begin{example}
+\begin{codeblock}
+enum e { A };
+sizeof(A) == sizeof(int)        // 在 C 中
+sizeof(A) == sizeof(e)          // 在 \Cpp{} 中
+/* 且 @sizeof(int)@ 不一定等于 @sizeof(e)@ */
+\end{codeblock}
+\end{example}
+
+\rationale
+在 \Cpp{} 中，枚举是一个独立的类型。
+\effect
+改变了良好定义特征的语义。
+\difficulty
+语义变换。
+\howwide
+很少。
+这影响现有 C 代码的唯一情况是获取枚举项的大小。
+获取枚举项的大小不是常见的 C 编码实践。
+
+\diffref{dcl.align}
+\change
+在 \Cpp{} 中，
+\grammarterm{alignment-specifier} 是一个 \grammarterm{attribute-specifier}。
+在 C 中，
+\grammarterm{alignment-specifier} 是一个 \gterm{declaration-specifier}。
+
+\begin{example}
+\begin{codeblock}
+#include <stdalign.h>
+unsigned alignas(8) int x;      // 在 C 中有效，在 \Cpp{} 中无效
+unsigned int y alignas(8);      // 在 \Cpp{} 中有效，在 C 中无效
+\end{codeblock}
+\end{example}
+
+\rationale
+\Cpp{} 要求 \grammarterm{alignment-specifier} 的放置位置明确无误。
+\effect
+删除了语义上良好定义的特征。
+\difficulty
+语法变换。
+\howwide
+很少。
+
+\rSec2[diff.class]{\ref{class}: 类}
+
+\diffref{class.name} [同时参见 \ref{dcl.typedef}]
+\change
+在 \Cpp{} 中，类声明将类名引入其所在的
+作用域，并隐藏了外层作用域中同名的任何对象、函数或其它声明。
+在 C 中，内层作用域的结构体标签名声明从不隐藏外层作用域中的对象
+或函数名称。
+
+\begin{example}
+\begin{codeblock}
+int x[99];
+void f() {
+  struct x { int a; };
+  sizeof(x);  /* C 中的数组大小 */
+  /* @\textit{\textrm{\Cpp{}}}@ 中的结构体大小 */
+}
+\end{codeblock}
+\end{example}
+\rationale
+这是 C 与 \Cpp{} 之间少数可归因于新的 \Cpp{} 命名空间定义的不兼容之一，在单一作用域内，
+一个名称可以同时被声明为类型和非类型，导致非类型名称隐藏了类型名称，
+并要求使用关键词 \keyword{class}、\keyword{struct}、\keyword{union} 或 \keyword{enum} 来引用该类型名。
+这一新的命名空间定义为 \Cpp{} 程序员提供了重要的表示法便利，并有助于使
+用户定义类型的使用尽可能与基础类型的使用相似。
+新的命名空间定义的优势被判定为远超过上述与 C 的不兼容性。
+\effect
+改变了已有明确定义的特性语义。
+\difficulty
+语义转换。
+若需要被访问的隐藏名称位于全局作用域，可以使用 \Cpp{} 操作符 \tcode{::}。
+若隐藏名称位于块作用域，则必须重命名类型或结构体标签。
+\howwide
+罕见。
+
+\diffref{class.copy.ctor}
+\change
+复制 volatile 对象。
+
+隐式声明的复制构造函数及隐式声明的复制赋值运算符
+不能复制 volatile 左值。
+\begin{example}
+以下代码在 C 中有效：
+\begin{codeblock}
+struct X { int i; };
+volatile struct X x1 = {0};
+struct X x2 = x1;               // 在 \Cpp{} 中无效
+struct X x3;
+x3 = x1;                        // 在 \Cpp{} 中也无效
+\end{codeblock}
+\end{example}
+
+\rationale
+此问题曾有多种备选方案经过详细讨论。
+将参数修改为
+\keyword{volatile}
+\keyword{const}
+\tcode{X\&}
+会使得为类对象生成高效代码大为复杂。
+为这些隐式定义的操作提供两个备选签名的讨论提出了
+一些悬而未决的担忧，包括可能产生歧义，
+并使根据基类及成员指定这些运算符构造方式的规则复杂化。
+\effect
+删除了已有良好语义定义的特性。
+\difficulty
+语义转换。
+若复制操作需要 volatile 语义，必须提供用户声明的构造函数或赋值运算符。
+若需要非 volatile 语义，可使用显式
+\keyword{const_cast}。
+\howwide
+罕见。
+
+\diffref{class.bit}
+\change
+\indextext{位域!由实现定义的符号}%
+类型为普通 \keyword{int} 的位域为有符号。
+\rationale
+符号一致性需要在所有模板特化中保持一致。
+为保持一致性，对于非依赖类型也消除了实现自由度。
+\effect
+此选择在 C 中是由实现定义的，但在 \Cpp{} 中并非如此。
+\difficulty
+语法转换。
+\howwide
+罕见。
+
+\diffref{class.nest}
+\change
+在 \Cpp{} 中，嵌套类的名称是其外层类的局部名称。在 C 中，
+嵌套类的名称属于与最外层封闭类相同的作用域。
+
+\begin{example}
+\begin{codeblock}
+struct X {
+  struct Y { @\commentellip@ } y;
+};
+struct Y yy;                    // 在 C 中有效，在 \Cpp{} 中无效
+\end{codeblock}
+\end{example}
+\rationale
+\Cpp{} 类拥有成员函数，这要求类建立作用域。
+遵循 C 的规则会使类成为一个不完整的作用域机制，
+这将阻碍 \Cpp{} 程序员在类内部维持局部性。
+基于 C 规则为 \Cpp{} 构建一套连贯的作用域规则会非常复杂，
+且 \Cpp{} 程序员将无法可靠地预测涉及嵌套或
+局部函数的非平凡示例的含义。
+\effect
+改变了已有明确定义的特性语义。
+\difficulty
+语义转换。
+为了使结构体类型名称在外层结构体的作用域内可见，
+可以在定义外层结构体之前，在外层结构体的作用域中声明结构体标签。
+\begin{example}
+\begin{codeblock}
+struct Y;                       // \tcode{struct Y} 与 \tcode{struct X} 位于同一作用域
+struct X {
+  struct Y { @\commentellip@ } y;
+};
+\end{codeblock}
+\end{example}
+
+C 中所有定义在其他结构体定义内部、
+且在封闭结构体作用域之外被访问的结构体类型定义
+都可被移至封闭结构体的作用域。
+注意：这是作用域规则差异导致的结果，该规则在 \ref{basic.scope} 中有记载。
+\howwide
+罕见。
+
+\diffref{class.member.lookup}
+\change
+在 \Cpp{} 中，一旦在类定义中使用了某个 \grammarterm{typedef-名称}，
+在该类定义中不可再重声明它。
+
+\begin{example}
+\begin{codeblock}
+typedef int I;
+struct S {
+  I i;
+  int I;            // 在 C 中有效，在 \Cpp{} 中无效
+};
+\end{codeblock}
+\end{example}
+\rationale
+当类变得复杂时，若允许在类型已被使用后重定义此类名称，
+可能使 \Cpp{} 程序员对 \tcode{I} 的实际含义产生混淆。
+\effect
+删除了已有良好语义定义的特性。
+\difficulty
+语义转换。
+必须重命名类型或结构体成员。
+\howwide
+罕见。
+
+\rSec2[diff.cpp]{\ref{cpp}: 预处理指令}
+
+\diffref{cpp.predefined}
+\change
+是否定义 \mname{STDC} 及其值（若已定义）是
+\impldef{definition and meaning of \mname{STDC}}。
+\rationale
+\Cpp{} 与 C 并不完全相同。
+强制要求定义 \mname{STDC}
+将使编译器做出不正确的声明。
+\effect
+对良定义特性的语义做出修改。
+\difficulty
+语义变换。
+\howwide
+引用 \mname{STDC} 的程序及头文件
+相当普遍。
+
+\rSec1[diff.library]{C 标准库}
+
+\rSec2[diff.library.general]{概述}
+\indextext{library!C 标准}%
+
+\pnum
+\ref{diff.library} 小节总结了 C 标准中的 C 标准库与 \Cpp{} 标准库中源自 C 标准库的部分之间，在头文件、定义、声明或行为方面的显式变更。
+
+\rSec2[diff.mods.to.headers]{对头文件的修改}
+
+\pnum
+为与 C 标准库\indextext{library!C standard} 兼容，\Cpp{} 标准库提供了 \ref{support.c.headers} 中列举的 C 头文件。
+
+\pnum
+不存在针对 C 标准库头文件 \libnoheader{stdnoreturn.h} 与 \libnoheader{threads.h} 的 \Cpp{} 头文件，这些来自 C 标准库的头文件本身也不是 \Cpp{} 的组成部分。
+
+\pnum
+C 头文件 \libheader{complex.h} 与 \libheader{tgmath.h} 不含任何 C 标准库内容，仅包含 \Cpp{} 标准库中的其他头文件。
+
+\rSec2[diff.mods.to.definitions]{对定义的修改}
+
+\rSec3[diff.char16]{类型 \tcode{char8_t}、\tcode{char16_t} 与 \tcode{char32_t}}
+
+\pnum
+类型 \keyword{char8_t}、\keyword{char16_t} 与 \keyword{char32_t}
+是独立类型而非对现有整数类型的 typedef。
+记号 \keyword{char8_t}、\keyword{char16_t} 与 \keyword{char32_t}
+在 \Cpp{}\iref{lex.key} 中是关键词。
+它们不会以宏或类型名的形式出现在
+\libheaderref{cuchar} 中。
+
+\begin{bnf}
+\rSec3[diff.wchar.t]{类型 \tcode{wchar_t}}
+
+\pnum
+类型 \keyword{wchar_t} 是一个独立类型，而非某个现有整数类型的 typedef。
+记号 \keyword{wchar_t}
+是 \Cpp{} 中的关键字\iref{lex.key}。
+它不会以宏或类型名称的形式出现在
+\libheaderref{cstddef}、
+\libheaderref{cstdlib}
+或 \libheaderref{cwchar}
+的任何定义中。
+\end{bnf}
+
+\rSec3[diff.header.iso646.h]{头文件 \tcode{<iso646.h>}}
+
+\pnum
+记号
+\keyword{and}、
+\keyword{and_eq}、
+\keyword{bitand}、
+\keyword{bitor}、
+\keyword{compl}、
+\keyword{not}、
+\keyword{not_eq}、
+\keyword{or}、
+\keyword{or_eq}、
+\keyword{xor}
+和
+\keyword{xor_eq}
+是 \Cpp{} \iref{lex.key} 中的关键词，
+且不会通过 \libheaderref{iso646.h} 以宏的形式引入。
+
+\rSec3[diff.null]{宏 \tcode{NULL}}
+
+\pnum
+在
+\libheaderref{clocale}、
+\libheaderref{cstddef}、
+\libheaderref{cstdio}、
+\libheaderref{cstdlib}、
+\libheaderref{cstring}、
+\libheaderref{ctime}
+或 \libheaderref{cwchar}
+中定义的宏
+\tcode{NULL}，
+是 \Cpp{}\iref{support.types} 中由实现定义的空指针常量。
+
+\rSec2[diff.mods.to.declarations]{对声明的修改}
+
+\pnum
+头文件 \libheaderref{cstring}：
+以下函数具有不同的声明：
+
+\begin{itemize}
+\item \tcode{strchr}
+\item \tcode{strpbrk}
+\item \tcode{strrchr}
+\item \tcode{strstr}
+\item \tcode{memchr}
+\end{itemize}
+
+子条款 \ref{cstring.syn} 描述了这些更改。
+
+\pnum
+头文件 \libheaderref{cwchar}：
+以下函数具有不同的声明：
+
+\begin{itemize}
+\item \tcode{wcschr}
+\item \tcode{wcspbrk}
+\item \tcode{wcsrchr}
+\item \tcode{wcsstr}
+\item \tcode{wmemchr}
+\end{itemize}
+
+子条款 \ref{cwchar.syn} 描述了这些更改。
+
+\pnum
+头文件 \libheaderref{cstddef}
+除 C 标准库中 \libheaderrefx{stddef.h}{support.c.headers} 所声明的名称外，还声明了名称 \tcode{nullptr_t}、\tcode{byte} 和 \tcode{to_integer}，以及~\ref{support.types.byteops} 中的运算符和运算符模板。
+
+\rSec2[diff.mods.to.behavior]{行为修改}
+
+\rSec3[diff.mods.to.behavior.general]{一般说明}
+
+\pnum
+头文件 \libheaderref{cstdlib}：
+以下函数的行为有所差异：
+
+\begin{itemize}
+\item \tcode{atexit}
+\item \tcode{exit}
+\item \tcode{abort}
+\end{itemize}
+
+子条款 \ref{support.start.term} 说明了这些更改。
+
+\pnum
+头文件 \libheaderref{csetjmp}：
+以下函数的行为有所差异：
+\begin{itemize}
+\item \tcode{longjmp}
+\end{itemize}
+
+子条款 \ref{csetjmp.syn} 说明了这些更改。
+
+\rSec3[diff.offsetof]{宏\tcode{offsetof(\placeholder{type}, \placeholder{member-designator})}}
+\indexlibraryglobal{offsetof}%
+
+\pnum
+在\Cpp{}中，宏\tcode{offsetof}（定义于头文件\libheaderref{cstddef}）接受一组受限的\tcode{\placeholder{type}}实参。子条款\ref{support.types.layout}描述了此更改。
+
+\rSec3[diff.malloc]{内存分配函数}
+
+\pnum
+函数
+\indexlibraryglobal{aligned_alloc}\tcode{aligned_alloc}、
+\indexlibraryglobal{calloc}\tcode{calloc}、
+\indexlibraryglobal{malloc}\tcode{malloc}
+和
+\indexlibraryglobal{realloc}\tcode{realloc}
+在\Cpp{}中受到限制。
+子条款\ref{c.malloc}描述了相关修改。
+

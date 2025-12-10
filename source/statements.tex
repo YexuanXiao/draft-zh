@@ -1,0 +1,1264 @@
+%!TEX root = std.tex
+\rSec0[stmt]{语句}%
+\indextext{语句|(}
+
+\gramSec[gram.stmt]{语句}
+
+\indextext{块（语句）|参见{语句，复合}}
+
+\rSec1[stmt.pre]{引言}
+
+\pnum
+除非另有说明，否则语句按顺序执行\iref{intro.execution}。
+
+\begin{bnf}
+\nontermdef{statement}\br
+    labeled-statement\br
+    \opt{attribute-specifier-seq} expression-statement\br
+    \opt{attribute-specifier-seq} compound-statement\br
+    \opt{attribute-specifier-seq} selection-statement\br
+    \opt{attribute-specifier-seq} iteration-statement\br
+    \opt{attribute-specifier-seq} expansion-statement\br
+    \opt{attribute-specifier-seq} jump-statement\br
+    \opt{attribute-specifier-seq} assertion-statement\br
+    declaration-statement\br
+    \opt{attribute-specifier-seq} try-block
+\end{bnf}
+
+\begin{bnf}
+\nontermdef{init-statement}\br
+    expression-statement\br
+    simple-declaration\br
+    alias-declaration
+\end{bnf}
+
+\begin{bnf}
+\nontermdef{condition}\br
+    expression\br
+    \opt{attribute-specifier-seq} decl-specifier-seq declarator brace-or-equal-initializer\br
+    structured-binding-declaration initializer
+\end{bnf}
+
+\begin{bnf}
+\nontermdef{for-range-declaration}\br
+    \opt{attribute-specifier-seq} decl-specifier-seq declarator\br
+    structured-binding-declaration
+\end{bnf}
+
+\begin{bnf}
+\nontermdef{for-range-initializer}\br
+    expr-or-braced-init-list
+\end{bnf}
+
+可选的 \grammarterm{attribute-specifier-seq} 属于相应的语句。
+关于 \grammarterm{for-range-declaration} 中可选的 \grammarterm{attribute-specifier-seq}，参见~\ref{dcl.meaning}。
+
+\pnum
+一个 \grammarterm{statement} 的\defn{子语句} 是以下之一：
+\begin{itemize}
+\item
+  对于一个 \grammarterm{labeled-statement}，是其 \grammarterm{statement}，
+\item
+  对于一个 \grammarterm{compound-statement}，是其 \grammarterm{statement-seq} 中的任何 \grammarterm{statement}，
+\item
+  对于一个 \grammarterm{selection-statement}，是其任何 \grammarterm{statement} 或 \grammarterm{compound-statement}（但不是其 \grammarterm{init-statement}），
+\item
+  对于一个 \grammarterm{iteration-statement}，是其 \grammarterm{statement}（但不是 \grammarterm{init-statement}），或
+\item
+  对于一个 \grammarterm{expansion-statement}，是其 \grammarterm{compound-statement}
+  （但不是其 \grammarterm{init-statement}）。
+\end{itemize}
+\begin{note}
+一个 \grammarterm{lambda-expression} 的 \grammarterm{compound-statement}
+不是该 \grammarterm{lambda-expression} 在词法上出现的（如果有）\grammarterm{statement} 的子语句。
+\end{note}
+
+\pnum
+\indextext{语句！包围}%
+一个 \grammarterm{statement} \tcode{S1} \defnx{包围}{包围语句}
+一个 \grammarterm{statement} \tcode{S2}，如果
+\begin{itemize}
+\item
+  \tcode{S2} 是 \tcode{S1} 的一个子语句，
+\item
+  \tcode{S1} 是一个 \grammarterm{selection-statement}、
+  \grammarterm{iteration-statement} 或 \grammarterm{expansion-statement}，
+  并且 \tcode{S2} 是 \tcode{S1} 的 \grammarterm{init-statement}，
+\item
+  \tcode{S1} 是一个 \grammarterm{try-block} 并且 \tcode{S2}
+  是其 \grammarterm{compound-statement} 或其 \grammarterm{handler} 的任何 \grammarterm{compound-statement}，或者
+\item
+  \tcode{S1} 包围一个语句 \tcode{S3} 并且 \tcode{S3} 包围 \tcode{S2}。
+\end{itemize}
+\indextext{语句！被包围}%
+一个语句 \tcode{S1} 是
+\defnx{被包围于}{被包围于语句}
+一个语句 \tcode{S2}，如果
+\tcode{S2} 包围 \tcode{S1}。
+
+\pnum
+\indextext{\idxgram{condition}{s}!规则}%
+\grammarterm{condition} 的规则既适用于
+\grammarterm{selection-statement}\iref{stmt.select} 也适用于
+\keyword{for} 和 \keyword{while} 语句\iref{stmt.iter}。
+如果一个 \grammarterm{structured-binding-declaration}
+出现在一个 \grammarterm{condition} 中，
+则该 \grammarterm{condition} 是一个结构化绑定声明\iref{dcl.pre}。
+一个既不是 \grammarterm{expression} 也不是结构化绑定声明的
+\grammarterm{condition} 是一个声明\iref{dcl}。
+该 \grammarterm{declarator} 不得
+指定一个函数或数组。该 \grammarterm{decl-specifier-seq} 不得
+定义类或枚举。如果 \keyword{auto} \grammarterm{type-specifier} 出现在
+\grammarterm{decl-specifier-seq} 中，
+则被声明标识符的类型从初始化器中推导，如~\ref{dcl.spec.auto}所述。
+
+\pnum
+一个既不是 \grammarterm{expression} 也不是结构化绑定声明的
+\grammarterm{condition} 的\defnadj{决策}{变量} 是所声明的变量。
+一个作为结构化绑定声明的 \grammarterm{condition} 的决策变量在\ref{dcl.struct.bind}中规定。
+
+\pnum
+在除 \keyword{switch} 语句外的语句中，一个不是 \grammarterm{expression} 的
+\grammarterm{condition} 的值是决策变量
+按语境转换为 \tcode{bool} 的值\iref{conv}。
+如果该
+转换是非良构的，那么程序是非良构的。
+一个
+是表达式的 \grammarterm{condition} 的值是该表达式的值，
+对于除 \keyword{switch} 外的语句，按语境转换为 \tcode{bool}；
+如果该转换是非良构的，那么程序是
+非良构的。在用法明确的情况下，
+条件的值将简称为「条件」。
+
+\pnum
+如果一个 \grammarterm{condition} 可以在句法上解析为
+表达式或声明中的任意一种，
+则它被解释为后者。
+
+\pnum
+在一个 \grammarterm{condition} 或一个 \grammarterm{for-range-declaration} 的
+\grammarterm{decl-specifier-seq} 中，
+包括该 \grammarterm{condition} 的任何 \grammarterm{structured-binding-declaration} 的声明说明符序列，
+每个
+\grammarterm{decl-specifier} 应是 \grammarterm{type-specifier}
+或 \keyword{constexpr}。
+一个 \grammarterm{for-range-declaration} 的 \grammarterm{decl-specifier-seq}
+不得定义类或枚举。
+
+\rSec1[stmt.label]{标签}%
+\indextext{语句!带标签的}
+
+\pnum
+\indextext{语句!带标签的}%
+\indextext{\idxcode{:}!标签说明符}%
+标签可以被添加到一条语句上，或
+用在\grammarterm{复合语句}中的任何位置。
+
+\begin{bnf}
+\nontermdef{label}\br
+    \opt{attribute-specifier-seq} identifier \terminal{:}\br
+    \opt{attribute-specifier-seq} \keyword{case} constant-expression \terminal{:}\br
+    \opt{attribute-specifier-seq} \keyword{default} \terminal{:}
+\end{bnf}
+
+\begin{bnf}
+\nontermdef{labeled-statement}\br
+    label statement
+\end{bnf}
+
+可选的 \grammarterm{attribute-specifier-seq} 属于该标签。
+\indextext{语句!\idxcode{goto}}%
+带有 \grammarterm{identifier} 的标签的唯一用途是
+作为 \tcode{goto} 的目标。
+\indextext{标签!作用域}%
+同一个函数中的两个标签不能有相同的 \grammarterm{identifier}。
+一个标签可以在其声明之前就用于一条 \tcode{goto} 语句。
+
+\pnum
+\indextext{\idxgram{labeled-statement}}%
+\indextext{标签!\idxcode{case}}%
+\indextext{标签!\idxcode{default}}%
+其 \grammarterm{label} 为 \keyword{case} 或 \keyword{default} 标签的 \grammarterm{labeled-statement}
+应当被一个 \keyword{switch} 语句所包围\iref{stmt.pre}，即\iref{stmt.switch}。
+
+\pnum
+一个\defnadj{control-flow-limited}{statement} 是指满足以下条件的语句 \tcode{S}：
+\begin{itemize}
+\item
+  出现在 \tcode{S} 内部的 \keyword{case} 或 \keyword{default} 标签
+  必须与位于 \tcode{S} 内部的一个 \keyword{switch} 语句相关联\iref{stmt.switch}，并且
+\item
+  在 \tcode{S} 内声明的标签只能由位于 \tcode{S} 内部的语句所引用\iref{stmt.goto}。
+\end{itemize}
+
+\pnum
+一个 \grammarterm{identifier} 标签不能被
+一个 \grammarterm{expansion-statement}\iref{stmt.expand} 所包围。
+
+\rSec1[stmt.expr]{表达式语句}%
+\indextext{statement!expression}
+
+\pnum
+表达式语句具有如下形式
+\begin{bnf}
+\nontermdef{expression-statement}\br
+    \opt{expression} \terminal{;}
+\end{bnf}
+
+该表达式是
+一个被弃值表达式\iref{expr.context}。
+表达式语句的所有
+\indextext{side effects}%
+副作用均在下一条语句执行前完成。
+\indextext{statement!empty}%
+当表达式语句中的\grammarterm{expression}缺失时，它被称为
+一条\defnadj{null}{statement}。
+\begin{note}
+大多数语句都是表达式语句——通常是赋值或
+函数调用。空语句可用于为
+诸如\keyword{while}
+语句\iref{stmt.while}之类的迭代语句提供空体。
+\end{note}
+
+\rSec1[stmt.block]{复合语句或块}%
+\indextext{\idxcode{\{\}}!块语句}%
+
+\pnum
+一个\defnadj{复合}{语句}（亦称块）将一系列语句分组为一个单一语句。
+
+\begin{bnf}
+\nontermdef{compound-statement}\br
+    \terminal{\{} \opt{statement-seq} \opt{label-seq} \terminal{\}}
+\end{bnf}
+
+\begin{bnf}
+\nontermdef{statement-seq}\br
+    statement \opt{statement-seq}
+\end{bnf}
+
+\begin{bnf}
+\nontermdef{label-seq}\br
+    label \opt{label-seq}
+\end{bnf}
+
+位于\grammarterm{复合语句}结尾的标签，其处理方式如同其后跟随了一个空语句。
+
+\pnum
+\begin{note}
+复合语句定义了一个块作用域\iref{基本作用域}。
+声明是一种\grammarterm{语句}\iref{stmt.dcl}。
+\end{note}
+
+\rSec1[stmt.select]{选择语句}%
+\indextext{语句!选择|(}
+
+\rSec2[stmt.select.general]{一般规定}%
+
+\pnum
+选择语句从若干条控制流中选取其一。
+
+\indextext{语句!\idxcode{if}}%
+\indextext{语句!\idxcode{switch}}%
+%
+\begin{bnf}
+\nontermdef{selection-statement}\br
+    \keyword{if} \opt{\keyword{constexpr}} \terminal{(} \opt{init-statement} condition \terminal{)} statement\br
+    \keyword{if} \opt{\keyword{constexpr}} \terminal{(} \opt{init-statement} condition \terminal{)} statement \keyword{else} statement\br
+    \keyword{if} \opt{\terminal{!}} \keyword{consteval} compound-statement\br
+    \keyword{if} \opt{\terminal{!}} \keyword{consteval} compound-statement \keyword{else} statement\br
+    \keyword{switch} \terminal{(} \opt{init-statement} condition \terminal{)} statement
+\end{bnf}
+
+关于条件中可选的\grammarterm{attribute-specifier-seq}，见~\ref{dcl.meaning}。
+\begin{note}
+一条\grammarterm{init-statement}以分号结尾。
+\end{note}
+
+\pnum
+\indextext{作用域!\idxgram{selection-statement}}%
+\begin{note}
+任何一条\grammarterm{selection-statement}及其每个子语句均具有块作用域\iref{basic.scope.block}。
+\end{note}
+
+\rSec2[stmt.if]{\keyword{if} 语句}%
+\indextext{语句!\idxcode{if}}
+
+\pnum
+若条件\iref{stmt.pre}产生 \tcode{true}，则执行第一条子语句。若选择语句含有 \keyword{else} 部分且条件产生 \tcode{false}，则执行第二条子语句。若通过标签到达第一条子语句，则不计算条件且不执行第二条子语句。在 \keyword{if} 语句的第二种形式（即包含 \keyword{else} 的）中，若第一条子语句也是 \keyword{if} 语句，则该内部 \tcode{if} 语句应包含 \keyword{else} 部分。
+\begin{footnote}
+换言之，\keyword{else} 与最近的无 else \keyword{if} 相关联。
+\end{footnote}
+
+\pnum
+若 \keyword{if} 语句的形式为 \tcode{if constexpr}，则条件值在语境中转换到 \keyword{bool} 且转换后的表达式应是常量表达式\iref{expr.const}；此形式被称为\defn{constexpr if 语句}。若转换后条件的值为 \tcode{false}，则第一条子语句为\defn{弃置语句}，否则第二条子语句（若存在）为弃置语句。在实例化外围模板实体\iref{temp.pre}期间，若条件在其实例化后不依赖值，则弃置的子语句（若有）不被实例化。constexpr if 语句的每条子语句是控制流受限语句\iref{stmt.label}。
+\begin{example}
+\begin{codeblock}
+if constexpr (sizeof(int[2])) {}        // 允许窄化
+\end{codeblock}
+\end{example}
+\begin{note}
+弃置语句中的 odr 使用\iref{term.odr.use} 不要求实体被定义。
+\end{note}
+\begin{example}
+\begin{codeblock}
+template<typename T, typename ... Rest> void g(T&& p, Rest&& ...rs) {
+  // ... 处理 \tcode{p}
+
+  if constexpr (sizeof...(rs) > 0)
+    g(rs...);       // 从未以空实参列表实例化
+}
+
+extern int x;       // 不要求 \tcode{x} 的定义
+
+int f() {
+  if constexpr (true)
+    return 0;
+  else if (x)
+    return x;
+  else
+    return -x;
+}
+\end{codeblock}
+\end{example}
+
+\pnum
+形式为
+\begin{ncsimplebnf}
+\keyword{if} \opt{\keyword{constexpr}} \terminal{(} init-statement 条件 \terminal{)} 语句
+\end{ncsimplebnf}
+的 \keyword{if} 语句等价于
+\begin{ncsimplebnf}
+\terminal{\{}\br
+\bnfindent init-statement\br
+\bnfindent \keyword{if} \opt{\keyword{constexpr}} \terminal{(} 条件 \terminal{)} 语句\br
+\terminal{\}}
+\end{ncsimplebnf}
+且形式为
+\begin{ncsimplebnf}
+\keyword{if} \opt{\keyword{constexpr}} \terminal{(} init-statement 条件 \terminal{)} 语句 \keyword{else} 语句
+\end{ncsimplebnf}
+的 \keyword{if} 语句等价于
+\begin{ncsimplebnf}
+\terminal{\{}\br
+\bnfindent init-statement\br
+\bnfindent \keyword{if} \opt{\keyword{constexpr}} \terminal{(} 条件 \terminal{)} 语句 \keyword{else} 语句\br
+\terminal{\}}
+\end{ncsimplebnf}
+除了 \grammarterm{init-statement} 与 \grammarterm{condition} 在同一作用域中。
+
+\pnum
+形式为 \tcode{\keyword{if} \keyword{consteval}} 的 \keyword{if} 语句被称为\defnadj{consteval if}{语句}。consteval if 语句中的 \grammarterm{statement}（若有）应是 \grammarterm{compound-statement}。
+\begin{example}
+\begin{codeblock}
+constexpr void f(bool b) {
+  if (true)
+    if consteval { }
+    else ;              // 错误：不是 \grammarterm{compound-statement}；\keyword{else} 不与外层 \keyword{if} 相关联
+}
+\end{codeblock}
+\end{example}
+
+\pnum
+若 consteval if 语句在明显常量求值\iref{expr.const}的语境中被求值，则执行第一条子语句。
+\begin{note}
+第一条子语句是立即函数语境。
+\end{note}
+否则，若选择语句有 \keyword{else} 部分，则执行第二条子语句。consteval if 语句的每条子语句是控制流受限语句\iref{stmt.label}。
+
+\pnum
+形式为
+\begin{ncsimplebnf}
+\keyword{if} \terminal{!} \keyword{consteval} compound-statement
+\end{ncsimplebnf}
+的 \keyword{if} 语句本身不是 consteval if 语句，但等价于 consteval if 语句
+\begin{ncsimplebnf}
+\keyword{if} \keyword{consteval} \terminal{\{} \terminal{\}} \keyword{else} compound-statement
+\end{ncsimplebnf}
+形式为
+\begin{ncsimplebnf}
+\keyword{if} \terminal{!} \keyword{consteval} compound-statement$_1$ \keyword{else} statement$_2$
+\end{ncsimplebnf}
+的 \keyword{if} 语句本身不是 consteval if 语句，但等价于 consteval if 语句
+\begin{ncsimplebnf}
+\keyword{if} \keyword{consteval} statement$_2$ \keyword{else} compound-statement$_1$
+\end{ncsimplebnf}
+
+\rSec2[stmt.switch]{The \keyword{switch} 语句}%
+\indextext{语句!\idxcode{switch}}
+
+\pnum
+\keyword{switch} 语句根据条件的值将控制转移到多个语句之一。
+
+\pnum
+若 \grammarterm{条件} 是 \grammarterm{表达式}，则该条件的值即为 \grammarterm{表达式} 的值；
+否则，它为决策变量的值。
+该条件的值应为整数类型、枚举类型或类类型。
+若它属于类类型，则该条件在上下文中隐式转换（见\iref{conv}）到某个整数或枚举类型。
+若（可能转换后的）类型受整数提升（见\iref{conv.prom}）影响，则该条件转换到提升后的类型。
+\keyword{switch} 语句内的任何语句可以带有如下形式的一个或多个 \grammarterm{case 标号}：
+\begin{ncbnf}
+\indextext{标号!\idxcode{case}}%
+\keyword{case} 常量表达式 \terminal{:}
+\end{ncbnf}
+其中，该 \grammarterm{常量表达式} 应为转换后的 \keyword{switch} 条件调整类型的常量表达式（见\iref{expr.const}）。
+在同一 \keyword{switch} 中的各 \grammarterm{case 常量} 经转换后的值不得有两个相同。
+
+\pnum
+\indextext{标号!\idxcode{default}}%
+在 \keyword{switch} 语句内，最多只能有一个如下形式的标号：
+\begin{codeblock}
+default :
+\end{codeblock}
+
+\pnum
+\keyword{switch} 语句可以嵌套；一个 \keyword{case} 或 \keyword{default} 标号关联于其所在的最近外层 \keyword{switch} 语句。
+
+\pnum
+执行 \keyword{switch} 语句时，先求值其条件。
+\indextext{标号!\idxcode{case}}%
+若某 \grammarterm{case 常量} 的值与条件值相同，则控制转到匹配的 \grammarterm{case 标号} 后的语句。
+若无一 \grammarterm{case 常量} 与条件值匹配，且有
+\indextext{标号!\idxcode{default}}%
+\keyword{default} 标号，则控制转到该 \keyword{default} 标号后的语句。
+若无匹配且无 \keyword{default}，则 \keyword{switch} 内的语句均不执行。
+
+\pnum
+\keyword{case} 和 \keyword{default} 标号自身不改变控制流；控制流将不受阻碍地穿过这些标号。欲退出 \keyword{switch}，见 \keyword{break}（\ref{stmt.break}）。
+\begin{note}
+通常，作为 \keyword{switch} 主体的子语句是复合语句，且 \keyword{case} 和 \keyword{default} 标号出现在该（复合）子语句包含的顶层语句上，但这并非必须。
+\indextext{语句!声明于 \tcode{switch}}%
+声明可以出现在 \keyword{switch} 语句的子语句中。
+\end{note}
+
+\pnum
+形式如下的 \keyword{switch} 语句：
+\begin{ncsimplebnf}
+\keyword{switch} \terminal{(} 初始化语句 条件 \terminal{)} 语句
+\end{ncsimplebnf}
+等价于
+\begin{ncsimplebnf}
+\terminal{\{}\br
+\bnfindent 初始化语句\br
+\bnfindent \keyword{switch} \terminal{(} 条件 \terminal{)} 语句\br
+\terminal{\}}
+\end{ncsimplebnf}
+但此时 \grammarterm{初始化语句} 与 \grammarterm{条件} 处于同一作用域。
+
+\indextext{语句!选择|)}
+
+\rSec1[stmt.iter]{迭代语句}%
+\indextext{statement!iteration|(}
+
+\rSec2[stmt.iter.general]{概述}%
+
+\pnum
+迭代语句指定循环。
+
+\indextext{statement!\idxcode{while}}%
+\indextext{statement!\idxcode{do}}%
+\indextext{statement!\idxcode{for}}%
+%
+\begin{bnf}
+\nontermdef{iteration-statement}\br
+    \keyword{while} \terminal{(} condition \terminal{)} statement\br
+    \keyword{do} statement \keyword{while} \terminal{(} expression \terminal{)} \terminal{;}\br
+    \keyword{for} \terminal{(} init-statement \opt{condition} \terminal{;} \opt{expression} \terminal{)} statement\br
+    \keyword{for} \terminal{(} \opt{init-statement} for-range-declaration \terminal{:} for-range-initializer \terminal{)} statement
+\end{bnf}
+
+\begin{note}
+一个 \grammarterm{init-statement} 以分号结尾。
+\end{note}
+
+\pnum
+\indextext{scope!\idxgram{iteration-statement}}%
+\grammarterm{iteration-statement} 中的子语句隐式地定义了一个块作用域\iref{basic.scope}，每次循环都会进入和退出该作用域。
+如果 \grammarterm{iteration-statement} 中的子语句是单个语句且非 \grammarterm{compound-statement}，则如同被重写为包含原语句的 \grammarterm{compound-statement}。
+\begin{example}
+\begin{codeblock}
+while (--x >= 0)
+  int i;
+\end{codeblock}
+可以等价地重写为
+\begin{codeblock}
+while (--x >= 0) {
+  int i;
+}
+\end{codeblock}
+因此在 \keyword{while} 语句之后，\tcode{i} 不再处于作用域内。
+\end{example}
+
+\pnum
+一个 \defnadj{trivially empty}{迭代语句} 是匹配以下形式之一的迭代语句：
+\begin{itemize}
+\item \tcode{while (} \grammarterm{expression} \tcode{) ;}
+\item \tcode{while (} \grammarterm{expression} \tcode{) \{ \}}
+\item \tcode{do ; while (} \grammarterm{expression} \tcode{) ;}
+\item \tcode{do \{ \} while (} \grammarterm{expression} \tcode{) ;}
+\item \tcode{for (} \grammarterm{init-statement} \opt{\grammarterm{expression}} \tcode{; ) ;}
+\item \tcode{for (} \grammarterm{init-statement} \opt{\grammarterm{expression}} \tcode{; ) \{ \}}
+\end{itemize}
+平凡空迭代语句的 \defnadj{controlling}{表达式} 是 \tcode{while}、\tcode{do} 或 \tcode{for} 语句中的 \grammarterm{expression}（或者对于没有 \grammarterm{expression} 的 \tcode{for} 语句，则为 \tcode{true}）。
+一个 \defnadj{trivial infinite}{循环} 是一个平凡空迭代语句，其转换后的控制表达式，当解释为 \grammarterm{constant-expression}\iref{expr.const} 时，是一个常量表达式并且求值为 \tcode{true}。
+平凡无限循环的 \grammarterm{statement} 被替换为对函数 \tcode{std::this_thread::yield}\iref{thread.thread.this} 的调用；
+在独立式实现中是否发生此替换是 \impldef{是否将平凡无限循环的 \grammarterm{statement} 替换为对函数 \tcode{std::this_thread::yield} 的调用}。
+\begin{note}
+在独立式环境中，不保证并发的前进性；
+因此此类系统需要显式的协作。
+调用 yield 可以在原本没有协作意图的地方添加隐式协作。
+\end{note}
+
+\rSec2[stmt.while]{The \keyword{while} statement}%
+\indextext{statement!\idxcode{while}}
+
+\pnum
+在 \keyword{while} 语句中，子语句被重复执行，直到条件\iref{stmt.pre}的值变为
+\tcode{false}。每次执行子语句之前都会进行测试。
+
+\pnum
+\indextext{statement!declaration in \keyword{while}}%
+\keyword{while} 语句等价于
+\begin{ncsimplebnf}
+\exposid{label} \terminal{:}\br
+\terminal{\{}\br
+\bnfindent \keyword{if} \terminal{(} condition \terminal{)} \terminal{\{}\br
+\bnfindent \bnfindent statement\br
+\bnfindent \bnfindent \keyword{goto} \exposid{label} \terminal{;}\br
+\bnfindent \terminal{\}}\br
+\terminal{\}}
+\end{ncsimplebnf}
+\begin{note}
+条件中创建的变量会在每次循环迭代时被销毁并重新创建。
+\begin{example}
+\begin{codeblock}
+struct A {
+  int val;
+  A(int i) : val(i) { }
+  ~A() { }
+  operator bool() { return val != 0; }
+};
+int i = 1;
+while (A a = i) {
+  // ...
+  i = 0;
+}
+\end{codeblock}
+在 while 循环中，构造函数和析构函数各被调用了两次，一次针对条件为 true 的情况，一次针对条件为 false 的情况。
+\end{example}
+\end{note}
+
+\rSec2[stmt.do]{\keyword{do} 语句}%
+\indextext{语句!\idxcode{do}}
+
+\pnum
+表达式被语境转换为 \tcode{bool}\iref{conv}；
+若该转换非良构，则程序非良构。
+
+\pnum
+在 \keyword{do} 语句中，子语句被反复执行，
+直至表达式的值变为 \tcode{false}。
+检测在每次执行语句之后进行。
+
+\rSec2[stmt.for]{The \tcode{for} 语句}%
+\indextext{语句!\idxcode{for}}
+
+\pnum
+\keyword{for} 语句
+\begin{ncsimplebnf}
+\keyword{for} \terminal{(} init-statement \opt{条件} \terminal{;} \opt{表达式} \terminal{)} 语句
+\end{ncsimplebnf}
+等价于
+\begin{ncsimplebnf}
+\terminal{\{}\br
+\bnfindent init-statement\br
+\bnfindent \keyword{while} \terminal{(} 条件 \terminal{)} \terminal{\{}\br
+\bnfindent\bnfindent 语句\br
+\bnfindent\bnfindent 表达式 \terminal{;}\br
+\bnfindent \terminal{\}}\br
+\terminal{\}}
+\end{ncsimplebnf}
+但 \grammarterm{init-statement} 与 \grammarterm{条件} 处于同一作用域，并且 \grammarterm{语句} 中的
+\indextext{语句!\tcode{continue} 在 \tcode{for} 中}%
+\keyword{continue}（不包含在另一迭代语句内）将在重新求值 \grammarterm{条件} 之前执行 \grammarterm{表达式}。
+\begin{note}
+因此第一条语句指定循环的初始化；条件\iref{stmt.pre} 指定每次迭代之前进行的测试，使得条件变为 \tcode{false} 时退出循环；表达式常指定每次迭代之后的递增操作。
+\end{note}
+
+\pnum
+\grammarterm{条件} 和 \grammarterm{表达式} 可以省略任意之一或全部省略。省略 \grammarterm{条件} 会使隐含的 \keyword{while} 子句等价于 \tcode{while(true)}。
+
+\rSec2[stmt.ranged]{基于范围的 \keyword{for} 语句}%
+\indextext{statement!range based for@range based \tcode{for}}
+
+\pnum
+基于范围的 \keyword{for} 语句
+\begin{ncsimplebnf}
+\keyword{for} \terminal{(} \opt{init-statement} for-range-declaration \terminal{:} for-range-initializer \terminal{)} statement
+\end{ncsimplebnf}
+等价于
+\begin{ncsimplebnf}
+\terminal{\{}\br
+\bnfindent \opt{init-statement}\br
+\bnfindent \keyword{auto} \terminal{\&\&}\exposid{range} \terminal{=} for-range-initializer \terminal{;}\br
+\bnfindent \keyword{auto} \exposid{begin} \terminal{=} \exposid{begin-expr} \terminal{;}\br
+\bnfindent \keyword{auto} \exposid{end} \terminal{=} \exposid{end-expr} \terminal{;}\br
+\bnfindent \keyword{for} \terminal{(} \terminal{;} \exposid{begin} \terminal{!=} \exposid{end}\terminal{;} \terminal{++}\exposid{begin} \terminal{)} \terminal{\{}\br
+\bnfindent\bnfindent for-range-declaration \terminal{=} \terminal{*} \exposid{begin} \terminal{;}\br
+\bnfindent\bnfindent statement\br
+\bnfindent \terminal{\}}\br
+\terminal{\}}
+\end{ncsimplebnf}
+其中
+\begin{itemize}
+\item
+若 \grammarterm{for-range-initializer} 是一个 \grammarterm{expression}，
+则其被视为如同被括号所围绕（故逗号运算符不能被重新解释为分隔两个 \grammarterm{init-declarator}{s}）；
+
+\item \exposid{range}、\exposid{begin} 及 \exposid{end} 是为说明而定义的变量；且
+
+\item
+\exposid{begin-expr} 与 \exposid{end-expr} 按以下方式确定：
+
+\begin{itemize}
+\item 若 \exposid{range} 的类型是到数组类型 \tcode{R} 的引用，则 \exposid{begin-expr} 与 \exposid{end-expr} 分别是
+\exposid{range} 及 \exposid{range} \tcode{+} \tcode{N}，
+其中 \tcode{N} 是数组界限。若 \tcode{R} 是未知界限数组或非完整类型的数组，则程序非良构；
+
+\item 若 \exposid{range} 的类型是到类类型 \tcode{C} 的引用，且
+于 \tcode{C} 的作用域中查找名称 \tcode{begin} 与 \tcode{end}
+各自至少找到一个声明，
+则 \exposid{begin-expr} 与 \exposid{end-expr} 分别是
+\tcode{\exposid{range}.begin()} 与 \tcode{\exposid{range}.end()}；
+
+\item 否则，\exposid{begin-expr} 与 \exposid{end-expr} 分别是
+\tcode{begin(\exposid{range})} 与 \tcode{end(\exposid{range})}，
+其中 \tcode{begin} 与 \tcode{end} 将经历
+实参依赖查找\iref{basic.lookup.argdep}。
+\begin{note}
+不进行通常的无限定查找\iref{basic.lookup.unqual}。
+\end{note}
+\end{itemize}
+\end{itemize}
+\begin{example}
+\begin{codeblock}
+int array[5] = { 1, 2, 3, 4, 5 };
+for (int& x : array)
+  x *= 2;
+\end{codeblock}
+\end{example}
+\begin{note}
+某些 \grammarterm{for-range-initializer} 中临时变量的生存期被延伸以包含整个循环\iref{class.temporary}。
+\end{note}
+\begin{example}
+\begin{codeblock}
+using T = std::list<int>;
+const T& f1(const T& t) { return t; }
+const T& f2(T t)        { return t; }
+T g();
+
+void foo() {
+  for (auto e : f1(g())) {}     // OK，\tcode{g()} 返回值的生存期被延长
+  for (auto e : f2(g())) {}     // 未定义行为
+}
+\end{codeblock}
+\end{example}
+
+\indextext{statement!iteration|)}
+
+\rSec1[stmt.expand]{展开语句}
+\indextext{语句!展开|(}
+
+\pnum
+展开语句指定其子语句的重复实例化\iref{temp.decls.general}。
+
+\begin{bnf}
+\nontermdef{expansion-statement}\br
+    \keyword{template} \keyword{for} \terminal{(}
+        \opt{初始语句} for-range-declaration \terminal{:}
+        expansion-initializer \terminal{)} compound-statement
+\end{bnf}
+
+\begin{bnf}
+\nontermdef{expansion-initializer}\br
+    表达式\br
+    expansion-init-list
+\end{bnf}
+
+\begin{bnf}
+\nontermdef{expansion-init-list}\br
+    \terminal{\{} \opt{表达式列表} \terminal{\}}
+\end{bnf}
+
+\pnum
+\grammarterm{expansion-statement} 的 \grammarterm{compound-statement}
+是控制流受限语句\iref{stmt.label}。
+
+\pnum
+对于表达式 \tcode{E}，令表达式
+\exposid{begin-expr} 和 \exposid{end-expr} 按~\ref{stmt.ranged} 的规则确定。
+若表达式不是数组类型且满足以下任一条件，则它是 \defn{可展开迭代的}：
+\begin{itemize}
+\item
+\exposid{begin-expr} 和 \exposid{end-expr} 的形式为
+\tcode{E.begin()} 和 \tcode{E.end()}，或
+\item
+对 \tcode{begin(E)} 和 \tcode{end(E)} 的实参依赖查找
+各找到至少一个函数或函数模板。
+\end{itemize}
+
+\pnum
+展开语句是
+\begin{itemize}
+\item
+若其 \grammarterm{expansion-initializer}
+形式为 \grammarterm{expansion-init-list}，则为 \defnadj{枚举型}{展开语句}；
+\item
+否则，若其 \grammarterm{expansion-initializer}
+是可展开迭代的表达式，则为 \defnadj{迭代型}{展开语句}；
+\item
+否则，为 \defnadj{解构型}{展开语句}。
+\end{itemize}
+
+\pnum
+展开语句 $S$ 等价于包含
+\grammarterm{for-range-declaration}（含其隐含初始化）
+及 $S$ 的 compound-statement 的实例化的 \grammarterm{compound-statement}，具体如下：
+\begin{itemize}
+\item
+若 $S$ 为枚举型展开语句，则 $S$ 等价于：
+\begin{codeblock}
+{
+  @\grammarterm{初始语句}@
+  @$S_{0}$@
+  @\vdots@
+  @$S_{N-1}$@
+}
+\end{codeblock}
+其中 $N$ 为 \grammarterm{表达式列表} 的元素个数，
+$S_{i}$ 为
+\begin{codeblock}
+{
+  @\grammarterm{for-range-declaration}@ = @$E_{i}$@;
+  @\grammarterm{compound-statement}@
+}
+\end{codeblock}
+且 $E_{i}$ 为 \grammarterm{表达式列表} 的第 $i$ 个元素。
+
+\item
+否则，若 $S$ 为迭代型展开语句，则 $S$ 等价于：
+\begin{codeblock}
+{
+  @\grammarterm{初始语句}@
+  static constexpr auto&& @\exposidnc{range}@ = @\grammarterm{expansion-initializer}@;
+  static constexpr auto @\exposidnc{begin}@ = @\exposidnc{begin-expr}@;     // 见 \ref{stmt.ranged}
+  static constexpr auto @\exposidnc{end}@ = @\exposidnc{end-expr}@;         // 见 \ref{stmt.ranged}
+
+  @$S_{0}$@
+  @\vdots@
+  @$S_{N-1}$@
+}
+\end{codeblock}
+其中 $N$ 为计算表达式
+\begin{codeblock}
+[] consteval {
+  std::ptrdiff_t result = 0;
+  for (auto i = @\exposid{begin}@; i != @\exposid{end}@; ++i, ++result);
+  return result;                                // \exposid{begin} 到 \exposid{end} 的距离
+}()
+\end{codeblock}
+的结果，且 $S_{i}$ 为
+\begin{codeblock}
+{
+  static constexpr auto @\exposid{iter}@ = @\exposid{begin}@ + i;
+  @\grammarterm{for-range-declaration}@ = *@\exposid{iter}@;
+  @\grammarterm{compound-statement}@
+}
+\end{codeblock}
+变量 \exposid{range}、\exposid{begin}、\exposid{end}、\exposid{iter}
+仅用于说明。
+\begin{note}
+若 \exposid{range}
+不是常量表达式\iref{expr.const}，则实例化非良构。
+\end{note}
+
+\item
+否则，$S$ 为解构型展开语句，且 $S$ 等价于：
+\begin{codeblock}
+{
+  @\grammarterm{初始语句}@
+  @\opt{\keyword{constexpr}}@ auto&& [@$u_{0}$@, @$u_{1}$@, @$\dotsc$@, @$u_{N-1}$@] = @\grammarterm{expansion-initializer}@;
+  @$S_{0}$@
+  @\vdots@
+  @$S_{N-1}$@
+}
+\end{codeblock}
+其中 $N$ 为 \grammarterm{expansion-initializer} 类型的结构化绑定大小，且 $S_{i}$ 为
+\begin{codeblock}
+{
+  @\grammarterm{for-range-declaration}@ = @$u_{i}$@;
+  @\grammarterm{compound-statement}@
+}
+\end{codeblock}
+关键字 \keyword{constexpr} 出现在 $u_{0}, u_{1}, \dotsc, u_{N-1}$ 的声明中
+当且仅当 \keyword{constexpr} 是
+\grammarterm{for-range-declaration} 的
+\grammarterm{decl-specifier-seq} 中的
+一个 \grammarterm{decl-specifier}。
+\end{itemize}
+
+\pnum
+\begin{example}
+\begin{codeblock}
+consteval int f(auto const&... Containers) {
+  int result = 0;
+  template for (auto const& c : {Containers...}) {      // OK，枚举型展开语句
+    result += c[0];
+  }
+  return result;
+}
+constexpr int c1[] = {1, 2, 3};
+constexpr int c2[] = {4, 3, 2, 1};
+static_assert(f(c1, c2) == 5);
+\end{codeblock}
+\end{example}
+
+\pnum
+\begin{example}
+\begin{codeblock}
+consteval int f() {
+  constexpr std::array<int, 3> arr {1, 2, 3};
+  int result = 0;
+  template for (constexpr int s : arr) {                // OK，迭代型展开语句
+    result += sizeof(char[s]);
+  }
+  return result;
+}
+static_assert(f() == 6);
+\end{codeblock}
+\end{example}
+
+\pnum
+\begin{example}
+\begin{codeblock}
+struct S {
+  int i;
+  short s;
+};
+
+consteval long f(S s) {
+  long result = 0;
+  template for (auto x : s) {                           // OK，解构型展开语句
+    result += sizeof(x);
+  }
+  return result;
+}
+static_assert(f(S{}) == sizeof(int) + sizeof(short));
+\end{codeblock}
+\end{example}
+
+\indextext{语句!展开|)}
+
+\rSec1[stmt.jump]{跳转语句}%
+
+\rSec2[stmt.jump.general]{概述}%
+\indextext{statement!跳转}
+
+\pnum
+跳转语句无条件转移控制流。
+\indextext{statement!跳转}%
+
+\indextext{statement!\idxcode{break}}%
+\indextext{statement!\idxcode{continue}}%
+\indextext{return statement@\tcode{return} 语句|见{\tcode{return}}}%
+\indextext{\idxcode{return}}%
+\indextext{statement!\idxcode{goto}}%
+%
+\begin{bnf}
+\nontermdef{jump-statement}\br
+    \keyword{break} \terminal{;}\br
+    \keyword{continue} \terminal{;}\br
+    \keyword{return} \opt{expr-or-braced-init-list} \terminal{;}\br
+    coroutine-return-statement\br
+    \keyword{goto} identifier \terminal{;}
+\end{bnf}
+
+\pnum
+\indextext{local variable!析构}%
+\indextext{scope!析构函数与退出}%
+\begin{note}
+无论以何种方式离开作用域，在该作用域中构造的具有自动存储期的对象\iref{basic.stc.auto}均按其构造顺序的逆序销毁\iref{stmt.dcl}。
+关于临时对象，见~\ref{class.temporary}。
+然而，程序可通过调用
+\indextext{\idxcode{exit}}%
+\indexlibraryglobal{exit}%
+\tcode{std::exit()} 或
+\indextext{\idxcode{abort}}%
+\indexlibraryglobal{abort}%
+\tcode{std::abort()}\iref{support.start.term} 等方式终止，而不销毁具有自动存储期的对象。
+\end{note}
+\begin{note}
+协程挂起\iref{expr.await}不被视为离开作用域。
+\end{note}
+
+\rSec2[stmt.break]{\keyword{break} 语句}%
+\indextext{语句!\idxcode{break}}
+
+\pnum
+一条 \keyword{break} 语句应被\iref{stmt.pre}%
+\indextext{\idxgram{iteration-statement}}%
+\indextext{语句!\idxcode{switch}}%
+一条 \grammarterm{iteration-statement}\iref{stmt.iter}、
+一条 \grammarterm{expansion-statement}\iref{stmt.expand} 或
+一条 \keyword{switch} 语句\iref{stmt.switch} 所包围。
+\keyword{break} 语句导致终止最内层此类包围语句；
+控制传递到被终止语句之后的语句（如果有）。
+
+\rSec2[stmt.cont]{\keyword{continue} 语句}%
+\indextext{statement!\idxcode{continue}}
+
+\pnum
+\keyword{continue}
+语句应被\iref{stmt.pre}
+\indextext{\idxgram{iteration-statement}}%
+某个 \grammarterm{iteration-statement} 或 \grammarterm{expansion-statement} 所包围。
+如果最内层包围该语句的 $X$
+是一个 \grammarterm{iteration-statement}\iref{stmt.iter}，
+则 \keyword{continue} 语句
+使得控制流转到 $X$ 的 \grammarterm{statement}
+或 \grammarterm{compound-statement} 的结尾。
+否则，控制流转到当前 $S_{i}$\iref{stmt.expand} 的
+\grammarterm{compound-statement} 的结尾。
+
+\rSec2[stmt.return]{\keyword{return} 语句}%
+\indextext{\idxcode{return}}%
+\indextext{function return|see{\tcode{return}}}%
+
+\pnum
+函数通过 \tcode{return} 语句将控制权返回给调用者。
+
+\pnum
+\tcode{return} 语句的 \grammarterm{expr-or-braced-init-list} 称为其操作数。不带操作数的 \tcode{return} 语句只能用于返回类型为 \cv{}~\keyword{void} 的函数、构造函数\iref{class.ctor}或析构函数\iref{class.dtor}。
+\indextext{\idxcode{return}!构造函数和}%
+\indextext{\idxcode{return}!析构函数和}%
+操作数类型为 \keyword{void} 的 \tcode{return} 语句只能用于返回类型为 \cv{}~\keyword{void} 的函数。
+带有任何其他操作数的 \tcode{return} 语句只能用于返回类型不是 \cv{}~\keyword{void} 的函数；
+\indextext{conversion!return type}%
+\tcode{return} 语句通过从操作数复制初始化\iref{dcl.init}来初始化函数调用（显式或隐式）返回的引用或纯右值结果对象。
+\begin{note}
+构造函数或析构函数没有返回类型。
+\end{note}
+\begin{note}
+如果操作数不是纯右值，或者其类型与函数的返回类型不同，则 \tcode{return} 语句可能涉及调用构造函数以执行操作数的复制或移动。
+如果返回的是具有自动存储期的变量，则与 \tcode{return} 语句关联的复制操作可以被省略或转换为移动操作\iref{class.copy.elision}。
+\end{note}
+
+\pnum
+结果对象的析构函数可能被调用\iref{class.dtor,except.ctor}。
+\begin{example}
+\begin{codeblock}
+class A {
+  ~A() {}
+};
+A f() { return A(); }   // 错误：\tcode{A} 的析构函数是私有的（即使它从未被调用）
+\end{codeblock}
+\end{example}
+
+\pnum
+从构造函数末尾流出、从析构函数末尾流出或从返回类型为 \cv{}~\keyword{void} 的非协程函数末尾流出，等价于不带操作数的 \tcode{return} 语句。
+否则，从既不是 \tcode{main}\iref{basic.start.main} 也不是协程\iref{dcl.fct.def.coroutine} 的函数末尾流出会导致未定义行为。
+
+\pnum
+调用结果的复制初始化在由 \tcode{return} 语句操作数确立的完整表达式末尾的临时对象销毁之前顺序发生，而该临时对象的销毁又在包围 \tcode{return} 语句的块的局部变量销毁\iref{stmt.jump}之前顺序发生。
+\begin{note}
+这些操作在函数每个剩余包围块的局部变量销毁\iref{stmt.dcl}之前顺序发生，
+而该局部变量的销毁又在函数后置条件断言求值\iref{dcl.contract.func}之前顺序发生，
+而后置条件断言求值又在函数形参销毁\iref{expr.call}之前顺序发生。
+\end{note}
+
+\pnum
+在返回类型为引用的函数中（为 \tcode{std::is_convertible}\iref{meta.rel} 发明的函数除外），将返回的引用绑定到临时表达式\iref{class.temporary}的 \tcode{return} 语句是病态的。
+\begin{example}
+\begin{codeblock}
+auto&& f1() {
+  return 42;            // 病态
+}
+const double& f2() {
+  static int x = 42;
+  return x;             // 病态
+}
+auto&& id(auto&& r) {
+  return static_cast<decltype(r)&&>(r);
+}
+auto&& f3() {
+  return id(42);        // OK，但可能是一个 bug
+}
+\end{codeblock}
+\end{example}
+
+\rSec2[stmt.return.coroutine]{\keyword{co_return} 语句}%
+\indextext{\idxcode{co_return}}%
+\indextext{coroutine return|see{\tcode{co_return}}}%
+
+\begin{bnf}
+\nontermdef{coroutine-return-statement}\br
+    \keyword{co_return} \opt{expr-or-braced-init-list} \terminal{;}
+\end{bnf}
+
+\pnum
+\keyword{co_return} 语句将控制转移给协程的调用者或恢复者\iref{dcl.fct.def.coroutine}。
+协程不得包含 \tcode{return} 语句\iref{stmt.return}。
+\begin{note}
+对于此判断，无论 \tcode{return} 语句是否被丢弃语句\iref{stmt.if}包围都无关紧要。
+\end{note}
+
+\pnum
+\keyword{co_return} 语句的 \grammarterm{expr-or-braced-init-list} 称为其操作数。
+令 \placeholder{p} 为一个命名协程承诺对象\iref{dcl.fct.def.coroutine}的左值。
+\keyword{co_return} 语句等价于：
+\begin{ncsimplebnf}
+\terminal{\{} S\terminal{;} \keyword{goto} \exposid{final-suspend}\terminal{;} \terminal{\}}
+\end{ncsimplebnf}
+其中 \exposid{final-suspend} 是 \ref{dcl.fct.def.coroutine} 中定义的仅供说明的标签，
+而 \placeholder{S} 定义如下：
+\begin{itemize}
+\item
+若操作数是 \grammarterm{braced-init-list} 或非 \keyword{void} 类型的表达式，
+则 \placeholder{S} 是 \placeholder{p}\tcode{.return_value(}\grammarterm{expr-or-braced-init-list}{}\tcode{)}。
+表达式 \placeholder{S} 应是 \keyword{void} 类型的纯右值。
+
+\item
+否则，
+\placeholder{S} 是 \grammarterm{compound-statement} \tcode{\{}{ }\opt{\grammarterm{expression}} \tcode{;} \placeholder{p}\tcode{.return_void()}\tcode{;{ }\}}。
+表达式 \placeholder{p}\tcode{.return_void()} 应是 \keyword{void} 类型的纯右值。
+\end{itemize}
+
+\pnum
+若在承诺类型的范围内查找名称 \tcode{return_void} 找到任何声明，
+则流出协程的 \grammarterm{function-body} 末端等价于不带操作数的 \keyword{co_return}；
+否则流出协程的 \grammarterm{function-body} 末端将导致未定义行为。
+
+\rSec2[stmt.goto]{The \keyword{goto} statement}%
+\indextext{statement!\idxcode{goto}}
+
+\pnum
+\keyword{goto} 语句无条件地将控制权转移到由标识符标记的语句。该标识符必须是位于当前函数中的一个\indextext{label}%
+标签（\iref{stmt.label}）。
+
+\rSec1[stmt.contract.assert]{断言语句}
+
+\begin{bnf}
+\nontermdef{assertion-statement}\br
+    \terminal{contract_assert} \opt{attribute-specifier-seq} \terminal{(} conditional-expression \terminal{)} \terminal{;}
+\end{bnf}
+
+\pnum
+\indexdefn{contract assertion!statement|see{assertion, statement}}
+\indextext{assertion!statement}
+\grammarterm{assertion-statement}引入一个契约断言\iref{basic.contract}。
+可选的\grammarterm{attribute-specifier-seq}属于所引入的契约断言。
+
+\pnum
+\grammarterm{assertion-statement}的谓词\iref{basic.contract.general}
+是其\grammarterm{conditional-expression}在上下文中转换为\tcode{bool}的结果。
+
+\pnum
+连续\grammarterm{assertion-statement}的求值是按顺序求值\iref{basic.contract.eval}
+这些\grammarterm{assertion-statement}引入的契约断言。
+\begin{note}
+因此，一个\grammarterm{assertion-statement}序列可以作为一个整体被重复求值。
+\begin{example}
+\begin{codeblock}
+int f(int i)
+{
+  contract_assert(i == 0);  // \#1
+  contract_assert(i >= 0);  // \#2
+  return 0;
+}
+int g = f(0);   // 可以求值 \#1, \#2, \#1, \#2
+\end{codeblock}
+\end{example}
+\end{note}
+
+\rSec1[stmt.dcl]{声明语句}%
+\indextext{语句!声明}
+
+\pnum
+声明语句在块中引入一个或多个新名称；其形式为
+\begin{bnf}
+\nontermdef{declaration-statement}\br
+    block-declaration
+\end{bnf}
+\begin{note}
+如果声明引入的标识符先前已在外层块中声明，
+\indextext{声明隐藏|see{名称隐藏}}%
+\indextext{名称隐藏}%
+\indextext{块（语句）!结构}%
+则外层声明在该块的其余部分中被隐藏\iref{basic.lookup.unqual}，
+之后其作用恢复。
+\end{note}
+
+\pnum
+\indextext{块（语句）!初始化于其中}%
+\indextext{初始化!自动}%
+\indextext{活跃|see{变量，活跃}}%
+具有自动存储期\iref{basic.stc.auto}的块变量在其\grammarterm{init-declarator}之后的整个所属作用域内均为\defnx{活跃}{变量!活跃}。
+\indextext{初始化!跳转跳过}%
+\indextext{\idxcode{goto}!初始化与}%
+在函数内每次从点 $P$ 到点 $Q$ 的控制转移（包括语句的顺序执行）时，
+所有在 $P$ 处活跃而在 $Q$ 处不活跃的具有自动存储期的块变量按其构造的逆序销毁。
+随后，所有在 $Q$ 处活跃而在 $P$ 处不活跃的具有自动存储期的块变量按声明顺序初始化；
+除非所有这些变量都具有空初始化\iref{basic.life}，否则控制转移不得为跳转。
+\begin{footnote}
+从\keyword{switch}语句的条件到\keyword{case}标签的控制转移在此方面被视为跳转。
+\end{footnote}
+当执行\grammarterm{declaration-statement}时，$P$ 和 $Q$ 分别是紧接在其之前和之后的点；
+当函数返回时，$Q$ 在其函数体之后。
+\begin{example}
+\begin{codeblock}
+void f() {
+  // ...
+  goto lx;          // 错误：跳入\tcode{a}的作用域
+  // ...
+ly:
+  X a = 1;
+  // ...
+lx:
+  goto ly;          // OK，跳转意味着对\tcode{a}调用析构函数，随后立即在标签\tcode{ly}之后再次构造
+}
+\end{codeblock}
+\end{example}
+
+\pnum
+\indextext{初始化!自动}%
+\indextext{初始化!动态块作用域}%
+\indextext{初始化!局部\tcode{static}}%
+\indextext{初始化!局部\tcode{thread_local}}%
+具有静态存储期\iref{basic.stc.static}或线程存储期\iref{basic.stc.thread}的块变量的动态初始化，
+在控制首次流经其声明时执行；此类变量在其初始化完成后视为已初始化。
+如果初始化因抛出异常而退出，则初始化未完成，因此下次控制进入该声明时将再次尝试。
+如果控制并发地进入该声明而变量正被初始化，则并发执行应等待初始化完成。
+\begin{note}
+符合标准的实现不得在初始化器执行周围引入任何死锁。
+死锁仍可能由程序逻辑导致；
+实现只需避免因其自身同步操作导致的死锁。
+\end{note}
+如果控制递归地重新进入该声明而变量正被初始化，则行为未定义。
+\begin{example}
+\begin{codeblock}
+int foo(int i) {
+  static int s = foo(2*i);      // 未定义行为：递归调用
+  return i+1;
+}
+\end{codeblock}
+\end{example}
+
+\pnum
+\indextext{\idxcode{static}!局部变量的析构}%
+关联于具有静态或线程存储期的块变量的对象，当且仅当它已被构造时才被销毁。
+\begin{note}
+\ref{basic.start.term}描述了此类对象的销毁顺序。
+\end{note}
+
+\rSec1[stmt.ambig]{歧义解析}%
+\indextext{歧义!声明与表达式}
+
+\pnum
+涉及 \grammarterm{expression-statement} 与 \grammarterm{declaration} 的语法存在歧义：
+以函数式显式类型转换\iref{expr.type.conv} 作为最左子表达式的 \grammarterm{expression-statement} 可能与首个 \grammarterm{declarator} 以 \tcode{(} 开头的 \grammarterm{declaration} 难以区分。
+在这些情况下，\grammarterm{statement} 被视为 \grammarterm{declaration}，除非另行指定。
+
+\pnum
+\begin{note}
+如果 \grammarterm{statement} 在语法上不能是 \grammarterm{declaration}，则不存在歧义，因此本规则不适用。
+某些情况下，需要检查整个 \grammarterm{statement} 才能确定是否如此。这明确了诸多示例的含义。
+\begin{example}
+假定 \tcode{T} 是 \grammarterm{simple-type-specifier}\iref{dcl.type.simple}，
+
+\begin{codeblock}
+T(a)->m = 7;        // expression-statement
+T(a)++;             // expression-statement
+T(a,5)<<c;          // expression-statement
+
+T(*d)(int);         // declaration
+T(e)[5];            // declaration
+T(f) = { 1, 2 };    // declaration
+T(*g)(double(3));   // declaration
+\end{codeblock}
+
+在上方最后一个示例中，指向 \tcode{T} 的指针 \tcode{g} 被初始化为 \tcode{double(3)}。
+这由于语义原因显然是非良构的，但不影响语法分析。
+\end{example}
+
+其余情况均是 \grammarterm{declaration}。
+\begin{example}
+\begin{codeblock}
+class T {
+  // ...
+public:
+  T();
+  T(int);
+  T(int, int);
+};
+T(a);               // declaration
+T(*b)();            // declaration
+T(c)=7;             // declaration
+T(d),e,f=3;         // declaration
+extern int h;
+T(g)(h,2);          // declaration
+\end{codeblock}
+\end{example}
+\end{note}
+
+\pnum
+歧义解析纯粹是语法上的；即这种语句中出现的名字的含义，在歧义解析中一般不使用或不改变，除了判定它们是否为 \grammarterm{type-name}。
+类模板会根据需要被实例化以确定一个限定名是否为 \grammarterm{type-name}。
+歧义解析先于语法分析进行，且被解析为声明的语句可能是一个非良构的声明。
+如果在语法分析期间，查找发现模板实参中的名字绑定到了正在被解析的（部分）声明，则程序非良构。不要求诊断。
+\begin{example}
+\begin{codeblock}
+struct T1 {
+  T1 operator()(int x) { return T1(x); }
+  int operator=(int x) { return x; }
+  T1(int) { }
+};
+struct T2 { T2(int) { } };
+int a, (*(*b)(T2))(int), c, d;
+
+void f() {
+  // 歧义解析要求将此解析为声明：
+  T1(a) = 3,
+  T2(4),                        // \tcode{T2} 将被声明为 \tcode{T1} 类型的变量，但这将不允许
+  (*(*b)(T2(c)))(int(d));       // 声明的最后部分正确解析，因为它依赖于 \tcode{T2} 为类型名
+}
+\end{codeblock}
+\end{example}
+
+\pnum
+在语法上为歧义且可作为具有最外层带 \grammarterm{trailing-return-type} 的 \grammarterm{declarator} 的 \grammarterm{declaration} 的语句，只有当它以 \keyword{auto} 开头时才被视为 \grammarterm{declaration}。
+\begin{example}
+\begin{codeblock}
+struct M;
+struct S {
+  S* operator()();
+  int N;
+  int M;
+
+  void mem(S s) {
+    auto(s)()->M;               // expression，\tcode{S::M} 隐藏了 \tcode{::M}
+  }
+};
+
+void f(S s) {
+  {
+    auto(s)()->N;               // expression
+    auto(s)()->M;               // function declaration
+  }
+  {
+    S(s)()->N;                  // expression
+    S(s)()->M;                  // expression
+  }
+}
+\end{codeblock}
+\end{example}
+\indextext{statement|)}
+

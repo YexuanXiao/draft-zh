@@ -1,0 +1,2396 @@
+%!TEX root = std.tex
+\rSec0[diagnostics]{诊断库}
+
+\rSec1[diagnostics.general]{概述}
+
+\pnum
+本条款描述了 \Cpp{} 程序可用于检测和报告错误条件的组件。
+
+\pnum
+下列子条款描述了用于报告多种异常条件、记录程序断言、获取栈回溯以及用于错误号代码的全局变量的组件，如\tref{diagnostics.summary}中所概述。
+
+\begin{libsumtab}{诊断库概述}{diagnostics.summary}
+\ref{std.exceptions}  & 异常类                & \tcode{<stdexcept>}     \\ \rowsep
+\ref{assertions}      & 断言                  & \tcode{<cassert>}       \\ \rowsep
+\ref{errno}           & 错误号                & \tcode{<cerrno>}        \\ \rowsep
+\ref{syserr}          & 系统错误支持          & \tcode{<system_error>}  \\ \rowsep
+\ref{stacktrace}      & 栈回溯                & \tcode{<stacktrace>}    \\ \rowsep
+\ref{debugging}       & 调试支持              & \tcode{<debugging>}     \\
+\end{libsumtab}
+
+\rSec1[std.exceptions]{异常类}
+
+\rSec2[std.exceptions.general]{概述}
+
+\pnum
+\Cpp{} 标准库提供了一些类，用于报告 \Cpp{} 程序中的某些错误\iref{res.on.exception.handling}。
+在这些类所反映的错误模型中，错误被划分为两大类：
+\term{逻辑}错误和
+\term{运行时}错误。
+
+\pnum
+逻辑错误的显著特征在于，它们是由于程序内部逻辑中的错误所导致的。
+理论上，它们是可以预防的。
+
+\pnum
+相比之下，运行时错误是由于超出程序范围的事件引起的。
+它们不容易事先预测。
+头文件 \libheaderdef{stdexcept}
+定义了几种预定义的异常类型，用于报告 \Cpp{} 程序中的错误。
+这些异常通过继承相互关联。
+
+\rSec2[stdexcept.syn]{头文件\tcode{<stdexcept>}概述}
+
+\indexlibraryglobal{logic_error}%
+\indexlibraryglobal{domain_error}%
+\indexlibraryglobal{invalid_argument}%
+\indexlibraryglobal{length_error}%
+\indexlibraryglobal{out_of_range}%
+\indexlibraryglobal{runtime_error}%
+\indexlibraryglobal{range_error}%
+\indexlibraryglobal{overflow_error}%
+\indexlibraryglobal{underflow_error}%
+\begin{codeblock}
+namespace std {
+  class logic_error;
+    class domain_error;
+    class invalid_argument;
+    class length_error;
+    class out_of_range;
+  class runtime_error;
+    class range_error;
+    class overflow_error;
+    class underflow_error;
+}
+\end{codeblock}
+
+\rSec2[logic.error]{类 \tcode{logic_error}}
+
+\indexlibraryglobal{logic_error}%
+\begin{codeblock}
+namespace std {
+  class logic_error : public exception {
+  public:
+    constexpr explicit logic_error(const string& what_arg);
+    constexpr explicit logic_error(const char* what_arg);
+  };
+}
+\end{codeblock}
+
+\pnum
+类
+\tcode{logic_error}
+定义了作为异常抛出的对象类型，用于报告那些可能在程序执行前可检测到的错误，
+例如违反逻辑前置条件或类不变式。
+
+\indexlibraryctor{logic_error}%
+\begin{itemdecl}
+constexpr explicit logic_error(const string& what_arg);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\ensures
+\tcode{strcmp(what(), what_arg.c_str()) == 0}。
+\end{itemdescr}
+
+\indexlibraryctor{logic_error}%
+\begin{itemdecl}
+constexpr explicit logic_error(const char* what_arg);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\ensures
+\tcode{strcmp(what(), what_arg) == 0}。
+\end{itemdescr}
+
+\rSec2[domain.error]{类 \tcode{domain_error}}
+
+\indexlibraryglobal{domain_error}%
+\begin{codeblock}
+namespace std {
+  class domain_error : public logic_error {
+  public:
+    constexpr explicit domain_error(const string& what_arg);
+    constexpr explicit domain_error(const char* what_arg);
+  };
+}
+\end{codeblock}
+
+\pnum
+类
+\tcode{domain_error}
+定义由实现抛出的异常对象类型，用于报告定义域错误。
+
+\indexlibraryctor{domain_error}%
+\begin{itemdecl}
+constexpr domain_error(const string& what_arg);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\ensures
+\tcode{strcmp(what(), what_arg.c_str()) == 0}。
+\end{itemdescr}
+
+\indexlibraryctor{domain_error}%
+\begin{itemdecl}
+constexpr domain_error(const char* what_arg);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\ensures
+\tcode{strcmp(what(), what_arg) == 0}。
+\end{itemdescr}
+
+\rSec2[invalid.argument]{类 \tcode{invalid_argument}}
+
+\indexlibraryglobal{invalid_argument}%
+\begin{codeblock}
+namespace std {
+  class invalid_argument : public logic_error {
+  public:
+    constexpr explicit invalid_argument(const string& what_arg);
+    constexpr explicit invalid_argument(const char* what_arg);
+  };
+}
+\end{codeblock}
+
+\pnum
+类
+\tcode{invalid_argument}
+定义用于报告无效参数而被抛出异常的对象类型。
+
+\indexlibraryctor{invalid_argument}%
+\begin{itemdecl}
+constexpr explicit invalid_argument(const string& what_arg);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\ensures
+\tcode{strcmp(what(), what_arg.c_str()) == 0}。
+\end{itemdescr}
+
+\indexlibraryctor{invalid_argument}%
+\begin{itemdecl}
+constexpr explicit invalid_argument(const char* what_arg);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\ensures
+\tcode{strcmp(what(), what_arg) == 0}。
+\end{itemdescr}
+
+\rSec2[length.error]{类 \tcode{length_error}}
+
+\indexlibraryglobal{length_error}%
+\begin{codeblock}
+namespace std {
+  class length_error : public logic_error {
+  public:
+    constexpr explicit length_error(const string& what_arg);
+    constexpr explicit length_error(const char* what_arg);
+  };
+}
+\end{codeblock}
+
+\pnum
+类
+\tcode{length_error}
+定义了被抛出作为异常的对象类型，
+用于报告试图产生长度超出其最大允许尺寸的对象的尝试。
+
+\indexlibraryctor{length_error}%
+\begin{itemdecl}
+constexpr explicit length_error(const string& what_arg);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\ensures
+\tcode{strcmp(what(), what_arg.c_str()) == 0}。
+\end{itemdescr}
+
+\indexlibraryctor{length_error}%
+\begin{itemdecl}
+constexpr explicit length_error(const char* what_arg);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\ensures
+\tcode{strcmp(what(), what_arg) == 0}。
+\end{itemdescr}
+
+\rSec2[out.of.range]{类 \tcode{out_of_range}}
+
+\indexlibraryglobal{out_of_range}%
+\begin{codeblock}
+namespace std {
+  class out_of_range : public logic_error {
+  public:
+    constexpr explicit out_of_range(const string& what_arg);
+    constexpr explicit out_of_range(const char* what_arg);
+  };
+}
+\end{codeblock}
+
+\pnum
+类 \tcode{out_of_range} 定义用作异常抛出的对象类型，以报告参数值不在其预期范围内。
+\indextext{参数}
+
+\indexlibraryctor{out_of_range}%
+\begin{itemdecl}
+constexpr explicit out_of_range(const string& what_arg);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\ensures
+\tcode{strcmp(what(), what_arg.c_str()) == 0}。
+\end{itemdescr}
+
+\indexlibraryctor{out_of_range}%
+\begin{itemdecl}
+constexpr explicit out_of_range(const char* what_arg);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\ensures
+\tcode{strcmp(what(), what_arg) == 0}。
+\end{itemdescr}
+
+\rSec2[runtime.error]{类 \tcode{runtime_error}}
+
+\indexlibraryglobal{runtime_error}%
+\begin{codeblock}
+namespace std {
+  class runtime_error : public exception {
+  public:
+    constexpr explicit runtime_error(const string& what_arg);
+    constexpr explicit runtime_error(const char* what_arg);
+  };
+}
+\end{codeblock}
+
+\pnum
+类
+\tcode{runtime_error}
+定义了作为异常抛出的对象的类型，用于报告那些仅在程序执行时才可能被检测到的错误。
+
+\indexlibraryctor{runtime_error}%
+\begin{itemdecl}
+constexpr runtime_error(const string& what_arg);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\ensures
+\tcode{strcmp(what(), what_arg.c_str()) == 0}。
+\end{itemdescr}
+
+\indexlibraryctor{runtime_error}%
+\begin{itemdecl}
+constexpr runtime_error(const char* what_arg);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\ensures
+\tcode{strcmp(what(), what_arg) == 0}。
+\end{itemdescr}
+
+\rSec2[range.error]{类 \tcode{range_error}}
+
+\indexlibraryglobal{range_error}%
+\begin{codeblock}
+namespace std {
+  class range_error : public runtime_error {
+  public:
+    constexpr explicit range_error(const string& what_arg);
+    constexpr explicit range_error(const char* what_arg);
+  };
+}
+\end{codeblock}
+
+\pnum
+类
+\tcode{range_error}
+定义作为异常抛出的对象类型，用于报告内部计算中的范围错误。
+
+\indexlibraryctor{range_error}%
+\begin{itemdecl}
+constexpr explicit range_error(const string& what_arg);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\ensures
+\tcode{strcmp(what(), what_arg.c_str()) == 0}。
+\end{itemdescr}
+
+\indexlibraryctor{range_error}%
+\begin{itemdecl}
+constexpr explicit range_error(const char* what_arg);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\ensures
+\tcode{strcmp(what(), what_arg) == 0}。
+\end{itemdescr}
+
+\rSec2[overflow.error]{类 \tcode{overflow_error}}
+
+\indexlibraryglobal{overflow_error}%
+\begin{codeblock}
+namespace std {
+  class overflow_error : public runtime_error {
+  public:
+    constexpr explicit overflow_error(const string& what_arg);
+    constexpr explicit overflow_error(const char* what_arg);
+  };
+}
+\end{codeblock}
+
+\pnum
+类
+\tcode{overflow_error}
+定义了作为异常抛出的对象的类型，用于报告算术溢出错误。
+
+\indexlibraryctor{overflow_error}%
+\begin{itemdecl}
+constexpr explicit overflow_error(const string& what_arg);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\ensures
+\tcode{strcmp(what(), what_arg.c_str()) == 0}.
+\end{itemdescr}
+
+\indexlibraryctor{overflow_error}%
+\begin{itemdecl}
+constexpr explicit overflow_error(const char* what_arg);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\ensures
+\tcode{strcmp(what(), what_arg) == 0}.
+\end{itemdescr}
+
+\rSec2[underflow.error]{类\tcode{underflow_error}}
+
+\indexlibraryglobal{underflow_error}%
+\begin{codeblock}
+namespace std {
+  class underflow_error : public runtime_error {
+  public:
+    constexpr explicit underflow_error(const string& what_arg);
+    constexpr explicit underflow_error(const char* what_arg);
+  };
+}
+\end{codeblock}
+
+\pnum
+类\tcode{underflow_error}定义了作为异常被抛出以报告算术下溢错误的对象的类型。
+
+\indexlibraryctor{underflow_error}%
+\begin{itemdecl}
+constexpr explicit underflow_error(const string& what_arg);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\ensures
+\tcode{strcmp(what(), what_arg.c_str()) == 0}。
+\end{itemdescr}
+
+\indexlibraryctor{underflow_error}%
+\begin{itemdecl}
+constexpr explicit underflow_error(const char* what_arg);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\ensures
+\tcode{strcmp(what(), what_arg) == 0}。
+\end{itemdescr}
+
+\rSec1[assertions]{断言}
+
+\rSec2[assertions.general]{概要}
+
+\pnum
+头文件\libheaderdef{cassert}提供了一个用于文档化\Cpp{}程序断言的宏，以及一种通过定义宏\tcode{NDEBUG}来禁用断言检查的手段。
+
+\rSec2[cassert.syn]{头文件\tcode{<cassert>}概述}
+
+\begin{codeblock}
+#define @\libmacro{assert}@(...) @\seebelow@
+\end{codeblock}
+
+\rSec2[assertions.assert]{\tcode{assert}宏}
+
+\pnum
+如果在源文件中包含\tcode{<cassert>}的位置将\tcode{NDEBUG}定义为宏名，
+则\tcode{assert}宏定义为
+\begin{codeblock}
+#define @\libmacro{assert}@(...) ((void)0)
+\end{codeblock}
+
+\pnum
+否则，\libmacro{assert}宏在程序中插入诊断测试；
+它展开为\keyword{void}类型的表达式，
+具有以下效果：
+
+\begin{itemize}
+\item
+计算\mname{VA_ARGS}并按语境转换为\tcode{bool}。
+\item
+若计算结果为\tcode{true}，则无进一步效果。
+\item
+否则，\tcode{assert}宏的表达式
+以\impldef{由\tcode{assert}宏的表达式创建的诊断格式}
+格式在标准错误流（\IsoC{}，7.23.3）上创建诊断并调用\tcode{abort()}。
+该诊断包含\tcode{\#}\mname{VA_ARGS}以及
+源文件名、
+源行号和
+外层函数名
+（例如\tcode{source_location::current()}所提供）的信息。
+\end{itemize}
+
+\pnum
+若\mname{VA_ARGS}未展开为
+\grammarterm{赋值表达式}，
+则程序为非良构。
+
+\pnum
+每次包含\tcode{<cassert>}时，
+宏\tcode{assert}依据\tcode{NDEBUG}的当前状态重新定义。
+
+\pnum
+表达式\tcode{assert(E)}
+为常量子表达式\iref{defns.const.subexpr}，如果
+\begin{itemize}
+\item
+在\tcode{assert}最后被定义或重定义的位置定义了\tcode{NDEBUG}，或
+\item
+按语境转换为\tcode{bool}\iref{conv}的\tcode{E}
+为求值为\tcode{true}的常量子表达式。
+\end{itemize}
+
+\rSec1[errno]{错误号}
+
+\rSec2[errno.general]{概述}
+
+\pnum
+头文件 \libheaderdef{cerrno} 的内容与 POSIX 头文件 \libheader{errno.h} 相同，但 \libmacro{errno} 应被定义为一个宏。\begin{note}
+意图是保持与 POSIX 标准的紧密对齐。\end{note}
+为每个线程提供一个独立的 \tcode{errno} 值。
+
+\rSec2[cerrno.syn]{Header \tcode{<cerrno>} 摘要}
+
+\begin{codeblock}
+#define @\libmacro{errno}@ @\seebelow@
+
+#define @\libmacro{E2BIG}@ @\seebelow@                                                // freestanding
+#define @\libmacro{EACCES}@ @\seebelow@                                               // freestanding
+#define @\libmacro{EADDRINUSE}@ @\seebelow@                                           // freestanding
+#define @\libmacro{EADDRNOTAVAIL}@ @\seebelow@                                        // freestanding
+#define @\libmacro{EAFNOSUPPORT}@ @\seebelow@                                         // freestanding
+#define @\libmacro{EAGAIN}@ @\seebelow@                                               // freestanding
+#define @\libmacro{EALREADY}@ @\seebelow@                                             // freestanding
+#define @\libmacro{EBADF}@ @\seebelow@                                                // freestanding
+#define @\libmacro{EBADMSG}@ @\seebelow@                                              // freestanding
+#define @\libmacro{EBUSY}@ @\seebelow@                                                // freestanding
+#define @\libmacro{ECANCELED}@ @\seebelow@                                            // freestanding
+#define @\libmacro{ECHILD}@ @\seebelow@                                               // freestanding
+#define @\libmacro{ECONNABORTED}@ @\seebelow@                                         // freestanding
+#define @\libmacro{ECONNREFUSED}@ @\seebelow@                                         // freestanding
+#define @\libmacro{ECONNRESET}@ @\seebelow@                                           // freestanding
+#define @\libmacro{EDEADLK}@ @\seebelow@                                              // freestanding
+#define @\libmacro{EDESTADDRREQ}@ @\seebelow@                                         // freestanding
+#define @\libmacro{EDOM}@ @\seebelow@                                                 // freestanding
+#define @\libmacro{EEXIST}@ @\seebelow@                                               // freestanding
+#define @\libmacro{EFAULT}@ @\seebelow@                                               // freestanding
+#define @\libmacro{EFBIG}@ @\seebelow@                                                // freestanding
+#define @\libmacro{EHOSTUNREACH}@ @\seebelow@                                         // freestanding
+#define @\libmacro{EIDRM}@ @\seebelow@                                                // freestanding
+#define @\libmacro{EILSEQ}@ @\seebelow@                                               // freestanding
+#define @\libmacro{EINPROGRESS}@ @\seebelow@                                          // freestanding
+#define @\libmacro{EINTR}@ @\seebelow@                                                // freestanding
+#define @\libmacro{EINVAL}@ @\seebelow@                                               // freestanding
+#define @\libmacro{EIO}@ @\seebelow@                                                  // freestanding
+#define @\libmacro{EISCONN}@ @\seebelow@                                              // freestanding
+#define @\libmacro{EISDIR}@ @\seebelow@                                               // freestanding
+#define @\libmacro{ELOOP}@ @\seebelow@                                                // freestanding
+#define @\libmacro{EMFILE}@ @\seebelow@                                               // freestanding
+#define @\libmacro{EMLINK}@ @\seebelow@                                               // freestanding
+#define @\libmacro{EMSGSIZE}@ @\seebelow@                                             // freestanding
+#define @\libmacro{ENAMETOOLONG}@ @\seebelow@                                         // freestanding
+#define @\libmacro{ENETDOWN}@ @\seebelow@                                             // freestanding
+#define @\libmacro{ENETRESET}@ @\seebelow@                                            // freestanding
+#define @\libmacro{ENETUNREACH}@ @\seebelow@                                          // freestanding
+#define @\libmacro{ENFILE}@ @\seebelow@                                               // freestanding
+#define @\libmacro{ENOBUFS}@ @\seebelow@                                              // freestanding
+#define @\libmacro{ENODEV}@ @\seebelow@                                               // freestanding
+#define @\libmacro{ENOENT}@ @\seebelow@                                               // freestanding
+#define @\libmacro{ENOEXEC}@ @\seebelow@                                              // freestanding
+#define @\libmacro{ENOLCK}@ @\seebelow@                                               // freestanding
+#define @\libmacro{ENOLINK}@ @\seebelow@                                              // freestanding
+#define @\libmacro{ENOMEM}@ @\seebelow@                                               // freestanding
+#define @\libmacro{ENOMSG}@ @\seebelow@                                               // freestanding
+#define @\libmacro{ENOPROTOOPT}@ @\seebelow@                                          // freestanding
+#define @\libmacro{ENOSPC}@ @\seebelow@                                               // freestanding
+#define @\libmacro{ENOSYS}@ @\seebelow@                                               // freestanding
+#define @\libmacro{ENOTCONN}@ @\seebelow@                                             // freestanding
+#define @\libmacro{ENOTDIR}@ @\seebelow@                                              // freestanding
+#define @\libmacro{ENOTEMPTY}@ @\seebelow@                                            // freestanding
+#define @\libmacro{ENOTRECOVERABLE}@ @\seebelow@                                      // freestanding
+#define @\libmacro{ENOTSOCK}@ @\seebelow@                                             // freestanding
+#define @\libmacro{ENOTSUP}@ @\seebelow@                                              // freestanding
+#define @\libmacro{ENOTTY}@ @\seebelow@                                               // freestanding
+#define @\libmacro{ENXIO}@ @\seebelow@                                                // freestanding
+#define @\libmacro{EOPNOTSUPP}@ @\seebelow@                                           // freestanding
+#define @\libmacro{EOVERFLOW}@ @\seebelow@                                            // freestanding
+#define @\libmacro{EOWNERDEAD}@ @\seebelow@                                           // freestanding
+#define @\libmacro{EPERM}@ @\seebelow@                                                // freestanding
+#define @\libmacro{EPIPE}@ @\seebelow@                                                // freestanding
+#define @\libmacro{EPROTO}@ @\seebelow@                                               // freestanding
+#define @\libmacro{EPROTONOSUPPORT}@ @\seebelow@                                      // freestanding
+#define @\libmacro{EPROTOTYPE}@ @\seebelow@                                           // freestanding
+#define @\libmacro{ERANGE}@ @\seebelow@                                               // freestanding
+#define @\libmacro{EROFS}@ @\seebelow@                                                // freestanding
+#define @\libmacro{ESPIPE}@ @\seebelow@                                               // freestanding
+#define @\libmacro{ESRCH}@ @\seebelow@                                                // freestanding
+#define @\libmacro{ETIMEDOUT}@ @\seebelow@                                            // freestanding
+#define @\libmacro{ETXTBSY}@ @\seebelow@                                              // freestanding
+#define @\libmacro{EWOULDBLOCK}@ @\seebelow@                                          // freestanding
+#define @\libmacro{EXDEV}@ @\seebelow@                                                // freestanding
+\end{codeblock}
+
+\pnum
+本头文件中各宏的含义由 POSIX 标准定义。
+
+\xrefc{7.5}
+
+\rSec1[syserr]{系统错误支持}
+
+\rSec2[syserr.general]{概述}
+
+\pnum
+子条款 \ref{syserr} 描述了标准库及 \Cpp{} 程序可用来报告源自操作系统或其他低级应用程序接口的错误条件的组件。
+
+\pnum
+\ref{syserr} 中描述的组件不改变 \tcode{errno}\iref{errno} 的值。
+
+\recommended
+实现应保持其他库提供的错误状态不变。
+
+\rSec2[system.error.syn]{头文件 \tcode{<system_error>} 概要}
+
+\indexheader{system_error}%
+\indexlibraryglobal{error_category}%
+\indexlibraryglobal{error_code}%
+\indexlibraryglobal{error_condition}%
+\indexlibraryglobal{system_error}%
+\begin{codeblock}
+#include <compare>              // 见 \ref{compare.syn}
+
+namespace std {
+  class error_category;
+  const error_category& generic_category() noexcept;
+  const error_category& system_category() noexcept;
+
+  class error_code;
+  class error_condition;
+  class system_error;
+
+  template<class T>
+    struct @\libglobal{is_error_code_enum}@ : public false_type {};
+
+  template<class T>
+    struct @\libglobal{is_error_condition_enum}@ : public false_type {};
+
+  enum class @\libglobal{errc}@ {                                                     // 独立实现
+    address_family_not_supported,       // \tcode{EAFNOSUPPORT}
+    address_in_use,                     // \tcode{EADDRINUSE}
+    address_not_available,              // \tcode{EADDRNOTAVAIL}
+    already_connected,                  // \tcode{EISCONN}
+    argument_list_too_long,             // \tcode{E2BIG}
+    argument_out_of_domain,             // \tcode{EDOM}
+    bad_address,                        // \tcode{EFAULT}
+    bad_file_descriptor,                // \tcode{EBADF}
+    bad_message,                        // \tcode{EBADMSG}
+    broken_pipe,                        // \tcode{EPIPE}
+    connection_aborted,                 // \tcode{ECONNABORTED}
+    connection_already_in_progress,     // \tcode{EALREADY}
+    connection_refused,                 // \tcode{ECONNREFUSED}
+    connection_reset,                   // \tcode{ECONNRESET}
+    cross_device_link,                  // \tcode{EXDEV}
+    destination_address_required,       // \tcode{EDESTADDRREQ}
+    device_or_resource_busy,            // \tcode{EBUSY}
+    directory_not_empty,                // \tcode{ENOTEMPTY}
+    executable_format_error,            // \tcode{ENOEXEC}
+    file_exists,                        // \tcode{EEXIST}
+    file_too_large,                     // \tcode{EFBIG}
+    filename_too_long,                  // \tcode{ENAMETOOLONG}
+    function_not_supported,             // \tcode{ENOSYS}
+    host_unreachable,                   // \tcode{EHOSTUNREACH}
+    identifier_removed,                 // \tcode{EIDRM}
+    illegal_byte_sequence,              // \tcode{EILSEQ}
+    inappropriate_io_control_operation, // \tcode{ENOTTY}
+    interrupted,                        // \tcode{EINTR}
+    invalid_argument,                   // \tcode{EINVAL}
+    invalid_seek,                       // \tcode{ESPIPE}
+    io_error,                           // \tcode{EIO}
+    is_a_directory,                     // \tcode{EISDIR}
+    message_size,                       // \tcode{EMSGSIZE}
+    network_down,                       // \tcode{ENETDOWN}
+    network_reset,                      // \tcode{ENETRESET}
+    network_unreachable,                // \tcode{ENETUNREACH}
+    no_buffer_space,                    // \tcode{ENOBUFS}
+    no_child_process,                   // \tcode{ECHILD}
+    no_link,                            // \tcode{ENOLINK}
+    no_lock_available,                  // \tcode{ENOLCK}
+    no_message,                         // \tcode{ENOMSG}
+    no_protocol_option,                 // \tcode{ENOPROTOOPT}
+    no_space_on_device,                 // \tcode{ENOSPC}
+    no_such_device_or_address,          // \tcode{ENXIO}
+    no_such_device,                     // \tcode{ENODEV}
+    no_such_file_or_directory,          // \tcode{ENOENT}
+    no_such_process,                    // \tcode{ESRCH}
+    not_a_directory,                    // \tcode{ENOTDIR}
+    not_a_socket,                       // \tcode{ENOTSOCK}
+    not_connected,                      // \tcode{ENOTCONN}
+    not_enough_memory,                  // \tcode{ENOMEM}
+    not_supported,                      // \tcode{ENOTSUP}
+    operation_canceled,                 // \tcode{ECANCELED}
+    operation_in_progress,              // \tcode{EINPROGRESS}
+    operation_not_permitted,            // \tcode{EPERM}
+    operation_not_supported,            // \tcode{EOPNOTSUPP}
+    operation_would_block,              // \tcode{EWOULDBLOCK}
+    owner_dead,                         // \tcode{EOWNERDEAD}
+    permission_denied,                  // \tcode{EACCES}
+    protocol_error,                     // \tcode{EPROTO}
+    protocol_not_supported,             // \tcode{EPROTONOSUPPORT}
+    read_only_file_system,              // \tcode{EROFS}
+    resource_deadlock_would_occur,      // \tcode{EDEADLK}
+    resource_unavailable_try_again,     // \tcode{EAGAIN}
+    result_out_of_range,                // \tcode{ERANGE}
+    state_not_recoverable,              // \tcode{ENOTRECOVERABLE}
+    text_file_busy,                     // \tcode{ETXTBSY}
+    timed_out,                          // \tcode{ETIMEDOUT}
+    too_many_files_open_in_system,      // \tcode{ENFILE}
+    too_many_files_open,                // \tcode{EMFILE}
+    too_many_links,                     // \tcode{EMLINK}
+    too_many_symbolic_link_levels,      // \tcode{ELOOP}
+    value_too_large,                    // \tcode{EOVERFLOW}
+    wrong_protocol_type,                // \tcode{EPROTOTYPE}
+  };
+
+  template<> struct is_error_condition_enum<errc> : true_type {};
+
+  // \ref{syserr.errcode.nonmembers}，非成员函数
+  error_code make_error_code(errc e) noexcept;
+
+  template<class charT, class traits>
+    basic_ostream<charT, traits>&
+      operator<<(basic_ostream<charT, traits>& os, const error_code& ec);
+
+  // \ref{syserr.errcondition.nonmembers}，非成员函数
+  error_condition make_error_condition(errc e) noexcept;
+
+  // \ref{syserr.compare}，比较运算符函数
+  bool operator==(const error_code& lhs, const error_code& rhs) noexcept;
+  bool operator==(const error_code& lhs, const error_condition& rhs) noexcept;
+  bool operator==(const error_condition& lhs, const error_condition& rhs) noexcept;
+  strong_ordering operator<=>(const error_code& lhs, const error_code& rhs) noexcept;
+  strong_ordering operator<=>(const error_condition& lhs, const error_condition& rhs) noexcept;
+
+  // \ref{syserr.hash}，哈希支持
+  template<class T> struct hash;
+  template<> struct hash<error_code>;
+  template<> struct hash<error_condition>;
+
+  // \ref{syserr}，系统错误支持
+  template<class T>
+    constexpr bool @\libglobal{is_error_code_enum_v}@ = is_error_code_enum<T>::value;
+  template<class T>
+    constexpr bool is_error_condition_enum_v = is_error_condition_enum<T>::value;
+}
+\end{codeblock}
+
+\pnum
+每个 \tcode{enum errc} 枚举量的值与上述概要中显示的 \libheader{cerrno} 宏的值相同。
+\libheader{system_error} 实现是否公开 \libheader{cerrno} 宏未予指明。
+
+\pnum
+可针对用户自定义类型特化 \tcode{is_error_code_enum} 与 \tcode{is_error_condition_enum} 模板，
+以指明这些类型分别适用于 \tcode{class error_code} 与 \tcode{class error_condition} 的隐式转换。
+
+\rSec2[syserr.errcat]{类 \tcode{error_category}}
+
+\rSec3[syserr.errcat.overview]{概述}
+
+\pnum
+类 \tcode{error_category} 用作基类，以标识特定类别错误码的来源和编码。
+可以派生自 \tcode{error_category} 的类以支持除本文档定义之外的错误类别。
+这些类的行为应符合子条款~\ref{syserr.errcat} 的规定。
+\begin{note}
+\tcode{error_category} 对象通过引用传递，两个这样的对象如果地址相同则相等。
+如果自定义的 \tcode{error_category} 类型存在多个对象，即使对象持有的值相同，此类相等比较也可能为 \tcode{false}。
+\end{note}
+
+\indexlibraryglobal{error_category}%
+\indexlibraryctor{error_category}%
+\indexlibrarydtor{error_category}%
+\indexlibraryglobal{generic_category}%
+\indexlibraryglobal{system_category}%
+\begin{codeblock}
+namespace std {
+  class error_category {
+  public:
+    constexpr error_category() noexcept;
+    virtual ~error_category();
+    error_category(const error_category&) = delete;
+    error_category& operator=(const error_category&) = delete;
+    virtual const char* name() const noexcept = 0;
+    virtual error_condition default_error_condition(int ev) const noexcept;
+    virtual bool equivalent(int code, const error_condition& condition) const noexcept;
+    virtual bool equivalent(const error_code& code, int condition) const noexcept;
+    virtual string message(int ev) const = 0;
+
+    bool operator==(const error_category& rhs) const noexcept;
+    strong_ordering operator<=>(const error_category& rhs) const noexcept;
+  };
+
+  const error_category& generic_category() noexcept;
+  const error_category& system_category() noexcept;
+}
+\end{codeblock}
+
+\rSec3[syserr.errcat.virtuals]{虚成员}
+
+\indexlibrarymember{name}{error_category}%
+\begin{itemdecl}
+virtual const char* name() const noexcept = 0;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+命名该错误类别的字符串。
+\end{itemdescr}
+
+\indexlibrarymember{default_error_condition}{error_category}%
+\begin{itemdecl}
+virtual error_condition default_error_condition(int ev) const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{error_condition(ev, *this)}。
+\end{itemdescr}
+
+\indexlibrarymember{equivalent}{error_category}%
+\begin{itemdecl}
+virtual bool equivalent(int code, const error_condition& condition) const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{default_error_condition(code) == condition}。
+\end{itemdescr}
+
+\indexlibrarymember{equivalent}{error_category}%
+\begin{itemdecl}
+virtual bool equivalent(const error_code& code, int condition) const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{*this == code.category() \&\& code.value() == condition}。
+\end{itemdescr}
+
+\indexlibrarymember{message}{error_category}%
+\begin{itemdecl}
+virtual string message(int ev) const = 0;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+描述由 \tcode{ev} 表示的错误条件的字符串。
+\end{itemdescr}
+
+\rSec3[syserr.errcat.nonvirtuals]{非虚成员}
+
+\indexlibrarymember{operator==}{error_category}%
+\begin{itemdecl}
+bool operator==(const error_category& rhs) const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{this == \&rhs}。
+\end{itemdescr}
+
+\indexlibrarymember{operator<=>}{error_category}%
+\begin{itemdecl}
+strong_ordering operator<=>(const error_category& rhs) const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{compare_three_way()(this, \&rhs)}。
+
+\begin{note}
+\tcode{compare_three_way}\iref{comparisons.three.way} 为指针提供全序。
+\end{note}
+\end{itemdescr}
+
+\rSec3[syserr.errcat.derived]{派生自 \tcode{error_category} 的程序定义类}
+
+\indexlibrarymember{name}{error_category}%
+\begin{itemdecl}
+virtual const char* name() const noexcept = 0;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+命名该错误类别的字符串。
+\end{itemdescr}
+
+\indexlibrarymember{default_error_condition}{error_category}%
+\begin{itemdecl}
+virtual error_condition default_error_condition(int ev) const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+对应于 \tcode{ev} 的 \tcode{error_condition} 类型对象。
+\end{itemdescr}
+
+\indexlibrarymember{equivalent}{error_category}%
+\begin{itemdecl}
+virtual bool equivalent(int code, const error_condition& condition) const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+对于由 \tcode{*this} 表示的错误类别，若 \tcode{code} 被视为等价于 \tcode{condition}，则返回 \tcode{true}；否则返回 \tcode{false}。
+\end{itemdescr}
+
+\indexlibrarymember{equivalent}{error_category}%
+\begin{itemdecl}
+virtual bool equivalent(const error_code& code, int condition) const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+对于由 \tcode{*this} 表示的错误类别，若 \tcode{code} 被视为等价于 \tcode{condition}，则返回 \tcode{true}；否则返回 \tcode{false}。
+\end{itemdescr}
+
+\rSec3[syserr.errcat.objects]{错误类别对象}
+
+\indexlibraryglobal{generic_category}%
+\begin{itemdecl}
+const error_category& generic_category() noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+派生自类 \tcode{error_category} 的类型的对象的引用。
+所有对此函数的调用均应返回对同一对象的引用。
+
+\pnum
+\remarks
+该对象的 \tcode{default_error_condition} 和 \tcode{equivalent} 虚函数的行为应符合类 \tcode{error_category} 的规定。该对象的 \tcode{name} 虚函数应返回指向字符串 \tcode{"generic"} 的指针。
+\end{itemdescr}
+
+\indexlibraryglobal{system_category}%
+\begin{itemdecl}
+const error_category& system_category() noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+派生自类 \tcode{error_category} 的类型的对象的引用。
+所有对此函数的调用均应返回对同一对象的引用。
+
+\pnum
+\remarks
+该对象的 \tcode{equivalent} 虚函数的行为应符合类 \tcode{error_category} 的规定。该对象的 \tcode{name} 虚函数应返回指向字符串 \tcode{"system"} 的指针。该对象的 \tcode{default_error_condition} 虚函数的行为如下：
+
+若参数 \tcode{ev} 等于 0，
+则函数返回 \tcode{error_condition(0, generic_category())}。
+否则，
+若 \tcode{ev} 对应 POSIX \tcode{errno} 值 \tcode{pxv}，
+则函数返回 \tcode{error_condition(pxv, generic_category())}。
+否则，函数返回 \tcode{error_condition(ev, system_category())}。
+对于任何给定操作系统，对应关系的构成未加指明。
+\begin{note}
+潜在系统错误码的数量庞大且无界，其中一些可能不对应任何 POSIX \tcode{errno} 值。因此，
+实现可自由裁量确定对应关系。
+\end{note}
+\end{itemdescr}
+
+\rSec2[syserr.errcode]{类 \tcode{error_code}}
+
+\rSec3[syserr.errcode.overview]{概述}
+
+\pnum
+类 \tcode{error_code} 描述了一个用于保存错误代码值的对象，这些错误代码值通常来自操作系统或其他底层应用程序编程接口。
+\begin{note}
+类 \tcode{error_code} 是异常错误报告的补充手段。
+\end{note}
+
+\indexlibraryglobal{error_code}%
+\begin{codeblock}
+namespace std {
+  class error_code {
+  public:
+    // \ref{syserr.errcode.constructors}，构造函数
+    error_code() noexcept;
+    error_code(int val, const error_category& cat) noexcept;
+    template<class ErrorCodeEnum>
+      error_code(ErrorCodeEnum e) noexcept;
+
+    // \ref{syserr.errcode.modifiers}，修改器
+    void assign(int val, const error_category& cat) noexcept;
+    template<class ErrorCodeEnum>
+      error_code& operator=(ErrorCodeEnum e) noexcept;
+    void clear() noexcept;
+
+    // \ref{syserr.errcode.observers}，观察器
+    int value() const noexcept;
+    const error_category& category() const noexcept;
+    error_condition default_error_condition() const noexcept;
+    string message() const;
+    explicit operator bool() const noexcept;
+
+  private:
+    int @\exposid{val_}@;                   // \expos
+    const error_category* @\exposid{cat_}@; // \expos
+  };
+
+  // \ref{syserr.errcode.nonmembers}，非成员函数
+  error_code make_error_code(errc e) noexcept;
+
+  template<class charT, class traits>
+    basic_ostream<charT, traits>&
+      operator<<(basic_ostream<charT, traits>& os, const error_code& ec);
+}
+\end{codeblock}
+
+\rSec3[syserr.errcode.constructors]{构造函数}
+
+\indexlibraryctor{error_code}%
+\begin{itemdecl}
+error_code() noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+\exposid{val_} 初始化为 \tcode{0}，
+\exposid{cat_} 初始化为 \tcode{\&system_category()}。
+\end{itemdescr}
+
+\indexlibraryctor{error_code}%
+\begin{itemdecl}
+error_code(int val, const error_category& cat) noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+\exposid{val_} 初始化为 \tcode{val}，
+\exposid{cat_} 初始化为 \tcode{\&cat}。
+\end{itemdescr}
+
+\indexlibraryctor{error_code}%
+\begin{itemdecl}
+template<class ErrorCodeEnum>
+  error_code(ErrorCodeEnum e) noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\constraints
+\tcode{is_error_code_enum_v<ErrorCodeEnum>} 为 \tcode{true}。
+
+\pnum
+\effects
+等价于：
+\begin{codeblock}
+error_code ec = make_error_code(e);
+assign(ec.value(), ec.category());
+\end{codeblock}
+\end{itemdescr}
+
+\rSec3[syserr.errcode.modifiers]{修改器}
+
+\indexlibrarymember{assign}{error_code}%
+\begin{itemdecl}
+void assign(int val, const error_category& cat) noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\ensures
+\tcode{\exposid{val_} == val} 与 \tcode{\exposid{cat_} == \&cat}。
+\end{itemdescr}
+
+\indexlibrarymember{operator=}{error_code}%
+\begin{itemdecl}
+template<class ErrorCodeEnum>
+  error_code& operator=(ErrorCodeEnum e) noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\constraints
+\tcode{is_error_code_enum_v<ErrorCodeEnum>} 为 \tcode{true}。
+
+\pnum
+\effects
+等价于：
+\begin{codeblock}
+error_code ec = make_error_code(e);
+assign(ec.value(), ec.category());
+\end{codeblock}
+
+\pnum
+\returns
+\tcode{*this}。
+\end{itemdescr}
+
+\indexlibrarymember{clear}{error_code}%
+\begin{itemdecl}
+void clear() noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\ensures
+\tcode{value() == 0} 与 \tcode{category() == system_category()}。
+\end{itemdescr}
+
+
+\rSec3[syserr.errcode.observers]{观察器}
+
+\indexlibrarymember{value}{error_code}%
+\begin{itemdecl}
+int value() const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\exposid{val_}。
+\end{itemdescr}
+
+\indexlibrarymember{category}{error_code}%
+\begin{itemdecl}
+const error_category& category() const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{*\exposid{cat_}}。
+\end{itemdescr}
+
+\indexlibrarymember{default_error_condition}{error_code}%
+\begin{itemdecl}
+error_condition default_error_condition() const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{category().default_error_condition(value())}。
+\end{itemdescr}
+
+\indexlibrarymember{message}{error_code}%
+\begin{itemdecl}
+string message() const;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{category().message(value())}。
+\end{itemdescr}
+
+\indexlibrarymember{operator bool}{error_code}%
+\begin{itemdecl}
+explicit operator bool() const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{value() != 0}。
+\end{itemdescr}
+
+\rSec3[syserr.errcode.nonmembers]{非成员函数}
+
+\indexlibrarymember{make_error_code}{errc}%
+\begin{itemdecl}
+error_code make_error_code(errc e) noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{error_code(static_cast<int>(e), generic_category())}。
+\end{itemdescr}
+
+\indexlibrarymember{operator<<}{error_code}%
+\begin{itemdecl}
+template<class charT, class traits>
+  basic_ostream<charT, traits>& operator<<(basic_ostream<charT, traits>& os, const error_code& ec);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：\tcode{return os << ec.category().name() << ':' << ec.value();}
+\end{itemdescr}
+
+\rSec2[syserr.errcondition]{类 \tcode{error_condition}}
+
+\rSec3[syserr.errcondition.overview]{概述}
+
+\pnum
+类 \tcode{error_condition} 描述一个用于持有标识错误条件的值的对象。
+\begin{note}
+\tcode{error_condition} 值是可移植的抽象，而 \tcode{error_code} 值\iref{syserr.errcode} 是实现定义的。
+\end{note}
+
+\indexlibraryglobal{error_condition}%
+\begin{codeblock}
+namespace std {
+  class error_condition {
+  public:
+    // \ref{syserr.errcondition.constructors}，构造函数
+    error_condition() noexcept;
+    error_condition(int val, const error_category& cat) noexcept;
+    template<class ErrorConditionEnum>
+      error_condition(ErrorConditionEnum e) noexcept;
+
+    // \ref{syserr.errcondition.modifiers}，修改器
+    void assign(int val, const error_category& cat) noexcept;
+    template<class ErrorConditionEnum>
+      error_condition& operator=(ErrorConditionEnum e) noexcept;
+    void clear() noexcept;
+
+    // \ref{syserr.errcondition.observers}，观察器
+    int value() const noexcept;
+    const error_category& category() const noexcept;
+    string message() const;
+    explicit operator bool() const noexcept;
+
+  private:
+    int @\exposid{val_}@;                   // \expos
+    const error_category* @\exposid{cat_}@; // \expos
+  };
+}
+\end{codeblock}
+
+\rSec3[syserr.errcondition.constructors]{构造函数}
+
+\indexlibraryctor{error_condition}%
+\begin{itemdecl}
+error_condition() noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+用 \tcode{0} 初始化 \exposid{val_}，并用 \tcode{\&generic_category()} 初始化 \exposid{cat_}。
+\end{itemdescr}
+
+\indexlibraryctor{error_condition}%
+\begin{itemdecl}
+error_condition(int val, const error_category& cat) noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+用 \tcode{val} 初始化 \exposid{val_}，并用 \tcode{\&cat} 初始化 \exposid{cat_}。
+\end{itemdescr}
+
+\indexlibraryctor{error_condition}%
+\begin{itemdecl}
+template<class ErrorConditionEnum>
+  error_condition(ErrorConditionEnum e) noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\constraints
+\tcode{is_error_condition_enum_v<ErrorConditionEnum>} 为 \tcode{true}。
+
+\pnum
+\effects
+等价于：
+\begin{codeblock}
+error_condition ec = make_error_condition(e);
+assign(ec.value(), ec.category());
+\end{codeblock}
+\end{itemdescr}
+
+
+\rSec3[syserr.errcondition.modifiers]{修改器}
+
+\indexlibrarymember{assign}{error_condition}%
+\begin{itemdecl}
+void assign(int val, const error_category& cat) noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\ensures
+\tcode{\exposid{val_} == val} 且 \tcode{\exposid{cat_} == \&cat}。
+\end{itemdescr}
+
+\indexlibrarymember{operator=}{error_condition}%
+\begin{itemdecl}
+template<class ErrorConditionEnum>
+  error_condition& operator=(ErrorConditionEnum e) noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\constraints
+\tcode{is_error_condition_enum_v<ErrorConditionEnum>} 为 \tcode{true}。
+
+\pnum
+\effects
+等价于：
+\begin{codeblock}
+error_condition ec = make_error_condition(e);
+assign(ec.value(), ec.category());
+\end{codeblock}
+
+\pnum
+\returns
+\tcode{*this}。
+\end{itemdescr}
+
+\indexlibrarymember{clear}{error_condition}%
+\begin{itemdecl}
+void clear() noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\ensures
+\tcode{value() == 0} 且 \tcode{category() == generic_category()}。
+\end{itemdescr}
+
+\rSec3[syserr.errcondition.observers]{观察器}
+
+\indexlibrarymember{value}{error_condition}%
+\begin{itemdecl}
+int value() const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\exposid{val_}。
+\end{itemdescr}
+
+\indexlibrarymember{category}{error_condition}%
+\begin{itemdecl}
+const error_category& category() const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{*\exposid{cat_}}。
+\end{itemdescr}
+
+\indexlibrarymember{message}{error_condition}%
+\begin{itemdecl}
+string message() const;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{category().message(value())}。
+\end{itemdescr}
+
+\indexlibrarymember{operator bool}{error_condition}%
+\begin{itemdecl}
+explicit operator bool() const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{value() != 0}。
+\end{itemdescr}
+
+\rSec3[syserr.errcondition.nonmembers]{非成员函数}
+
+\indexlibrarymember{make_error_condition}{errc}%
+\begin{itemdecl}
+error_condition make_error_condition(errc e) noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{error_condition(static_cast<int>(e), generic_category())}。
+\end{itemdescr}
+
+\rSec2[syserr.compare]{比较运算符函数}
+
+\indexlibrarymember{operator==}{error_code}%
+\begin{itemdecl}
+bool operator==(const error_code& lhs, const error_code& rhs) noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\begin{codeblock}
+lhs.category() == rhs.category() && lhs.value() == rhs.value()
+\end{codeblock}
+\end{itemdescr}
+
+\indexlibrarymember{operator==}{error_condition}%
+\indexlibrarymember{operator==}{error_code}%
+\begin{itemdecl}
+bool operator==(const error_code& lhs, const error_condition& rhs) noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\begin{codeblock}
+lhs.category().equivalent(lhs.value(), rhs) || rhs.category().equivalent(lhs, rhs.value())
+\end{codeblock}
+\end{itemdescr}
+
+\indexlibrarymember{operator==}{error_condition}%
+\begin{itemdecl}
+bool operator==(const error_condition& lhs, const error_condition& rhs) noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\begin{codeblock}
+lhs.category() == rhs.category() && lhs.value() == rhs.value()
+\end{codeblock}
+\end{itemdescr}
+
+\indexlibrarymember{operator<=>}{error_code}%
+\begin{itemdecl}
+strong_ordering operator<=>(const error_code& lhs, const error_code& rhs) noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：
+\begin{codeblock}
+if (auto c = lhs.category() <=> rhs.category(); c != 0) return c;
+return lhs.value() <=> rhs.value();
+\end{codeblock}
+\end{itemdescr}
+
+\indexlibrarymember{operator<=>}{error_condition}%
+\begin{itemdecl}
+strong_ordering operator<=>(const error_condition& lhs, const error_condition& rhs) noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+等价于：
+\begin{codeblock}
+if (auto c = lhs.category() <=> rhs.category(); c != 0) return c;
+return lhs.value() <=> rhs.value();
+\end{codeblock}
+\end{itemdescr}
+
+\rSec2[syserr.hash]{系统错误哈希支持}
+
+\indexlibrarymember{hash}{error_code}%
+\begin{itemdecl}
+template<> struct hash<error_code>;
+template<> struct hash<error_condition>;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+这些特化已启用\iref{unord.hash}。
+\end{itemdescr}
+
+\rSec2[syserr.syserr]{类 \tcode{system_error}}
+
+\rSec3[syserr.syserr.overview]{概述}
+
+\pnum
+类 \tcode{system_error} 描述一个用于报告具有关联错误码的错误条件的异常对象。此类错误条件通常源自操作系统或其他低层级应用程序编程接口。
+
+\pnum
+\begin{note}
+若错误表示内存不足条件，鼓励实现抛出 \tcode{bad_alloc}\iref{bad.alloc} 类型的异常对象，而非 \tcode{system_error}。
+\end{note}
+\indexlibraryglobal{system_error}%
+\begin{codeblock}
+namespace std {
+  class system_error : public runtime_error {
+  public:
+    system_error(error_code ec, const string& what_arg);
+    system_error(error_code ec, const char* what_arg);
+    system_error(error_code ec);
+    system_error(int ev, const error_category& ecat, const string& what_arg);
+    system_error(int ev, const error_category& ecat, const char* what_arg);
+    system_error(int ev, const error_category& ecat);
+    const error_code& code() const noexcept;
+    const char* what() const noexcept override;
+  };
+}
+\end{codeblock}
+
+\rSec3[syserr.syserr.members]{成员}
+
+\indexlibraryctor{system_error}%
+\begin{itemdecl}
+system_error(error_code ec, const string& what_arg);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\ensures
+\tcode{code() == ec} 且\newline
+\tcode{string_view(what()).find(what_arg.c_str()) != string_view::npos}。
+\end{itemdescr}
+
+\indexlibraryctor{system_error}%
+\begin{itemdecl}
+system_error(error_code ec, const char* what_arg);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\ensures
+\tcode{code() == ec} 且
+\tcode{string_view(what()).find(what_arg) != string_view::npos}。
+\end{itemdescr}
+
+\indexlibraryctor{system_error}%
+\begin{itemdecl}
+system_error(error_code ec);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\ensures
+\tcode{code() == ec}。
+\end{itemdescr}
+
+\indexlibraryctor{system_error}%
+\begin{itemdecl}
+system_error(int ev, const error_category& ecat, const string& what_arg);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\ensures
+\raggedright \tcode{code() == error_code(ev, ecat)} 且\linebreak
+\tcode{string_view(what()).find(what_arg.c_str()) != string_view::npos}。
+\end{itemdescr}
+
+\indexlibraryctor{system_error}%
+\begin{itemdecl}
+system_error(int ev, const error_category& ecat, const char* what_arg);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\ensures
+\raggedright \tcode{code() == error_code(ev, ecat)} 且\linebreak
+\tcode{string_view(what()).find(what_arg) != string_view::npos}。
+\end{itemdescr}
+
+\indexlibraryctor{system_error}%
+\begin{itemdecl}
+system_error(int ev, const error_category& ecat);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\ensures
+\tcode{code() == error_code(ev, ecat)}。
+\end{itemdescr}
+
+\indexlibrarymember{code}{system_error}%
+\begin{itemdecl}
+const error_code& code() const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+构造函数中的 \tcode{ec} 或 \tcode{error_code(ev, ecat)}，视情况而定。
+\end{itemdescr}
+
+\indexlibrarymember{what}{system_error}%
+\begin{itemdecl}
+const char* what() const noexcept override;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+一个包含构造函数所提供实参的 \ntbs{}。
+
+\begin{note}
+返回的 \ntbs{} 可能是 \tcode{what_arg + ": " + code.message()} 的内容。
+\end{note}
+\end{itemdescr}
+
+\rSec1[stacktrace]{栈回溯}
+
+\rSec2[stacktrace.general]{概述}
+
+\pnum
+\ref{stacktrace}节描述了组件，
+\Cpp{} 程序可使用这些组件来存储
+当前执行线程的栈轨迹，
+并在运行时查询已存储栈轨迹的信息。
+
+\pnum
+当前执行线程中当前求值 $x_0$ 的\defn{调用序列}
+是一个求值序列 $(x_0, \ldots, x_n)$，
+使得对于 $i \geq 0$，
+$x_i$ 位于函数调用 $x_{i+1}$ 内部\iref{intro.execution}。
+
+\pnum
+\defn{栈轨迹}是调用序列的一种近似表示，
+由栈轨迹条目组成。
+一个\defn{栈轨迹条目}表示栈轨迹中的一个求值。
+
+\rSec2[stacktrace.syn]{头文件 \tcode{<stacktrace>} 概要}
+
+\indexheader{stacktrace}%
+\begin{codeblock}
+#include <compare>              // 见 \ref{compare.syn}
+
+namespace std {
+  // \ref{stacktrace.entry}, 类 \tcode{stacktrace_entry}
+  class stacktrace_entry;
+
+  // \ref{stacktrace.basic}, 类模板 \tcode{basic_stacktrace}
+  template<class Allocator>
+    class basic_stacktrace;
+
+  // \tcode{basic_stacktrace} 的 \grammarterm{typedef-name}
+  using stacktrace = basic_stacktrace<allocator<stacktrace_entry>>;
+
+  // \ref{stacktrace.basic.nonmem}, 非成员函数
+  template<class Allocator>
+    void swap(basic_stacktrace<Allocator>& a, basic_stacktrace<Allocator>& b)
+      noexcept(noexcept(a.swap(b)));
+
+  string to_string(const stacktrace_entry& f);
+
+  template<class Allocator>
+    string to_string(const basic_stacktrace<Allocator>& st);
+
+  ostream& operator<<(ostream& os, const stacktrace_entry& f);
+  template<class Allocator>
+    ostream& operator<<(ostream& os, const basic_stacktrace<Allocator>& st);
+
+  // \ref{stacktrace.format}, 格式化支持
+  template<> struct formatter<stacktrace_entry>;
+  template<class Allocator> struct formatter<basic_stacktrace<Allocator>>;
+
+  namespace pmr {
+    using stacktrace = basic_stacktrace<polymorphic_allocator<stacktrace_entry>>;
+  }
+
+  // \ref{stacktrace.basic.hash}, 哈希支持
+  template<class T> struct hash;
+  template<> struct hash<stacktrace_entry>;
+  template<class Allocator> struct hash<basic_stacktrace<Allocator>>;
+}
+\end{codeblock}
+
+\rSec2[stacktrace.entry]{类 \tcode{stacktrace_entry}}
+
+\rSec3[stacktrace.entry.overview]{概述}
+
+\begin{codeblock}
+namespace std {
+  class @\libglobal{stacktrace_entry}@ {
+  public:
+    using native_handle_type = @\impdefx{\tcode{stacktrace_entry::native_handle_type}}@;
+
+    // \ref{stacktrace.entry.cons}, 构造函数
+    constexpr stacktrace_entry() noexcept;
+    constexpr stacktrace_entry(const stacktrace_entry& other) noexcept;
+    constexpr stacktrace_entry& operator=(const stacktrace_entry& other) noexcept;
+
+    ~stacktrace_entry();
+
+    // \ref{stacktrace.entry.obs}, 观察器
+    constexpr native_handle_type native_handle() const noexcept;
+    constexpr explicit operator bool() const noexcept;
+
+    // \ref{stacktrace.entry.query}, 查询
+    string description() const;
+    string source_file() const;
+    uint_least32_t source_line() const;
+
+    // \ref{stacktrace.entry.cmp}, 比较
+    friend constexpr bool operator==(const stacktrace_entry& x,
+                                     const stacktrace_entry& y) noexcept;
+    friend constexpr strong_ordering operator<=>(const stacktrace_entry& x,
+                                                 const stacktrace_entry& y) noexcept;
+  };
+}
+\end{codeblock}
+
+\pnum
+\tcode{stacktrace_entry} 类型的对象要么为空，要么表示一个栈回溯项并提供查询其信息的操作。类 \tcode{stacktrace_entry} 满足 \libconcept{regular}\iref{concepts.object} 和 \tcode{\libconcept{three_way_comparable}<strong_ordering>}\iref{cmp.concept}。
+
+\rSec3[stacktrace.entry.cons]{构造函数}
+
+\indexlibraryctor{stacktrace_entry}%
+\begin{itemdecl}
+constexpr stacktrace_entry() noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\ensures
+\tcode{*this} 为空。
+\end{itemdescr}
+
+\rSec3[stacktrace.entry.obs]{观察器}
+
+\indexlibrarymember{native_handle}{stacktrace_entry}%
+\begin{itemdecl}
+constexpr native_handle_type native_handle() const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+本函数的语义由实现定义\impldef{semantics of \tcode{stacktrace_entry::native_handle}}。
+
+\pnum
+\remarks
+对同一未更改的 \tcode{stacktrace_entry} 对象连续调用 \tcode{native_handle} 函数将返回相同的值。
+\end{itemdescr}
+
+\indexlibrarymember{operator bool}{stacktrace_entry}%
+\begin{itemdecl}
+constexpr explicit operator bool() const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+当且仅当 \tcode{*this} 为空时返回 \tcode{false}。
+\end{itemdescr}
+
+\rSec3[stacktrace.entry.query]{查询}
+
+\pnum
+\begin{note}
+所有 \tcode{stacktrace_entry} 查询函数将除内存分配错误外的其他错误视为“无可用信息”，且在此情况下不抛出异常。
+\end{note}
+
+\indexlibrarymember{description}{stacktrace_entry}%
+\begin{itemdecl}
+string description() const;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{*this} 所表示求值的描述，或空字符串。
+
+\pnum
+\throws
+若无法为内部数据结构或结果字符串分配内存，则抛出 \tcode{bad_alloc}。
+\end{itemdescr}
+
+\indexlibrarymember{source_file}{stacktrace_entry}%
+\begin{itemdecl}
+string source_file() const;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+在词法上包含其求值由 \tcode{*this} 表示的表达式或语句的源文件之假定或实际名称\iref{cpp.predefined}，或空字符串。
+
+\pnum
+\throws
+若无法为内部数据结构或结果字符串分配内存，则抛出 \tcode{bad_alloc}。
+\end{itemdescr}
+
+\indexlibrarymember{source_line}{stacktrace_entry}%
+\begin{itemdecl}
+uint_least32_t source_line() const;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{0}，或与 \tcode{*this} 所表示求值在词法上相关的以 1 起始的行号。
+若 \tcode{source_file} 返回源文件的假定名称，则返回假定行号；
+若 \tcode{source_file} 返回源文件的实际名称，则返回实际行号。
+
+\pnum
+\throws
+若无法为内部数据结构分配内存，则抛出 \tcode{bad_alloc}。
+\end{itemdescr}
+
+\rSec3[stacktrace.entry.cmp]{比较}
+
+\indexlibrarymember{operator==}{stacktrace_entry}%
+\begin{itemdecl}
+friend constexpr bool operator==(const stacktrace_entry& x,
+                                     const stacktrace_entry& y) noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+当且仅当 \tcode{x} 与 \tcode{y} 表示同一栈回溯项或二者均为空时返回 \tcode{true}。
+\end{itemdescr}
+
+\rSec2[stacktrace.basic]{类模板 \tcode{basic_stacktrace}}
+
+\rSec3[stacktrace.basic.overview]{概述}
+
+\begin{codeblock}
+namespace std {
+  template<class Allocator>
+  class @\libglobal{basic_stacktrace}@ {
+  public:
+    using value_type = stacktrace_entry;
+    using const_reference = const value_type&;
+    using reference = value_type&;
+    using const_iterator = @\impdefx{\tcode{basic_stacktrace::const_iterator} 的类型}@;  // 见 \ref{stacktrace.basic.obs}
+    using iterator = const_iterator;
+    using reverse_iterator = std::reverse_iterator<iterator>;
+    using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+    using difference_type = @\impdefx{\tcode{basic_stacktrace::difference_type} 的类型}@;
+    using size_type = @\impdefx{\tcode{basic_stacktrace::size_type} 的类型}@;
+    using allocator_type = Allocator;
+
+    // \ref{stacktrace.basic.cons}，创建与赋值
+    static basic_stacktrace current(const allocator_type& alloc = allocator_type()) noexcept;
+    static basic_stacktrace current(size_type skip,
+                                    const allocator_type& alloc = allocator_type()) noexcept;
+    static basic_stacktrace current(size_type skip, size_type max_depth,
+                                    const allocator_type& alloc = allocator_type()) noexcept;
+
+    basic_stacktrace() noexcept(is_nothrow_default_constructible_v<allocator_type>);
+    explicit basic_stacktrace(const allocator_type& alloc) noexcept;
+
+    basic_stacktrace(const basic_stacktrace& other);
+    basic_stacktrace(basic_stacktrace&& other) noexcept;
+    basic_stacktrace(const basic_stacktrace& other, const allocator_type& alloc);
+    basic_stacktrace(basic_stacktrace&& other, const allocator_type& alloc);
+    basic_stacktrace& operator=(const basic_stacktrace& other);
+    basic_stacktrace& operator=(basic_stacktrace&& other)
+      noexcept(allocator_traits<Allocator>::propagate_on_container_move_assignment::value ||
+        allocator_traits<Allocator>::is_always_equal::value);
+
+    ~basic_stacktrace();
+
+    // \ref{stacktrace.basic.obs}，观察器
+    allocator_type get_allocator() const noexcept;
+
+    const_iterator begin() const noexcept;
+    const_iterator end() const noexcept;
+    const_reverse_iterator rbegin() const noexcept;
+    const_reverse_iterator rend() const noexcept;
+
+    const_iterator cbegin() const noexcept;
+    const_iterator cend() const noexcept;
+    const_reverse_iterator crbegin() const noexcept;
+    const_reverse_iterator crend() const noexcept;
+
+    bool empty() const noexcept;
+    size_type size() const noexcept;
+    size_type max_size() const noexcept;
+
+    const_reference operator[](size_type) const;
+    const_reference at(size_type) const;
+
+    // \ref{stacktrace.basic.cmp}，比较
+    template<class Allocator2>
+    friend bool operator==(const basic_stacktrace& x,
+                           const basic_stacktrace<Allocator2>& y) noexcept;
+    template<class Allocator2>
+    friend strong_ordering operator<=>(const basic_stacktrace& x,
+                                       const basic_stacktrace<Allocator2>& y) noexcept;
+
+    // \ref{stacktrace.basic.mod}，修改器
+    void swap(basic_stacktrace& other)
+      noexcept(allocator_traits<Allocator>::propagate_on_container_swap::value ||
+        allocator_traits<Allocator>::is_always_equal::value);
+
+  private:
+    vector<value_type, allocator_type> @\exposid{frames_}@;         // \expos
+  };
+}
+\end{codeblock}
+
+\pnum
+类模板 \tcode{basic_stacktrace} 满足
+可逆容器要求（\iref{container.rev.reqmts}）、
+知晓分配器的容器要求（\iref{container.alloc.reqmts}）和
+序列容器要求（\iref{sequence.reqmts})，除了：
+\begin{itemize}
+\item
+仅支持移动、赋值、交换以及为 const 限定序列容器定义的操作，且
+\item
+比较函数的语义与容器所要求的语义不同。
+\end{itemize}
+
+\rSec3[stacktrace.basic.cons]{构造与赋值}
+
+\indexlibrarymember{current}{basic_stacktrace}%
+\begin{itemdecl}
+static basic_stacktrace current(const allocator_type& alloc = allocator_type()) noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+一个 \tcode{basic_stacktrace} 对象，
+其 \exposid{frames_} 存储当前执行线程的当前求值栈踪迹；
+若 \exposid{frames_} 初始化失败，则为空 \tcode{basic_stacktrace} 对象。
+\tcode{alloc} 被传递给 \exposid{frames_} 对象的构造函数。
+
+\begin{note}
+若成功获取栈踪迹，
+则 \tcode{\exposid{frames_}.front()} 是大约表示当前求值的 \tcode{stacktrace_entry}，
+且 \tcode{\exposid{frames_}.back()} 是大约表示
+当前执行线程初始函数的 \tcode{stacktrace_entry}。
+\end{note}
+\end{itemdescr}
+
+\indexlibrarymember{current}{basic_stacktrace}%
+\begin{itemdecl}
+static basic_stacktrace current(size_type skip,
+                                const allocator_type& alloc = allocator_type()) noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+令 \tcode{t} 为栈踪迹，如同通过 \tcode{basic_stacktrace::current(alloc)} 获得。
+令 \tcode{n} 为 \tcode{t.size()}。
+
+\pnum
+\returns
+\tcode{basic_stacktrace} 对象，其中 \exposid{frames_} 从参数
+\tcode{t.begin() + min(n, skip)}、\tcode{t.end()} 和 \tcode{alloc}
+直接非列表初始化；
+若 \exposid{frames_} 初始化失败，则为空 \tcode{basic_stacktrace} 对象。
+\end{itemdescr}
+
+\indexlibrarymember{current}{basic_stacktrace}%
+\begin{itemdecl}
+static basic_stacktrace current(size_type skip, size_type max_depth,
+                                const allocator_type& alloc = allocator_type()) noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+令 \tcode{t} 为栈踪迹，如同通过 \tcode{basic_stacktrace::current(alloc)} 获得。
+令 \tcode{n} 为 \tcode{t.size()}。
+
+\pnum
+\hardexpects
+\tcode{skip <= skip + max_depth} 为 \tcode{true}。
+
+\pnum
+\returns
+\tcode{basic_stacktrace} 对象，其中 \exposid{frames_} 从参数
+\tcode{t.begin() + min(n, skip)}、\tcode{t.begin() + min(n, skip + max_depth)} 和 \tcode{alloc}
+直接非列表初始化；
+若 \exposid{frames_} 初始化失败，则为空 \tcode{basic_stacktrace} 对象。
+\end{itemdescr}
+
+\indexlibraryctor{basic_stacktrace}%
+\begin{itemdecl}
+basic_stacktrace() noexcept(is_nothrow_default_constructible_v<allocator_type>);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\ensures
+\tcode{empty()} 为 \tcode{true}。
+\end{itemdescr}
+
+\indexlibraryctor{basic_stacktrace}%
+\begin{itemdecl}
+explicit basic_stacktrace(const allocator_type& alloc) noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+\tcode{alloc} 被传递给 \exposid{frames_} 的构造函数。
+
+\pnum
+\ensures
+\tcode{empty()} 为 \tcode{true}。
+\end{itemdescr}
+
+\indexlibraryctor{basic_stacktrace}%
+\indexlibrarymember{operator=}{basic_stacktrace}%
+\begin{itemdecl}
+basic_stacktrace(const basic_stacktrace& other);
+basic_stacktrace(const basic_stacktrace& other, const allocator_type& alloc);
+basic_stacktrace(basic_stacktrace&& other, const allocator_type& alloc);
+basic_stacktrace& operator=(const basic_stacktrace& other);
+basic_stacktrace& operator=(basic_stacktrace&& other)
+  noexcept(allocator_traits<Allocator>::propagate_on_container_move_assignment::value ||
+    allocator_traits<Allocator>::is_always_equal::value);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\remarks
+实现可通过确保分配失败时 \tcode{empty()} 为 \tcode{true}
+来强化这些函数的异常规范（\iref{res.on.exception.handling}）。
+\end{itemdescr}
+
+\rSec3[stacktrace.basic.obs]{观察器}
+
+\indexlibrarymember{const_iterator}{basic_stacktrace}%
+\begin{itemdecl}
+using const_iterator = @\impdef@;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+该类型实现
+\libconcept{random_access_iterator}（\iref{iterator.concept.random.access}）并满足
+\oldconcept{RandomAccessIterator} 要求（\iref{random.access.iterators}）。
+\end{itemdescr}
+
+\indexlibrarymember{get_allocator}{basic_stacktrace}%
+\begin{itemdecl}
+allocator_type get_allocator() const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{\exposid{frames_}.get_allocator()}。
+\end{itemdescr}
+
+\indexlibrarymember{begin}{basic_stacktrace}%
+\indexlibrarymember{cbegin}{basic_stacktrace}%
+\begin{itemdecl}
+const_iterator begin() const noexcept;
+const_iterator cbegin() const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+指向 \exposid{frames_} 首元素的迭代器。
+若 \tcode{empty()} 为 \tcode{true}，
+则返回与 \tcode{end()} 相同的值。
+\end{itemdescr}
+
+\indexlibrarymember{end}{basic_stacktrace}%
+\indexlibrarymember{cend}{basic_stacktrace}%
+\begin{itemdecl}
+const_iterator end() const noexcept;
+const_iterator cend() const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+尾后迭代器。
+\end{itemdescr}
+
+\indexlibrarymember{rbegin}{basic_stacktrace}%
+\indexlibrarymember{crbegin}{basic_stacktrace}%
+\begin{itemdecl}
+const_reverse_iterator rbegin() const noexcept;
+const_reverse_iterator crbegin() const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{reverse_iterator(cend())}。
+\end{itemdescr}
+
+\indexlibrarymember{rend}{basic_stacktrace}%
+\indexlibrarymember{crend}{basic_stacktrace}%
+\begin{itemdecl}
+const_reverse_iterator rend() const noexcept;
+const_reverse_iterator crend() const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{reverse_iterator(cbegin())}。
+\end{itemdescr}
+
+\indexlibrarymember{empty}{basic_stacktrace}%
+\begin{itemdecl}
+bool empty() const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{\exposid{frames_}.empty()}。
+\end{itemdescr}
+
+\indexlibrarymember{size}{basic_stacktrace}%
+\begin{itemdecl}
+size_type size() const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{\exposid{frames_}.size()}。
+\end{itemdescr}
+
+\indexlibrarymember{max_size}{basic_stacktrace}%
+\begin{itemdecl}
+size_type max_size() const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{\exposid{frames_}.max_size()}。
+\end{itemdescr}
+
+\indexlibrarymember{operator[]}{basic_stacktrace}%
+\begin{itemdecl}
+const_reference operator[](size_type frame_no) const;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\hardexpects
+\tcode{frame_no < size()} 为 \tcode{true}。
+
+\pnum
+\returns
+\tcode{\exposid{frames_}[frame_no]}。
+
+\pnum
+\throws
+无。
+\end{itemdescr}
+
+\indexlibrarymember{at}{basic_stacktrace}%
+\begin{itemdecl}
+const_reference at(size_type frame_no) const;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{\exposid{frames_}[frame_no]}。
+
+\pnum
+\throws
+若 \tcode{frame_no >= size()} 则抛出 \tcode{out_of_range}。
+\end{itemdescr}
+
+\rSec3[stacktrace.basic.cmp]{比较}
+
+\indexlibrarymember{operator==}{basic_stacktrace}%
+\begin{itemdecl}
+template<class Allocator2>
+friend bool operator==(const basic_stacktrace& x, const basic_stacktrace<Allocator2>& y) noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{equal(x.begin(), x.end(), y.begin(), y.end())}。
+\end{itemdescr}
+
+\indexlibrarymember{operator<=>}{basic_stacktrace}%
+\begin{itemdecl}
+template<class Allocator2>
+friend strong_ordering
+  operator<=>(const basic_stacktrace& x, const basic_stacktrace<Allocator2>& y) noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+若 \tcode{x.size() != y.size()}，则返回 \tcode{x.size() <=> y.size()}；
+否则返回 \tcode{lexicographical_compare_three_way(x.begin(), x.end(), y.begin(), y.end())}。
+\end{itemdescr}
+
+\rSec3[stacktrace.basic.mod]{修改器}
+
+\indexlibrarymember{swap}{basic_stacktrace}%
+\begin{itemdecl}
+void swap(basic_stacktrace& other)
+  noexcept(allocator_traits<Allocator>::propagate_on_container_swap::value ||
+    allocator_traits<Allocator>::is_always_equal::value);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+交换 \tcode{*this} 与 \tcode{other} 的内容。
+\end{itemdescr}
+
+\rSec3[stacktrace.basic.nonmem]{非成员函数}
+
+\indexlibrarymember{swap}{basic_stacktrace}%
+\begin{itemdecl}
+template<class Allocator>
+void swap(basic_stacktrace<Allocator>& a, basic_stacktrace<Allocator>& b)
+  noexcept(noexcept(a.swap(b)));
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于 \tcode{a.swap(b)}。
+\end{itemdescr}
+
+\indexlibrarymember{to_string}{basic_stacktrace}%
+\begin{itemdecl}
+string to_string(const stacktrace_entry& f);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+包含 \tcode{f} 描述的字符串。
+
+\pnum
+\recommended
+描述应提供所含求值的信息，包括来自 \tcode{f.source_file()} 和 \tcode{f.source_line()} 的信息。
+\end{itemdescr}
+
+\indexlibrarymember{to_string}{basic_stacktrace}%
+\begin{itemdecl}
+template<class Allocator>
+string to_string(const basic_stacktrace<Allocator>& st);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+包含 \tcode{st} 描述的字符串。
+\begin{note}
+不保证行数等于 \tcode{st.size()}。
+\end{note}
+\end{itemdescr}
+
+\indexlibrarymember{operator<<}{stacktrace_entry}%
+\begin{itemdecl}
+ostream& operator<<(ostream& os, const stacktrace_entry& f);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：\tcode{return os << to_string(f);}
+\end{itemdescr}
+
+\indexlibrarymember{operator<<}{basic_stacktrace}%
+\begin{itemdecl}
+template<class Allocator>
+ostream& operator<<(ostream& os, const basic_stacktrace<Allocator>& st);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：\tcode{return os << to_string(st);}
+\end{itemdescr}
+
+\rSec2[stacktrace.format]{格式化支持}
+
+\begin{itemdecl}
+template<> struct formatter<stacktrace_entry>;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\tcode{formatter<stacktrace_entry>} 将 \fmtgrammarterm{format-spec} 解释为
+\fmtgrammarterm{stacktrace-entry-format-spec}。
+格式规范的语法如下：
+
+\begin{ncbnf}
+\fmtnontermdef{stacktrace-entry-format-spec}\br
+    \opt{fill-and-align} \opt{width}
+\end{ncbnf}
+
+\begin{note}
+产生式 \fmtgrammarterm{fill-and-align} 与 \fmtgrammarterm{width}
+的描述见 \ref{format.string.std}。
+\end{note}
+
+\pnum
+\tcode{stacktrace_entry} 对象 \tcode{se} 的格式化方式为：通过上下文的输出迭代器复制 \tcode{to_string(se)}，
+并按照格式说明符进行额外的填充和对齐调整。
+\end{itemdescr}
+
+\begin{itemdecl}
+template<class Allocator> struct formatter<basic_stacktrace<Allocator>>;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+对于 \tcode{formatter<basic_stacktrace<Allocator>>}，
+\fmtgrammarterm{format-spec} 为空。
+
+\pnum
+\tcode{basic_stacktrace<Allocator>} 对象 \tcode{s} 的格式化方式为：通过上下文的输出迭代器复制 \tcode{to_string(s)}。
+\end{itemdescr}
+
+\rSec2[stacktrace.basic.hash]{哈希支持}
+
+\begin{itemdecl}
+template<> struct hash<stacktrace_entry>;
+template<class Allocator> struct hash<basic_stacktrace<Allocator>>;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+这些特化已启用\iref{unord.hash}。
+\end{itemdescr}
+
+\rSec1[debugging]{调试}
+
+\rSec2[debugging.general]{概述}
+
+\pnum
+第\ref{debugging}款描述了用于内省并与程序执行交互的功能。
+
+\begin{note}
+调试功能所提供的机制可与可能正在跟踪 \Cpp{} 程序执行的程序（如调试器）进行交互。
+\end{note}
+
+\rSec2[debugging.syn]{头文件 \tcode{<debugging>} 概要}
+
+\indexheader{debugging}%
+\begin{codeblock}
+// 所有实现均支持
+namespace std {
+  // \ref{debugging.utility}, 工具
+  void breakpoint() noexcept;
+  void breakpoint_if_debugging() noexcept;
+  bool is_debugger_present() noexcept;
+}
+\end{codeblock}
+
+\rSec2[debugging.utility]{工具}
+
+\indexlibraryglobal{breakpoint}%
+\begin{itemdecl}
+void breakpoint() noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+
+\pnum
+此函数的语义由实现定义\impldef{semantics of \tcode{breakpoint}}。
+
+\begin{note}
+意图是，当在有调试器存在的情况下调用此函数时，程序的执行将暂时停止，
+并将控制权移交至调试器，直至程序被调试器终止，或者调试器恢复程序的执行，
+就像此函数未被调用一样。特别地，调用此函数并不意图以其他方式支持程序的恢复。
+如果没有调试器存在，程序的执行可能异常终止。
+\end{note}
+
+\end{itemdescr}
+
+\indexlibraryglobal{breakpoint_if_debugging}%
+\begin{itemdecl}
+void breakpoint_if_debugging() noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+
+\pnum
+\effects
+等效于：
+\begin{codeblock}
+if (is_debugger_present()) breakpoint();
+\end{codeblock}
+
+\end{itemdescr}
+
+\indexlibraryglobal{is_debugger_present}%
+\begin{itemdecl}
+bool is_debugger_present() noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\required
+此函数无前置条件。
+
+\pnum
+\default
+由实现定义\impldef{default semantics of \tcode{is_debugger_present}}。
+
+\begin{note}
+意图是，通过使用即时（非缓存的）查询来确定程序是否正被调试器跟踪，
+仅当使用调试器跟踪程序执行时，实现才返回\tcode{true}。在Windows或等效系统上，
+这可通过调用Win32函数\tcode{::IsDebuggerPresent()}来实现。对于兼容ISO/IEC 23360:2021的系统，
+可通过检查是否存在跟踪进程，并尽力确定该跟踪进程是调试器来实现。
+\end{note}
+
+\pnum
+\remarks
+此函数是可替换的\iref{term.replaceable.function}。
+
+\end{itemdescr}
+

@@ -1,0 +1,5433 @@
+%!TEX root = std.tex
+\rSec0[strings]{字符串库}
+
+\rSec1[strings.general]{概述}
+
+\pnum
+本条款描述了用于操作任何非数组的可平凡复制的标准布局\iref{term.standard.layout.type}类型 \tcode{T} 的序列的组件，
+其中 \tcode{is_trivially_default_constructible_v<T>} 为 \tcode{true}。
+此类类型称为\defnx{类字符类型}{char-like type}，
+而类字符类型的对象称为\defnx{类字符对象}{char-like object}，或简称为\term{字符}。
+
+\pnum
+以下子条款描述了字符特性类、字符串类以及空终止序列工具，
+其概要如\tref{strings.summary}所示。
+
+\begin{libsumtab}[x{2.1in}]{字符串库摘要}{strings.summary}
+\ref{char.traits}     & 字符特性                    & \tcode{<string>}  \\
+\ref{string.view}     & 字符串视图类                & \tcode{<string_view>} \\ \rowsep
+\ref{string.classes}  & 字符串类                    & \tcode{<string>}  \\ \rowsep
+\ref{c.strings}       & 空终止序列工具              & \tcode{<cstring>} \\
+\end{libsumtab}
+
+\rSec1[char.traits]{字符特性}
+
+\rSec2[char.traits.general]{概述}
+
+\pnum
+子章节 \ref{char.traits} 定义了用于表示
+\term{字符特性}
+的类的需求，
+并定义了类模板
+\tcode{char_traits<charT>}，
+以及五个特化：
+\tcode{char_traits<char>}、
+\tcode{char_traits<char8_t>}、
+\tcode{char_traits<char16_t>}、
+\tcode{char_traits<char32_t>}
+和
+\tcode{char_traits<wchar_t>}，
+它们满足这些需求。
+
+\pnum
+\ref{string.classes}、\ref{string.view}
+和 \ref{input.output} 中规定的大多数类需要一组相关的类型和函数来完善
+其语义的定义。这些类型和函数通过模板参数 \tcode{traits}
+中的成员 \grammarterm{typedef-name}{s} 和函数集合提供，
+每个此类模板都使用该参数。
+子章节 \ref{char.traits} 定义了这些成员的语义。
+
+\pnum
+为了特化那些模板以生成一个字符串、字符串视图或
+输入输出流类来处理特定的字符容器类型\iref{defns.character.container}
+\tcode{C}，
+该类型及其相关的字符特性类
+\tcode{X}
+将作为一对参数传递给字符串、字符串视图或输入输出流模板，参数名为
+\tcode{charT}
+和
+\tcode{traits}。
+如果
+\tcode{X::char_type}
+与
+\tcode{C}
+不是同一类型，则程序为非良构。
+
+\rSec2[char.traits.require]{字符特性要求}
+\pnum
+在\tref{char.traits.req}中，
+\tcode{X}
+表示一个定义字符容器类型\tcode{C}的类型与函数的特性类；
+\tcode{c}
+与
+\tcode{d}
+表示\tcode{C}类型的值；
+\tcode{p}
+与
+\tcode{q}
+表示\tcode{const C*}类型的值；
+\tcode{s}
+表示\tcode{C*}类型的值；
+\tcode{n}、
+\tcode{i}
+与
+\tcode{j}
+表示\tcode{size_t}类型的值；
+\tcode{e}
+与
+\tcode{f}
+表示\tcode{X::int_type}类型的值；
+\tcode{pos}
+表示\tcode{X::pos_type}类型的值；
+而
+\tcode{r}
+表示\tcode{C}类型的左值。
+在\ref{char.traits.require}中指定的字符特性要求的一部分的表达式均不应通过异常退出。
+
+\begin{libreqtab4d}
+{字符特性要求}
+{char.traits.req}
+\\ \topline
+\lhdr{表达式}       &   \chdr{返回类型}  &   \chdr{断言/注释}   &   \rhdr{复杂度}\\
+                    &                       &   \chdr{前/后条件}   &               \\ \capsep
+\endfirsthead
+\continuedcaption\\
+\topline
+\lhdr{表达式}       &   \chdr{返回类型}  &   \chdr{断言/注释}   &   \rhdr{复杂度}\\
+                    &                       &   \chdr{前/后条件}   &               \\ \capsep
+\endhead
+\tcode{X::char_type}    &   \tcode{C}       &
+   &    \\ \rowsep
+\tcode{X::int_type} &                       &
+（描述于~\ref{char.traits.typedefs}）   &    \\ \rowsep
+\tcode{X::off_type} &                       &
+（描述于~\ref{iostreams.limits.pos}与\ref{iostream.forward}）   &    \\ \rowsep
+\tcode{X::pos_type} &                       &
+（描述于~\ref{iostreams.limits.pos}与\ref{iostream.forward}）   &    \\ \rowsep
+\tcode{X::state_type}   &                       &
+（描述于~\ref{char.traits.typedefs}）   &    \\ \rowsep
+\tcode{X::eq(c,d)}      &   \tcode{bool}        &
+ \returns
+\tcode{c}是否应当被视为与\tcode{d}相等。   &   常量    \\ \rowsep
+\tcode{X::lt(c,d)}      &   \tcode{bool}        &
+ \returns
+\tcode{c}是否应当被视为小于\tcode{d}。  &   常量    \\ \rowsep
+\tcode{X::compare(p,q,n)}   &   \tcode{int}     &
+ \returns
+若对于\range{0}{n}中的每个\tcode{i}，\tcode{X::eq(p[i],q[i])}均为\tcode{true}，则返回\tcode{0}；否则，若对于\range{0}{n}中的某个\tcode{j}，\tcode{X::lt(p[j],q[j])}为\tcode{true}且对于\range{0}{j}中的每个\tcode{i}，\tcode{X::eq(p[i],q[i])}为\tcode{true}，则返回负值；否则返回正值。            &   线性      \\ \rowsep
+\tcode{X::length(p)}    &   \tcode{size_t}     &
+ \returns
+使得\tcode{X::eq(p[i],charT())}为\tcode{true}的最小\tcode{i}。  &   线性  \\ \rowsep
+\tcode{X::find(p,n,c)}  &   \tcode{const X::char_type*} &
+ \returns
+\range{p}{p+n}中使得\tcode{X::eq(*q,c)}为\tcode{true}的最小\tcode{q}，否则返回\tcode{nullptr}。                &   线性      \\ \rowsep
+\tcode{X::move(s,p,n)}  &   \tcode{X::char_type*}   &
+对于\range{0}{n}中的每个\tcode{i}，执行\tcode{X::assign(s[i],p[i])}。
+即使在\range{p}{p+n}与\range{s}{s+n}范围重叠时也能正确复制。\br \returns \tcode{s}。    &   线性  \\ \rowsep
+\tcode{X::copy(s,p,n)}  &   \tcode{X::char_type*}   &
+ \expects
+范围\range{p}{p+n}与\range{s}{s+n}不重叠。\par
+ \returns
+\tcode{s}。\br
+对于\range{0}{n}中的每个\tcode{i}，执行\tcode{X::assign(s[i],p[i])}。               &   线性      \\ \rowsep
+\tcode{X::assign(r,d)}  &   （未使用）          &
+将\tcode{r=d}赋值。                            &   常量        \\ \rowsep
+\tcode{X::assign\- (s,n,c)}  &   \tcode{X::char_type*}   &
+对于\range{0}{n}中的每个\tcode{i}，执行\tcode{X::assign(s[i],c)}。\br
+ \returns
+\tcode{s}。                       &   线性      \\ \rowsep
+\tcode{X::not_eof(e)}   &   \tcode{int_type}        &
+ \returns
+若\tcode{X::eq_int_type(e,X::eof())}为\tcode{false}，则返回\tcode{e}，
+否则返回一个值\tcode{f}使得\tcode{X::eq_int_type(f,X::eof())}为\tcode{false}。                       &   常量    \\ \rowsep
+\tcode{X::to_char_type\- (e)}    &   \tcode{X::char_type}    &
+ \returns
+若对于某个\tcode{c}，\tcode{X::eq_int_type(e,X::to_int_type(c))}
+为\tcode{true}，则返回\tcode{c}；否则返回某个未指定的值。                    &   常量    \\ \rowsep
+\tcode{X::to_int_type\- (c)} &   \tcode{X::int_type} &
+ \returns
+某个值\tcode{e}，受\tcode{to_char_type}与\tcode{eq_int_type}的定义约束。                  &   常量    \\ \rowsep
+\tcode{X::eq_int_type\- (e,f)}   &   \tcode{bool}            &
+ \returns
+对于所有\tcode{c}与\tcode{d}，\tcode{X::eq(c,d)}等于
+\tcode{X::eq_int_type(X::to_int_type(c), X::to_int_type(d))}；否则，若\tcode{e}与\tcode{f}均为\tcode{X::eof()}的副本，则产生\tcode{true}；否则，若\tcode{e}与\tcode{f}其中之一是\tcode{X::eof()}的副本而另一个不是，则产生\tcode{false}；否则
+该值未指定。                                           &   常量    \\ \rowsep
+\tcode{X::eof()}                &   \tcode{X::int_type} &
+ \returns
+一个值\tcode{e}使得对于所有值\tcode{c}，\tcode{X::eq_int_type(e,X::to_int_type(c))}
+均为\tcode{false}。                                  &   常量    \\
+\end{libreqtab4d}
+
+\pnum
+在头文件 \libheaderref{string} 中提供的类模板
+\indexlibraryglobal{char_traits}%
+\begin{codeblock}
+template<class charT> struct char_traits;
+\end{codeblock}
+是作为显式特化的基础。
+
+\rSec2[char.traits.typedefs]{特征 typedef}
+
+\indexlibrarymember{char_type}{char_traits}%
+\indexlibrarymember{int_type}{char_traits}%
+\begin{itemdecl}
+using int_type = @\seebelow@;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\expects
+\tcode{int_type}
+应能表示所有由相应
+\tcode{char_type}
+值转换而来的有效字符，以及一个文件结束值
+\tcode{eof()}。
+\begin{footnote}
+如果
+\tcode{eof()}
+能存放于
+\tcode{char_type}
+中，则某些 iostream 操作可能会产生令人惊讶的结果。
+\end{footnote}
+\end{itemdescr}
+
+\indexlibrarymember{state_type}{char_traits}%
+\begin{itemdecl}
+using state_type = @\seebelow@;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\expects
+\tcode{state_type} 满足
+\oldconcept{Destructible}（\tref{cpp17.destructible}）、
+\oldconcept{CopyAssignable}（\tref{cpp17.copyassignable}）、
+\oldconcept{CopyConstructible}（\tref{cpp17.copyconstructible}）以及
+\oldconcept{DefaultConstructible}（\tref{cpp17.defaultconstructible}）要求。
+\end{itemdescr}
+
+\rSec2[char.traits.specializations]{\tcode{char_traits} 特化}
+
+\rSec3[char.traits.specializations.general]{概述}
+
+\indexlibraryglobal{char_traits}%
+\begin{codeblock}
+namespace std {
+  template<> struct char_traits<char>;
+  template<> struct char_traits<char8_t>;
+  template<> struct char_traits<char16_t>;
+  template<> struct char_traits<char32_t>;
+  template<> struct char_traits<wchar_t>;
+}
+\end{codeblock}
+
+\pnum
+头文件 \libheader{string}
+定义了类模板 \tcode{char_traits} 的五个特化：
+\tcode{char_traits<\brk{}char>}、
+\tcode{char_traits<char8_t>}、
+\tcode{char_traits<char16_t>}、
+\tcode{char_traits<char32_t>}
+以及
+\tcode{char_traits<wchar_t>}。
+
+\rSec3[char.traits.specializations.char]{\tcode{struct char_traits<char>}}
+
+\indexlibraryglobal{char_traits}%
+\begin{codeblock}
+namespace std {
+  template<> struct char_traits<char> {
+    using char_type  = char;
+    using int_type   = int;
+    using off_type   = streamoff;
+    using pos_type   = streampos;
+    using state_type = mbstate_t;
+    using comparison_category = strong_ordering;
+
+    static constexpr void assign(char_type& c1, const char_type& c2) noexcept;
+    static constexpr bool eq(char_type c1, char_type c2) noexcept;
+    static constexpr bool lt(char_type c1, char_type c2) noexcept;
+
+    static constexpr int compare(const char_type* s1, const char_type* s2, size_t n);
+    static constexpr size_t length(const char_type* s);
+    static constexpr const char_type* find(const char_type* s, size_t n,
+                                           const char_type& a);
+    static constexpr char_type* move(char_type* s1, const char_type* s2, size_t n);
+    static constexpr char_type* copy(char_type* s1, const char_type* s2, size_t n);
+    static constexpr char_type* assign(char_type* s, size_t n, char_type a);
+
+    static constexpr int_type not_eof(int_type c) noexcept;
+    static constexpr char_type to_char_type(int_type c) noexcept;
+    static constexpr int_type to_int_type(char_type c) noexcept;
+    static constexpr bool eq_int_type(int_type c1, int_type c2) noexcept;
+    static constexpr int_type eof() noexcept;
+  };
+}
+\end{codeblock}
+
+\pnum
+类型 \tcode{mbstate_t} 在 \libheaderref{cwchar} 中定义，
+且可以表示在任何\impldef{受支持的多字节字符编码规则集}的受支持多字节字符编码规则集中可能出现的转换状态。
+
+\pnum
+双参数成员 \tcode{assign} 的定义与内置运算符 \tcode{=} 相同。双参数成员 \tcode{eq} 和 \tcode{lt} 的定义与针对 \tcode{unsigned char} 类型的内置运算符 \tcode{==} 和 \tcode{<} 相同。
+
+\pnum
+成员 \tcode{eof()} 返回 \tcode{EOF}。
+
+\rSec3[char.traits.specializations.char8.t]{\tcode{struct char_traits<char8_t>}}
+
+\indexlibraryglobal{char_traits}%
+\begin{codeblock}
+namespace std {
+  template<> struct char_traits<char8_t> {
+    using char_type  = char8_t;
+    using int_type   = unsigned int;
+    using off_type   = streamoff;
+    using pos_type   = u8streampos;
+    using state_type = mbstate_t;
+    using comparison_category = strong_ordering;
+
+    static constexpr void assign(char_type& c1, const char_type& c2) noexcept;
+    static constexpr bool eq(char_type c1, char_type c2) noexcept;
+    static constexpr bool lt(char_type c1, char_type c2) noexcept;
+
+    static constexpr int compare(const char_type* s1, const char_type* s2, size_t n);
+    static constexpr size_t length(const char_type* s);
+    static constexpr const char_type* find(const char_type* s, size_t n,
+                                           const char_type& a);
+    static constexpr char_type* move(char_type* s1, const char_type* s2, size_t n);
+    static constexpr char_type* copy(char_type* s1, const char_type* s2, size_t n);
+    static constexpr char_type* assign(char_type* s, size_t n, char_type a);
+    static constexpr int_type not_eof(int_type c) noexcept;
+    static constexpr char_type to_char_type(int_type c) noexcept;
+    static constexpr int_type to_int_type(char_type c) noexcept;
+    static constexpr bool eq_int_type(int_type c1, int_type c2) noexcept;
+    static constexpr int_type eof() noexcept;
+  };
+}
+\end{codeblock}
+
+\pnum
+双参数成员 \tcode{assign}、\tcode{eq} 和 \tcode{lt}
+被定义为分别与
+内置运算符 \tcode{=}、\tcode{==} 和 \tcode{<} 完全相同。
+
+\pnum
+\indextext{UTF-8}%
+成员 \tcode{eof()} 返回一个
+\impldef{return value of \tcode{char_traits<char8_t>::eof}} 常量，
+该常量不能作为有效的 UTF-8 代码单元。
+
+\rSec3[char.traits.specializations.char16.t]{\tcode{struct char_traits<char16_t>}}
+
+\indexlibraryglobal{char_traits}%
+\begin{codeblock}
+namespace std {
+  template<> struct char_traits<char16_t> {
+    using char_type  = char16_t;
+    using int_type   = uint_least16_t;
+    using off_type   = streamoff;
+    using pos_type   = u16streampos;
+    using state_type = mbstate_t;
+    using comparison_category = strong_ordering;
+
+    static constexpr void assign(char_type& c1, const char_type& c2) noexcept;
+    static constexpr bool eq(char_type c1, char_type c2) noexcept;
+    static constexpr bool lt(char_type c1, char_type c2) noexcept;
+
+    static constexpr int compare(const char_type* s1, const char_type* s2, size_t n);
+    static constexpr size_t length(const char_type* s);
+    static constexpr const char_type* find(const char_type* s, size_t n,
+                                           const char_type& a);
+    static constexpr char_type* move(char_type* s1, const char_type* s2, size_t n);
+    static constexpr char_type* copy(char_type* s1, const char_type* s2, size_t n);
+    static constexpr char_type* assign(char_type* s, size_t n, char_type a);
+
+    static constexpr int_type not_eof(int_type c) noexcept;
+    static constexpr char_type to_char_type(int_type c) noexcept;
+    static constexpr int_type to_int_type(char_type c) noexcept;
+    static constexpr bool eq_int_type(int_type c1, int_type c2) noexcept;
+    static constexpr int_type eof() noexcept;
+  };
+}
+\end{codeblock}
+
+
+\pnum
+双参数成员\tcode{assign}、\tcode{eq}和\tcode{lt}的定义分别与内置运算符\tcode{=}、\tcode{==}和\tcode{<}完全相同。
+
+\pnum
+成员\tcode{eof()}返回一个\impldef{char_traits<char16_t>::eof 的返回值}常量，该常量不能作为有效的UTF-16码元出现。
+
+\rSec3[char.traits.specializations.char32.t]{\tcode{struct char_traits<char32_t>}}
+
+\indexlibraryglobal{char_traits}%
+\begin{codeblock}
+namespace std {
+  template<> struct char_traits<char32_t> {
+    using char_type  = char32_t;
+    using int_type   = uint_least32_t;
+    using off_type   = streamoff;
+    using pos_type   = u32streampos;
+    using state_type = mbstate_t;
+    using comparison_category = strong_ordering;
+
+    static constexpr void assign(char_type& c1, const char_type& c2) noexcept;
+    static constexpr bool eq(char_type c1, char_type c2) noexcept;
+    static constexpr bool lt(char_type c1, char_type c2) noexcept;
+
+    static constexpr int compare(const char_type* s1, const char_type* s2, size_t n);
+    static constexpr size_t length(const char_type* s);
+    static constexpr const char_type* find(const char_type* s, size_t n,
+                                           const char_type& a);
+    static constexpr char_type* move(char_type* s1, const char_type* s2, size_t n);
+    static constexpr char_type* copy(char_type* s1, const char_type* s2, size_t n);
+    static constexpr char_type* assign(char_type* s, size_t n, char_type a);
+
+    static constexpr int_type not_eof(int_type c) noexcept;
+    static constexpr char_type to_char_type(int_type c) noexcept;
+    static constexpr int_type to_int_type(char_type c) noexcept;
+    static constexpr bool eq_int_type(int_type c1, int_type c2) noexcept;
+    static constexpr int_type eof() noexcept;
+  };
+}
+\end{codeblock}
+
+
+\pnum
+双参数的成员 \tcode{assign}、\tcode{eq} 和 \tcode{lt} 的定义分别与内置运算符 \tcode{=}、\tcode{==} 和 \tcode{<} 相同。
+
+\pnum
+成员 \tcode{eof()} 返回一个 \impldef{\tcode{char_traits<char32_t>::eof} 的返回值} 常量，该常量不能作为 Unicode 码位出现。
+
+\rSec3[char.traits.specializations.wchar.t]{\tcode{struct char_traits<wchar_t>}}
+
+\indexlibraryglobal{char_traits}%
+\begin{codeblock}
+namespace std {
+  template<> struct char_traits<wchar_t> {
+    using char_type  = wchar_t;
+    using int_type   = wint_t;
+    using off_type   = streamoff;
+    using pos_type   = wstreampos;
+    using state_type = mbstate_t;
+    using comparison_category = strong_ordering;
+
+    static constexpr void assign(char_type& c1, const char_type& c2) noexcept;
+    static constexpr bool eq(char_type c1, char_type c2) noexcept;
+    static constexpr bool lt(char_type c1, char_type c2) noexcept;
+
+    static constexpr int compare(const char_type* s1, const char_type* s2, size_t n);
+    static constexpr size_t length(const char_type* s);
+    static constexpr const char_type* find(const char_type* s, size_t n,
+                                           const char_type& a);
+    static constexpr char_type* move(char_type* s1, const char_type* s2, size_t n);
+    static constexpr char_type* copy(char_type* s1, const char_type* s2, size_t n);
+    static constexpr char_type* assign(char_type* s, size_t n, char_type a);
+
+    static constexpr int_type not_eof(int_type c) noexcept;
+    static constexpr char_type to_char_type(int_type c) noexcept;
+    static constexpr int_type to_int_type(char_type c) noexcept;
+    static constexpr bool eq_int_type(int_type c1, int_type c2) noexcept;
+    static constexpr int_type eof() noexcept;
+  };
+}
+\end{codeblock}
+
+
+\pnum
+双参数成员
+\tcode{assign}、
+\tcode{eq}、
+与
+\tcode{lt}
+的定义方式分别等同于内置运算符
+\tcode{=}、
+\tcode{==}、
+与
+\tcode{<}。
+
+\pnum
+成员
+\tcode{eof()}
+返回
+\tcode{WEOF}。
+
+\rSec1[string.view]{字符串视图类}
+
+\rSec2[string.view.general]{概述}
+
+\pnum
+类模板 \tcode{basic_string_view} 描述一个对象，它可以引用一个常量连续序列的类字符\iref{strings.general}对象，该序列的第一个元素位于位置零。
+在\ref{string.view}的后续部分中，存储在 \tcode{basic_string_view} 对象中的类字符对象的类型由 \tcode{charT} 指代。
+
+\pnum
+\begin{note}
+库提供了从 \tcode{const charT*} 和 \tcode{std::basic_string<charT, ...>} 到 \tcode{std::basic_string_view<charT, ...>} 的隐式转换，因此用户代码在任何需要字符序列的地方，可以只接受 \tcode{std::basic_string_view<charT>} 作为非模板化参数。
+用户定义的类型可以定义自己的到 \tcode{std::basic_string_view<charT>} 的隐式转换，以便与这些函数互操作。
+\end{note}
+
+\rSec2[string.view.synop]{头文件 \tcode{<string_view>} 概要}
+
+\indexheader{string_view}%
+\begin{codeblock}
+// 主要独立
+#include <compare>              // 见 \ref{compare.syn}
+
+namespace std {
+  // \ref{string.view.template}，类模板 \tcode{basic_string_view}
+  template<class charT, class traits = char_traits<charT>>
+  class basic_string_view;                                              // 部分独立
+
+  template<class charT, class traits>
+    constexpr bool ranges::@\libspec{enable_view}{basic_string_view}@<basic_string_view<charT, traits>> = true;
+  template<class charT, class traits>
+    constexpr bool ranges::@\libspec{enable_borrowed_range}{basic_string_view}@<basic_string_view<charT, traits>> = true;
+
+  // \ref{string.view.comparison}，非成员比较函数
+  template<class charT, class traits>
+    constexpr bool operator==(basic_string_view<charT, traits> x,
+                              type_identity_t<basic_string_view<charT, traits>> y) noexcept;
+  template<class charT, class traits>
+    constexpr @\seebelow@ operator<=>(basic_string_view<charT, traits> x,
+              @\itcorr@                      type_identity_t<basic_string_view<charT,
+              @\itcorr@                                      traits>> y) noexcept;
+
+  // \ref{string.view.io}，插入器与提取器
+  template<class charT, class traits>
+    basic_ostream<charT, traits>&
+      operator<<(basic_ostream<charT, traits>& os,
+                 basic_string_view<charT, traits> str);                 // 托管
+
+  // \tcode{basic_string_view} 的 \grammarterm{typedef-name}
+  using @\libglobal{string_view}@    = basic_string_view<char>;
+  using @\libglobal{u8string_view}@  = basic_string_view<char8_t>;
+  using @\libglobal{u16string_view}@ = basic_string_view<char16_t>;
+  using @\libglobal{u32string_view}@ = basic_string_view<char32_t>;
+  using @\libglobal{wstring_view}@   = basic_string_view<wchar_t>;
+
+  // \ref{string.view.hash}，哈希支持
+  template<class T> struct hash;
+  template<> struct hash<string_view>;
+  template<> struct hash<u8string_view>;
+  template<> struct hash<u16string_view>;
+  template<> struct hash<u32string_view>;
+  template<> struct hash<wstring_view>;
+
+  inline namespace literals {
+    inline namespace string_view_literals {
+      // \ref{string.view.literals}，\tcode{basic_string_view} 字面量后缀
+      constexpr string_view    operator""sv(const char* str, size_t len) noexcept;
+      constexpr u8string_view  operator""sv(const char8_t* str, size_t len) noexcept;
+      constexpr u16string_view operator""sv(const char16_t* str, size_t len) noexcept;
+      constexpr u32string_view operator""sv(const char32_t* str, size_t len) noexcept;
+      constexpr wstring_view   operator""sv(const wchar_t* str, size_t len) noexcept;
+    }
+  }
+}
+\end{codeblock}
+
+\pnum
+当包含 \tcode{<string_view>} 时，\ref{utility.swap} 和 \ref{iterator.range} 中定义的函数模板可用。
+
+\rSec2[string.view.template]{类模板 \tcode{basic_string_view}}
+
+\rSec3[string.view.template.general]{概述}
+
+\indexlibraryglobal{basic_string_view}%
+\indexlibrarymember{traits_type}{basic_string_view}%
+\indexlibrarymember{value_type}{basic_string_view}%
+\indexlibrarymember{pointer}{basic_string_view}%
+\indexlibrarymember{const_pointer}{basic_string_view}%
+\indexlibrarymember{reference}{basic_string_view}%
+\indexlibrarymember{const_reference}{basic_string_view}%
+\indexlibrarymember{const_iterator}{basic_string_view}%
+\indexlibrarymember{iterator}{basic_string_view}%
+\indexlibrarymember{const_reverse_iterator}{basic_string_view}%
+\indexlibrarymember{reverse_iterator}{basic_string_view}%
+\indexlibrarymember{size_type}{basic_string_view}%
+\indexlibrarymember{difference_type}{basic_string_view}%
+\begin{codeblock}
+namespace std {
+  template<class charT, class traits = char_traits<charT>>
+  class basic_string_view {
+  public:
+    // 类型
+    using traits_type            = traits;
+    using value_type             = charT;
+    using pointer                = value_type*;
+    using const_pointer          = const value_type*;
+    using reference              = value_type&;
+    using const_reference        = const value_type&;
+    using const_iterator         = @\impdefx{类型 \tcode{basic_string_view::const_iterator}}@; // 见 \ref{string.view.iterators}
+    using iterator               = const_iterator;@
+\begin{footnote}
+因为 \tcode{basic_string_view} 引用的是常量序列，\tcode{iterator} 与 \tcode{const_iterator} 是同一类型。
+\end{footnote}@
+    using const_reverse_iterator = reverse_iterator<const_iterator>;
+    using reverse_iterator       = const_reverse_iterator;
+    using size_type              = size_t;
+    using difference_type        = ptrdiff_t;
+    static constexpr size_type npos = size_type(-1);
+
+    // \ref{string.view.cons}，构造与赋值
+    constexpr basic_string_view() noexcept;
+    constexpr basic_string_view(const basic_string_view&) noexcept = default;
+    constexpr basic_string_view& operator=(const basic_string_view&) noexcept = default;
+    constexpr basic_string_view(const charT* str);
+    basic_string_view(nullptr_t) = delete;
+    constexpr basic_string_view(const charT* str, size_type len);
+    template<class It, class End>
+      constexpr basic_string_view(It begin, End end);
+    template<class R>
+      constexpr explicit basic_string_view(R&& r);
+
+    // \ref{string.view.iterators}，迭代器支持
+    constexpr const_iterator begin() const noexcept;
+    constexpr const_iterator end() const noexcept;
+    constexpr const_iterator cbegin() const noexcept;
+    constexpr const_iterator cend() const noexcept;
+    constexpr const_reverse_iterator rbegin() const noexcept;
+    constexpr const_reverse_iterator rend() const noexcept;
+    constexpr const_reverse_iterator crbegin() const noexcept;
+    constexpr const_reverse_iterator crend() const noexcept;
+
+    // \ref{string.view.capacity}，容量
+    constexpr size_type size() const noexcept;
+    constexpr size_type length() const noexcept;
+    constexpr size_type max_size() const noexcept;
+    constexpr bool empty() const noexcept;
+
+    // \ref{string.view.access}，元素访问
+    constexpr const_reference operator[](size_type pos) const;
+    constexpr const_reference at(size_type pos) const;                  // freestanding-deleted
+    constexpr const_reference front() const;
+    constexpr const_reference back() const;
+    constexpr const_pointer data() const noexcept;
+
+    // \ref{string.view.modifiers}，修改器
+    constexpr void remove_prefix(size_type n);
+    constexpr void remove_suffix(size_type n);
+    constexpr void swap(basic_string_view& s) noexcept;
+
+    // \ref{string.view.ops}，字符串操作
+    constexpr size_type copy(charT* s, size_type n,
+                             size_type pos = 0) const;                  // freestanding-deleted
+
+    constexpr basic_string_view substr(size_type pos = 0,
+                                       size_type n = npos) const;       // freestanding-deleted
+    constexpr basic_string_view subview(size_type pos = 0,
+                                        size_type n = npos) const;      // freestanding-deleted
+
+    constexpr int compare(basic_string_view s) const noexcept;
+    constexpr int compare(size_type pos1, size_type n1,
+                          basic_string_view s) const;                   // freestanding-deleted
+    constexpr int compare(size_type pos1, size_type n1, basic_string_view s,
+                          size_type pos2, size_type n2) const;          // freestanding-deleted
+    constexpr int compare(const charT* s) const;
+    constexpr int compare(size_type pos1, size_type n1,
+                          const charT* s) const;                        // freestanding-deleted
+    constexpr int compare(size_type pos1, size_type n1, const charT* s,
+                          size_type n2) const;                          // freestanding-deleted
+
+    constexpr bool starts_with(basic_string_view x) const noexcept;
+    constexpr bool starts_with(charT x) const noexcept;
+    constexpr bool starts_with(const charT* x) const;
+    constexpr bool ends_with(basic_string_view x) const noexcept;
+    constexpr bool ends_with(charT x) const noexcept;
+    constexpr bool ends_with(const charT* x) const;
+
+    constexpr bool contains(basic_string_view x) const noexcept;
+    constexpr bool contains(charT x) const noexcept;
+    constexpr bool contains(const charT* x) const;
+
+    // \ref{string.view.find}，查找
+    constexpr size_type find(basic_string_view s, size_type pos = 0) const noexcept;
+    constexpr size_type find(charT c, size_type pos = 0) const noexcept;
+    constexpr size_type find(const charT* s, size_type pos, size_type n) const;
+    constexpr size_type find(const charT* s, size_type pos = 0) const;
+    constexpr size_type rfind(basic_string_view s, size_type pos = npos) const noexcept;
+    constexpr size_type rfind(charT c, size_type pos = npos) const noexcept;
+    constexpr size_type rfind(const charT* s, size_type pos, size_type n) const;
+    constexpr size_type rfind(const charT* s, size_type pos = npos) const;
+
+    constexpr size_type find_first_of(basic_string_view s, size_type pos = 0) const noexcept;
+    constexpr size_type find_first_of(charT c, size_type pos = 0) const noexcept;
+    constexpr size_type find_first_of(const charT* s, size_type pos, size_type n) const;
+    constexpr size_type find_first_of(const charT* s, size_type pos = 0) const;
+    constexpr size_type find_last_of(basic_string_view s, size_type pos = npos) const noexcept;
+    constexpr size_type find_last_of(charT c, size_type pos = npos) const noexcept;
+    constexpr size_type find_last_of(const charT* s, size_type pos, size_type n) const;
+    constexpr size_type find_last_of(const charT* s, size_type pos = npos) const;
+    constexpr size_type find_first_not_of(basic_string_view s, size_type pos = 0) const noexcept;
+    constexpr size_type find_first_not_of(charT c, size_type pos = 0) const noexcept;
+    constexpr size_type find_first_not_of(const charT* s, size_type pos,
+                                          size_type n) const;
+    constexpr size_type find_first_not_of(const charT* s, size_type pos = 0) const;
+    constexpr size_type find_last_not_of(basic_string_view s,
+                                         size_type pos = npos) const noexcept;
+    constexpr size_type find_last_not_of(charT c, size_type pos = npos) const noexcept;
+    constexpr size_type find_last_not_of(const charT* s, size_type pos,
+                                         size_type n) const;
+    constexpr size_type find_last_not_of(const charT* s, size_type pos = npos) const;
+
+  private:
+    const_pointer @\exposid{data_}@;        // \expos
+    size_type @\exposid{size_}@;            // \expos
+  };
+
+  // \ref{string.view.deduct}，推导指引
+  template<class It, class End>
+    basic_string_view(It, End) -> basic_string_view<iter_value_t<It>>;
+  template<class R>
+    basic_string_view(R&&) -> basic_string_view<ranges::range_value_t<R>>;
+}
+\end{codeblock}
+
+\pnum
+在每个特化 \tcode{basic_string_view<charT, traits>} 中，类型 \tcode{traits} 应当满足字符特征要求\iref{char.traits}。
+\begin{note}
+若 \tcode{traits::char_type} 与 \tcode{charT} 不是同一类型，则程序非良构。
+\end{note}
+
+\pnum
+对于 \tcode{basic_string_view str}，
+任何使范围
+\begin{codeblock}
+@\range{str.data()}{str.data() + str.size()}@
+\end{codeblock}
+中指针失效的操作，
+亦会使指向 \tcode{str} 元素的指针、迭代器及引用失效。
+
+\pnum
+\tcode{basic_string_view} 成员函数的复杂度是 \bigoh{1}，除非另有规定。
+\pnum
+\tcode{basic_string_view<charT, traits>} 是一个可平凡复制类型\iref{term.trivially.copyable.type}。
+
+\rSec3[string.view.cons]{构造与赋值}
+
+\indexlibraryctor{basic_string_view}%
+\begin{itemdecl}
+constexpr basic_string_view() noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\ensures
+\tcode{\exposid{size_} == 0} 且 \tcode{\exposid{data_} == nullptr}。
+\end{itemdescr}
+
+\indexlibraryctor{basic_string_view}%
+\begin{itemdecl}
+constexpr basic_string_view(const charT* str);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\expects
+\range{str}{str + traits::length(str)} 是一个有效范围。
+
+\pnum
+\effects
+构造一个 \tcode{basic_string_view}，用 \tcode{str} 初始化 \exposid{data_}，
+并用 \tcode{traits::length(str)} 初始化 \exposid{size_}。
+
+\pnum
+\complexity
+\bigoh{\tcode{traits::length(str)}}。
+\end{itemdescr}
+
+\indexlibraryctor{basic_string_view}%
+\begin{itemdecl}
+constexpr basic_string_view(const charT* str, size_type len);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\expects
+\range{str}{str + len} 是一个有效范围。
+
+\pnum
+\effects
+构造一个 \tcode{basic_string_view}，用 \tcode{str} 初始化 \exposid{data_}，
+并用 \tcode{len} 初始化 \exposid{size_}。
+\end{itemdescr}
+
+\indexlibraryctor{basic_string_view}%
+\begin{itemdecl}
+template<class It, class End>
+  constexpr basic_string_view(It begin, End end);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\constraints
+\begin{itemize}
+\item \tcode{It} 满足 \libconcept{contiguous_iterator}。
+\item \tcode{End} 满足 \tcode{\libconcept{sized_sentinel_for}<It>}。
+\item \tcode{is_same_v<iter_value_t<It>, charT>} 为 \tcode{true}。
+\item \tcode{is_convertible_v<End, size_type>} 为 \tcode{false}。
+\end{itemize}
+
+\pnum
+\expects
+\begin{itemize}
+\item \range{begin}{end} 是有效的范围。
+\item \tcode{It} 满足 \libconcept{contiguous_iterator}。
+\item \tcode{End} 满足 \tcode{\libconcept{sized_sentinel_for}<It>}。
+\end{itemize}
+
+\pnum
+\effects
+以 \tcode{to_address(begin)} 初始化 \exposid{data_}，
+并以 \tcode{end - begin} 初始化 \exposid{size_}。
+
+\pnum
+\throws
+当 \tcode{end - begin} 抛出时所抛出的内容。
+\end{itemdescr}
+
+\indexlibraryctor{basic_string_view}%
+\begin{itemdecl}
+template<class R>
+  constexpr explicit basic_string_view(R&& r);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+令 \tcode{d} 为类型 \tcode{remove_cvref_t<R>} 的左值。
+
+\pnum
+\constraints
+\begin{itemize}
+\item
+\tcode{remove_cvref_t<R>} 与 \tcode{basic_string_view} 不是同一类型，
+\item
+\tcode{R} 满足
+\tcode{ranges::\libconcept{contiguous_range}} 与 \tcode{ranges::\libconcept{sized_range}}，
+\item
+\tcode{is_same_v<ranges::range_value_t<R>, charT>} 为 \tcode{true}，
+\item
+\tcode{is_convertible_v<R, const charT*>} 为 \tcode{false}，且
+\item
+\tcode{d.operator ::std::basic_string_view<charT, traits>()}
+不是合法的表达式。
+\end{itemize}
+
+\pnum
+\effects
+以 \tcode{ranges::data(r)} 初始化 \exposid{data_} 并以
+\tcode{ranges::size(r)} 初始化 \exposid{size_}。
+
+\pnum
+\throws
+\tcode{ranges::data(r)} 与 \tcode{ranges::size(r)} 所抛出的任何异常。
+\end{itemdescr}
+
+\rSec3[string.view.deduct]{推导指引}
+
+\begin{itemdecl}
+template<class It, class End>
+  basic_string_view(It, End) -> basic_string_view<iter_value_t<It>>;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\constraints
+\begin{itemize}
+\item \tcode{It} 满足 \libconcept{contiguous_iterator}。
+\item \tcode{End} 满足 \tcode{\libconcept{sized_sentinel_for}<It>}。
+\end{itemize}
+\end{itemdescr}
+
+\begin{itemdecl}
+template<class R>
+  basic_string_view(R&&) -> basic_string_view<ranges::range_value_t<R>>;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\constraints
+\tcode{R} 满足 \tcode{ranges::\libconcept{contiguous_range}}。
+\end{itemdescr}
+
+\rSec3[string.view.iterators]{迭代器支持}
+
+\indexlibrarymember{const_iterator}{basic_string_view}%
+\begin{itemdecl}
+using const_iterator = @\impdefx{basic_string_view::const_iterator 的类型}@;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+一种类型，它满足常量
+\oldconcept{RandomAccessIterator}\iref{random.access.iterators} 的要求，
+符合 \libconcept{contiguous_iterator}\iref{iterator.concept.contiguous} 概念，
+并且满足 constexpr 迭代器要求\iref{iterator.requirements.general}，
+其 \tcode{value_type} 是模板参数 \tcode{charT}。
+
+\pnum
+所有对容器的迭代器要求\iref{container.requirements} 同样适用于 \tcode{basic_string_view::const_iterator}。
+\end{itemdescr}
+
+\indexlibrarymember{begin}{basic_string_view}%
+\indexlibrarymember{cbegin}{basic_string_view}%
+\begin{itemdecl}
+constexpr const_iterator begin() const noexcept;
+constexpr const_iterator cbegin() const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+一个迭代器，满足
+\begin{itemize}
+\item 若 \tcode{!empty()}，则 \tcode{addressof(*begin()) == \exposid{data_}}，
+\item 否则，一个未指定的值，使得 \range{begin()}{end()} 是一个有效的范围。
+\end{itemize}
+\end{itemdescr}
+
+\indexlibrarymember{end}{basic_string_view}%
+\indexlibrarymember{cend}{basic_string_view}%
+\begin{itemdecl}
+constexpr const_iterator end() const noexcept;
+constexpr const_iterator cend() const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{begin() + size()}.
+\end{itemdescr}
+
+\indexlibrarymember{rbegin}{basic_string_view}%
+\indexlibrarymember{crbegin}{basic_string_view}%
+\begin{itemdecl}
+constexpr const_reverse_iterator rbegin() const noexcept;
+constexpr const_reverse_iterator crbegin() const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{const_reverse_iterator(end())}.
+\end{itemdescr}
+
+\indexlibrarymember{rend}{basic_string_view}%
+\indexlibrarymember{crend}{basic_string_view}%
+\begin{itemdecl}
+constexpr const_reverse_iterator rend() const noexcept;
+constexpr const_reverse_iterator crend() const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{const_reverse_iterator(begin())}。
+\end{itemdescr}
+
+\rSec3[string.view.capacity]{容量}
+
+\indexlibrarymember{size}{basic_string_view}%
+\indexlibrarymember{length}{basic_string_view}%
+\begin{itemdecl}
+constexpr size_type size() const noexcept;
+constexpr size_type length() const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\exposid{size_}。
+\end{itemdescr}
+
+
+\indexlibrarymember{max_size}{basic_string_view}%
+\begin{itemdecl}
+constexpr size_type max_size() const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{basic_string_view} 所能引用的字符类对象的最大可能数目。
+\end{itemdescr}
+
+\indexlibrarymember{empty}{basic_string_view}%
+\begin{itemdecl}
+constexpr bool empty() const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{\exposid{size_} == 0}。
+\end{itemdescr}
+
+\rSec3[string.view.access]{元素访问}
+
+\indexlibrarymember{operator[]}{basic_string_view}%
+\begin{itemdecl}
+constexpr const_reference operator[](size_type pos) const;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\hardexpects
+\tcode{pos < size()} 为 \tcode{true}。
+\begin{note}
+此先决条件强于 \tcode{basic_string::operator[]} 上的那个。
+\end{note}
+
+\pnum
+\returns
+\tcode{\exposid{data_}[pos]}。
+
+\pnum
+\throws
+无。
+\end{itemdescr}
+
+\indexlibrarymember{at}{basic_string_view}%
+\begin{itemdecl}
+constexpr const_reference at(size_type pos) const;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{\exposid{data_}[pos]}。
+
+\pnum
+\throws
+若 \tcode{pos >= size()} 则抛出 \tcode{out_of_range}。
+\end{itemdescr}
+
+\indexlibrarymember{front}{basic_string_view}%
+\begin{itemdecl}
+constexpr const_reference front() const;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\hardexpects
+\tcode{empty()} 为 \tcode{false}。
+
+\pnum
+\returns
+\tcode{\exposid{data_}[0]}。
+
+\pnum
+\throws
+无。
+\end{itemdescr}
+
+\indexlibrarymember{back}{basic_string_view}%
+\begin{itemdecl}
+constexpr const_reference back() const;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\hardexpects
+\tcode{empty()} 为 \tcode{false}。
+
+\pnum
+\returns
+\tcode{\exposid{data_}[size() - 1]}。
+
+\pnum
+\throws
+无。
+\end{itemdescr}
+
+\indexlibrarymember{data}{basic_string_view}%
+\begin{itemdecl}
+constexpr const_pointer data() const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\exposid{data_}。
+
+\pnum
+\begin{note}
+与 \tcode{basic_string::data()} 和 \grammarterm{string-literal} 不同，
+\tcode{data()} 可以返回指向非空终止的缓冲区的指针。
+因此，将 \tcode{data()} 传递给仅接受 \tcode{const charT*} 并期待空终止字符串的函数通常是错误的。
+\end{note}
+\end{itemdescr}
+
+\rSec3[string.view.modifiers]{修饰器}
+
+\indexlibrarymember{remove_prefix}{basic_string_view}%
+\begin{itemdecl}
+constexpr void remove_prefix(size_type n);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\hardexpects
+\tcode{n <= size()} 为 \tcode{true}。
+
+\pnum
+\effects
+等价于：\tcode{\exposid{data_} += n; \exposid{size_} -= n;}
+\end{itemdescr}
+
+\indexlibrarymember{remove_suffix}{basic_string_view}%
+\begin{itemdecl}
+constexpr void remove_suffix(size_type n);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\hardexpects
+\tcode{n <= size()} 为 \tcode{true}。
+
+\pnum
+\effects
+等价于：\tcode{\exposid{size_} -= n;}
+\end{itemdescr}
+
+\indexlibrarymember{swap}{basic_string_view}%
+\begin{itemdecl}
+constexpr void swap(basic_string_view& s) noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+交换 \tcode{*this} 与 \tcode{s} 的值。
+\end{itemdescr}
+
+\rSec3[string.view.ops]{字符串操作}
+
+\indexlibrarymember{copy}{basic_string_view}%
+\begin{itemdecl}
+constexpr size_type copy(charT* s, size_type n, size_type pos = 0) const;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+令 \tcode{rlen} 为 \tcode{n} 与 \tcode{size() - pos} 中的较小者。
+
+\pnum
+\expects
+\range{s}{s + rlen} 是一个有效范围。
+
+\pnum
+\effects
+等价于 \tcode{traits::copy(s, data() + pos, rlen)}。
+
+\pnum
+\returns
+\tcode{rlen}。
+
+\pnum
+\throws
+若 \tcode{pos > size()} 则抛出 \tcode{out_of_range}。
+
+\pnum
+\complexity
+\bigoh{\tcode{rlen}}。
+\end{itemdescr}
+
+\indexlibrarymember{substr}{basic_string_view}%
+\indexlibrarymember{subview}{basic_string_view}%
+\begin{itemdecl}
+constexpr basic_string_view substr(size_type pos = 0, size_type n = npos) const;
+constexpr basic_string_view subview(size_type pos = 0, size_type n = npos) const;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+令 \tcode{rlen} 为 \tcode{n} 与 \tcode{size() - pos} 中的较小者。
+
+\pnum
+\effects
+确定 \tcode{rlen}，即待引用的字符串的有效长度。
+
+\pnum
+\returns
+\tcode{basic_string_view(data() + pos, rlen)}。
+
+\pnum
+\throws
+若 \tcode{pos > size()} 则抛出 \tcode{out_of_range}。
+\end{itemdescr}
+
+\indexlibrarymember{compare}{basic_string_view}%
+\begin{itemdecl}
+constexpr int compare(basic_string_view str) const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+令 \tcode{rlen} 为 \tcode{size()} 和 \tcode{str.size()} 的较小者。
+
+\pnum
+\effects
+确定 \tcode{rlen} ，即待比较字符串的有效长度。
+随后通过调用 \tcode{traits::compare(data(), str.data(), rlen)} 比较两个字符串。
+
+\pnum
+\returns
+若比较结果非零，则返回该非零结果。
+否则，返回 \tref{string.view.compare} 所示之值。
+\begin{libtab2}{\tcode{compare()} 结果}{string.view.compare}{cc}{条件}{返回值}
+\tcode{size() < str.size()}  & \tcode{< 0}\\
+\tcode{size() == str.size()} & \tcode{0}\\
+\tcode{size() > str.size()} & \tcode{> 0}\\
+\end{libtab2}
+
+\pnum
+\complexity
+\bigoh{\tcode{rlen}}。
+\end{itemdescr}
+
+\indexlibrarymember{compare}{basic_string_view}%
+\begin{itemdecl}
+constexpr int compare(size_type pos1, size_type n1, basic_string_view str) const;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等效于：\tcode{return substr(pos1, n1).compare(str);}
+\end{itemdescr}
+
+\indexlibrarymember{compare}{basic_string_view}%
+\begin{itemdecl}
+constexpr int compare(size_type pos1, size_type n1, basic_string_view str,
+                      size_type pos2, size_type n2) const;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等效于：\tcode{return substr(pos1, n1).compare(str.substr(pos2, n2));}
+\end{itemdescr}
+
+\indexlibrarymember{compare}{basic_string_view}%
+\begin{itemdecl}
+constexpr int compare(const charT* s) const;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于： \tcode{return compare(basic_string_view(s));}
+\end{itemdescr}
+
+\indexlibrarymember{compare}{basic_string_view}%
+\begin{itemdecl}
+constexpr int compare(size_type pos1, size_type n1, const charT* s) const;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于： \tcode{return substr(pos1, n1).compare(basic_string_view(s));}
+\end{itemdescr}
+
+\indexlibrarymember{compare}{basic_string_view}%
+\begin{itemdecl}
+constexpr int compare(size_type pos1, size_type n1, const charT* s, size_type n2) const;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于： \tcode{return substr(pos1, n1).compare(basic_string_view(s, n2));}
+\end{itemdescr}
+
+\indexlibrarymember{starts_with}{basic_string_view}%
+\begin{itemdecl}
+constexpr bool starts_with(basic_string_view x) const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+令 \tcode{rlen} 为 \tcode{size()} 和 \tcode{x.size()} 的较小者。
+
+\pnum
+\effects
+等价于： \tcode{return basic_string_view(data(), rlen) == x;}
+\end{itemdescr}
+
+\indexlibrarymember{starts_with}{basic_string_view}%
+\begin{itemdecl}
+constexpr bool starts_with(charT x) const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于： \tcode{return !empty() \&\& traits::eq(front(), x);}
+\end{itemdescr}
+
+\indexlibrarymember{starts_with}{basic_string_view}%
+\begin{itemdecl}
+constexpr bool starts_with(const charT* x) const;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于： \tcode{return starts_with(basic_string_view(x));}
+\end{itemdescr}
+
+\indexlibrarymember{ends_with}{basic_string_view}%
+\begin{itemdecl}
+constexpr bool ends_with(basic_string_view x) const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+令 \tcode{rlen} 为 \tcode{size()} 和 \tcode{x.size()} 的较小者。
+
+\pnum
+\effects
+效果等同于：
+\begin{codeblock}
+return basic_string_view(data() + (size() - rlen), rlen) == x;
+\end{codeblock}
+\end{itemdescr}
+
+\indexlibrarymember{ends_with}{basic_string_view}%
+\begin{itemdecl}
+constexpr bool ends_with(charT x) const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+效果等同于：\tcode{return !empty() \&\& traits::eq(back(), x);}
+\end{itemdescr}
+
+\indexlibrarymember{ends_with}{basic_string_view}%
+\begin{itemdecl}
+constexpr bool ends_with(const charT* x) const;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+效果等同于：\tcode{return ends_with(basic_string_view(x));}
+\end{itemdescr}
+
+\begin{itemdescr}
+\pnum
+\effects
+等效于：\tcode{return ends_with(basic_string_view(x));}
+\end{itemdescr}
+
+\indexlibrarymember{contains}{basic_string_view}%
+\begin{itemdecl}
+constexpr bool contains(basic_string_view x) const noexcept;
+constexpr bool contains(charT x) const noexcept;
+constexpr bool contains(const charT* x) const;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等效于：\tcode{return find(x) != npos;}
+\end{itemdescr}
+
+\rSec3[string.view.find]{查找}
+\pnum
+本子条款中的成员函数最差情况下具有 \bigoh{\tcode{size() * str.size()}} 的复杂度，
+但实现应力求更优。
+
+\pnum
+令 \placeholder{F} 为下列之一：
+\tcode{find}、
+\tcode{rfind}、
+\tcode{find_first_of}、
+\tcode{find_last_of}、
+\tcode{find_first_not_of}、
+与
+\tcode{find_last_not_of}。
+\begin{itemize}
+\item
+形式如下的每个成员函数
+\begin{codeblock}
+constexpr @\placeholder{return-type}@ @\placeholder{F}@(const charT* s, size_type pos) const;
+\end{codeblock}
+效果等价于：\tcode{return \placeholder{F}(basic_string_view(s), pos);}
+
+\item
+形式如下的每个成员函数
+\begin{codeblock}
+constexpr @\placeholder{return-type}@ @\placeholder{F}@(const charT* s, size_type pos, size_type n) const;
+\end{codeblock}
+效果等价于：\tcode{return \placeholder{F}(basic_string_view(s, n), pos);}
+
+\item
+形式如下的每个成员函数
+\begin{codeblock}
+constexpr @\placeholder{return-type}@ @\placeholder{F}@(charT c, size_type pos) const noexcept;
+\end{codeblock}
+效果等价于：\tcode{return \placeholder{F}(basic_string_view(addressof(c), 1), pos);}
+\end{itemize}
+
+\indexlibrarymember{find}{basic_string_view}%
+\begin{itemdecl}
+constexpr size_type find(basic_string_view str, size_type pos = 0) const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+令 \tcode{xpos} 为满足以下条件的最低位置（若可能）：
+\begin{itemize}
+\item
+\tcode{pos <= xpos}
+\item
+\tcode{xpos + str.size() <= size()}
+\item
+对于 \tcode{str} 所引用的字符串的所有元素 \tcode{I}，\tcode{traits::eq(\exposid{data_}[xpos + I], str[I])} 成立。
+\end{itemize}
+
+\pnum
+\effects
+确定 \tcode{xpos}。
+
+\pnum
+\returns
+若函数能为 \tcode{xpos} 确定这样的值，则返回 \tcode{xpos}。
+否则，返回 \tcode{npos}。
+\end{itemdescr}
+
+\indexlibrarymember{rfind}{basic_string_view}%
+\begin{itemdecl}
+constexpr size_type rfind(basic_string_view str, size_type pos = npos) const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+令 \tcode{xpos} 为可能的最大位置，使得以下条件成立：
+\begin{itemize}
+\item
+\tcode{xpos <= pos}
+\item
+\tcode{xpos + str.size() <= size()}
+\item
+对于 \tcode{str} 引用的字符串的所有元素 \tcode{I}，\tcode{traits::eq(\exposid{data_}[xpos + I], str[I])}。
+\end{itemize}
+
+\pnum
+\effects
+确定 \tcode{xpos}。
+
+\pnum
+\returns
+若该函数能为 \tcode{xpos} 确定这样一个值，则返回 \tcode{xpos}。
+否则，返回 \tcode{npos}。
+\end{itemdescr}
+
+\indexlibrarymember{find_first_of}{basic_string_view}%
+\begin{itemdecl}
+constexpr size_type find_first_of(basic_string_view str, size_type pos = 0) const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+令 \tcode{xpos} 为尽可能低的位置，满足以下条件：
+\begin{itemize}
+\item
+\tcode{pos <= xpos}
+\item
+\tcode{xpos < size()}
+\item
+\tcode{traits::eq(\exposid{data_}[xpos], str[I])} 对 \tcode{str} 所引用字符串的某个元素 \tcode{I} 成立。
+\end{itemize}
+
+\pnum
+\effects
+确定 \tcode{xpos}。
+
+\pnum
+\returns
+若函数能确定这样的 \tcode{xpos} 值，则返回 \tcode{xpos}。
+否则，返回 \tcode{npos}。
+\end{itemdescr}
+
+\indexlibrarymember{find_last_of}{basic_string_view}%
+\begin{itemdecl}
+constexpr size_type find_last_of(basic_string_view str, size_type pos = npos) const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+令 \tcode{xpos} 为可能情况下满足以下条件的最高位置：
+\begin{itemize}
+\item
+\tcode{xpos <= pos}
+\item
+\tcode{xpos < size()}
+\item
+对 \tcode{str} 所引用字符串中的某个元素 \tcode{I}，有 \tcode{traits::eq(\exposid{data_}[xpos], str[I])}。
+\end{itemize}
+
+\pnum
+\effects
+确定 \tcode{xpos}。
+
+\pnum
+\returns
+若函数能确定这样的 \tcode{xpos}，则返回 \tcode{xpos}。
+否则，返回 \tcode{npos}。
+\end{itemdescr}
+
+\indexlibrarymember{find_first_not_of}{basic_string_view}%
+\begin{itemdecl}
+constexpr size_type find_first_not_of(basic_string_view str, size_type pos = 0) const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+令 \tcode{xpos} 为尽可能小的位置，若存在，使得以下条件均成立：
+\begin{itemize}
+\item
+\tcode{pos <= xpos}
+\item
+\tcode{xpos < size()}
+\item
+对于 \tcode{str} 所引用的字符串中的任何元素 \tcode{I}，\tcode{traits::eq(\exposid{data_}[xpos], str[I])} 均不成立。
+\end{itemize}
+
+\pnum
+\effects
+确定 \tcode{xpos}。
+
+\pnum
+\returns
+若函数能为此 \tcode{xpos} 确定这样的值，则返回 \tcode{xpos}。否则返回 \tcode{npos}。
+\end{itemdescr}
+
+\indexlibrarymember{find_last_not_of}{basic_string_view}%
+\begin{itemdecl}
+constexpr size_type find_last_not_of(basic_string_view str, size_type pos = npos) const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+令 \tcode{xpos}（若可能）为满足下列条件的最高位置：
+\begin{itemize}
+\item
+\tcode{xpos <= pos}
+\item
+\tcode{xpos < size()}
+\item
+对于 \tcode{str} 所引用的字符串的任意元素 \tcode{I}，\tcode{traits::eq(\exposid{data_}[xpos], str[I])} 均不成立。
+\end{itemize}
+
+\pnum
+\effects
+确定 \tcode{xpos}。
+
+\pnum
+\returns
+若函数能为 \tcode{xpos} 确定这样的值，则为 \tcode{xpos}；否则为 \tcode{npos}。
+\end{itemdescr}
+
+\rSec2[string.view.comparison]{非成员比较函数}
+
+\indexlibrarymember{operator==}{basic_string_view}%
+\begin{itemdecl}
+template<class charT, class traits>
+  constexpr bool operator==(basic_string_view<charT, traits> lhs,
+                            type_identity_t<basic_string_view<charT, traits>> rhs) noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{lhs.compare(rhs) == 0}。
+\end{itemdescr}
+
+\indexlibrarymember{operator<=>}{basic_string_view}%
+\begin{itemdecl}
+template<class charT, class traits>
+  constexpr @\seebelow@ operator<=>(basic_string_view<charT, traits> lhs,
+            @\itcorr@                      type_identity_t<basic_string_view<charT, traits>> rhs) noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+令 \tcode{R} 表示类型 \tcode{traits::comparison_category}，若该 \grammarterm{qualified-id} 合法并表示一个类型（见\iref{temp.deduct}）；否则 \tcode{R} 为 \tcode{weak_ordering}。
+
+\pnum
+\mandates
+\tcode{R} 表示一个比较类别类型（见\iref{cmp.categories}）。
+
+\pnum
+\returns
+\tcode{static_cast<R>(lhs.compare(rhs) <=> 0)}。
+
+\pnum
+\begin{note}
+将 \tcode{type_identity_t} 用作参数确保了类型为 \tcode{basic_string_view<charT, traits>} 的对象始终可以与能够隐式转换为 \tcode{basic_string_view<charT, traits>} 的类型 \tcode{T} 的对象进行比较，反之亦然，根据 \ref{over.match.oper} 的规定。
+\end{note}
+\end{itemdescr}
+
+\rSec2[string.view.io]{插入器与提取器}
+
+\indexlibrarymember{operator<<}{basic_string_view}%
+\begin{itemdecl}
+template<class charT, class traits>
+  basic_ostream<charT, traits>&
+    operator<<(basic_ostream<charT, traits>& os, basic_string_view<charT, traits> str);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+如 \tcode{os} 的带格式输出函数\iref{ostream.formatted.reqmts} 般运作。
+构成一个字符序列 \tcode{seq}，初始时由范围
+\range{str.begin()}{str.end()} 所定义的元素组成。
+如~\ref{ostream.formatted.reqmts} 所述决定 \tcode{seq} 的填充。
+然后如同通过调用 \tcode{os.rdbuf()->sputn(\brk{}seq, n)} 来插入 \tcode{seq}，
+其中 \tcode{n} 是 \tcode{os.width()} 与 \tcode{str.size()} 的较大者；
+再调用 \tcode{os.\brk{}width(0)}。
+
+\pnum
+\returns
+\tcode{os}。
+\end{itemdescr}
+
+\rSec2[string.view.hash]{哈希支持}
+
+\indexlibrarymember{hash}{string_view}%
+\indexlibrarymember{hash}{u8string_view}%
+\indexlibrarymember{hash}{u16string_view}%
+\indexlibrarymember{hash}{u32string_view}%
+\indexlibrarymember{hash}{wstring_view}%
+\begin{itemdecl}
+template<> struct hash<string_view>;
+template<> struct hash<u8string_view>;
+template<> struct hash<u16string_view>;
+template<> struct hash<u32string_view>;
+template<> struct hash<wstring_view>;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+该特化被启用\iref{unord.hash}。
+\begin{note}
+字符串视图对象的哈希值等于对应的字符串对象的哈希值\iref{basic.string.hash}。
+\end{note}
+\end{itemdescr}
+
+\rSec2[string.view.literals]{\tcode{basic_string_view} 字面量的后缀}
+
+\indexlibrarymember{operator""sv}{string_view}%
+\begin{itemdecl}
+constexpr string_view operator""sv(const char* str, size_t len) noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{string_view\{str, len\}}.
+\end{itemdescr}
+
+\indexlibrarymember{operator""sv}{u8string_view}%
+\begin{itemdecl}
+constexpr u8string_view operator""sv(const char8_t* str, size_t len) noexcept;
+\end{itemdecl}
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{u8string_view\{str, len\}}.
+\end{itemdescr}
+
+\indexlibrarymember{operator""sv}{u16string_view}%
+\begin{itemdecl}
+constexpr u16string_view operator""sv(const char16_t* str, size_t len) noexcept;
+\end{itemdecl}
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{u16string_view\{str, len\}}.
+\end{itemdescr}
+
+\indexlibrarymember{operator""sv}{u32string_view}%
+\begin{itemdecl}
+constexpr u32string_view operator""sv(const char32_t* str, size_t len) noexcept;
+\end{itemdecl}
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{u32string_view\{str, len\}}.
+\end{itemdescr}
+
+\indexlibrarymember{operator""sv}{wstring_view}%
+\begin{itemdecl}
+constexpr wstring_view operator""sv(const wchar_t* str, size_t len) noexcept;
+\end{itemdecl}
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{wstring_view\{str, len\}}.
+\end{itemdescr}
+
+\rSec1[string.classes]{字符串类}
+
+\rSec2[string.classes.general]{概览}
+
+\pnum
+头文件 \tcode{<string>} 定义了
+用于操纵可变长度的类字符对象序列的类模板 \tcode{basic_string}
+以及五个\grammarterm{typedef-name}{s}：\tcode{string}、
+\tcode{u8string}、
+\tcode{u16string}、
+\tcode{u32string} 和
+\tcode{wstring}，它们分别指名了特化
+\tcode{basic_string<char>}、
+\tcode{basic_string<char8_t>}、
+\tcode{basic_string<char16_t>}、
+\tcode{basic_string<char32_t>} 以及
+\tcode{basic_string<\brk{}wchar_t>}。
+
+\rSec2[string.syn]{头文件 \tcode{<string>} 概要}
+\indexheader{string}%
+
+\begin{codeblock}
+#include <compare>              // 参见 \ref{compare.syn}
+#include <initializer_list>     // 参见 \ref{initializer.list.syn}
+
+namespace std {
+  // \ref{char.traits}，字符特征
+  template<class charT> struct char_traits;                             // 独立实现
+  template<> struct char_traits<char>;                                  // 独立实现
+  template<> struct char_traits<char8_t>;                               // 独立实现
+  template<> struct char_traits<char16_t>;                              // 独立实现
+  template<> struct char_traits<char32_t>;                              // 独立实现
+  template<> struct char_traits<wchar_t>;                               // 独立实现
+
+  // \ref{basic.string}，\tcode{basic_string}
+  template<class charT, class traits = char_traits<charT>, class Allocator = allocator<charT>>
+    class basic_string;
+
+  template<class charT, class traits, class Allocator>
+    constexpr basic_string<charT, traits, Allocator>
+      operator+(const basic_string<charT, traits, Allocator>& lhs,
+                const basic_string<charT, traits, Allocator>& rhs);
+  template<class charT, class traits, class Allocator>
+    constexpr basic_string<charT, traits, Allocator>
+      operator+(basic_string<charT, traits, Allocator>&& lhs,
+                const basic_string<charT, traits, Allocator>& rhs);
+  template<class charT, class traits, class Allocator>
+    constexpr basic_string<charT, traits, Allocator>
+      operator+(const basic_string<charT, traits, Allocator>& lhs,
+                basic_string<charT, traits, Allocator>&& rhs);
+  template<class charT, class traits, class Allocator>
+    constexpr basic_string<charT, traits, Allocator>
+      operator+(basic_string<charT, traits, Allocator>&& lhs,
+                basic_string<charT, traits, Allocator>&& rhs);
+  template<class charT, class traits, class Allocator>
+    constexpr basic_string<charT, traits, Allocator>
+      operator+(const charT* lhs,
+                const basic_string<charT, traits, Allocator>& rhs);
+  template<class charT, class traits, class Allocator>
+    constexpr basic_string<charT, traits, Allocator>
+      operator+(const charT* lhs,
+                basic_string<charT, traits, Allocator>&& rhs);
+  template<class charT, class traits, class Allocator>
+    constexpr basic_string<charT, traits, Allocator>
+      operator+(charT lhs,
+                const basic_string<charT, traits, Allocator>& rhs);
+  template<class charT, class traits, class Allocator>
+    constexpr basic_string<charT, traits, Allocator>
+      operator+(charT lhs,
+                basic_string<charT, traits, Allocator>&& rhs);
+  template<class charT, class traits, class Allocator>
+    constexpr basic_string<charT, traits, Allocator>
+      operator+(const basic_string<charT, traits, Allocator>& lhs,
+                const charT* rhs);
+  template<class charT, class traits, class Allocator>
+    constexpr basic_string<charT, traits, Allocator>
+      operator+(basic_string<charT, traits, Allocator>&& lhs,
+                const charT* rhs);
+  template<class charT, class traits, class Allocator>
+    constexpr basic_string<charT, traits, Allocator>
+      operator+(const basic_string<charT, traits, Allocator>& lhs,
+                charT rhs);
+  template<class charT, class traits, class Allocator>
+    constexpr basic_string<charT, traits, Allocator>
+      operator+(basic_string<charT, traits, Allocator>&& lhs,
+                charT rhs);
+  template<class charT, class traits, class Allocator>
+    constexpr basic_string<charT, traits, Allocator>
+      operator+(const basic_string<charT, traits, Allocator>& lhs,
+                type_identity_t<basic_string_view<charT, traits>> rhs);
+  template<class charT, class traits, class Allocator>
+    constexpr basic_string<charT, traits, Allocator>
+      operator+(basic_string<charT, traits, Allocator>&& lhs,
+                type_identity_t<basic_string_view<charT, traits>> rhs);
+  template<class charT, class traits, class Allocator>
+    constexpr basic_string<charT, traits, Allocator>
+      operator+(type_identity_t<basic_string_view<charT, traits>> lhs,
+                const basic_string<charT, traits, Allocator>& rhs);
+  template<class charT, class traits, class Allocator>
+    constexpr basic_string<charT, traits, Allocator>
+      operator+(type_identity_t<basic_string_view<charT, traits>> lhs,
+                basic_string<charT, traits, Allocator>&& rhs);
+
+  template<class charT, class traits, class Allocator>
+    constexpr bool
+      operator==(const basic_string<charT, traits, Allocator>& lhs,
+                 const basic_string<charT, traits, Allocator>& rhs) noexcept;
+  template<class charT, class traits, class Allocator>
+    constexpr bool operator==(const basic_string<charT, traits, Allocator>& lhs,
+                              const charT* rhs);
+
+  template<class charT, class traits, class Allocator>
+    constexpr @\seebelow@ operator<=>(const basic_string<charT, traits, Allocator>& lhs,
+              @\itcorr@                      const basic_string<charT, traits, Allocator>& rhs) noexcept;
+  template<class charT, class traits, class Allocator>
+    constexpr @\seebelow@ operator<=>(const basic_string<charT, traits, Allocator>& lhs,
+              @\itcorr@                      const charT* rhs);
+
+  // \ref{string.special}，交换
+  template<class charT, class traits, class Allocator>
+    constexpr void
+      swap(basic_string<charT, traits, Allocator>& lhs,
+           basic_string<charT, traits, Allocator>& rhs)
+        noexcept(noexcept(lhs.swap(rhs)));
+
+  // \ref{string.io}，插入器与提取器
+  template<class charT, class traits, class Allocator>
+    basic_istream<charT, traits>&
+      operator>>(basic_istream<charT, traits>& is,
+                 basic_string<charT, traits, Allocator>& str);
+  template<class charT, class traits, class Allocator>
+    basic_ostream<charT, traits>&
+      operator<<(basic_ostream<charT, traits>& os,
+                 const basic_string<charT, traits, Allocator>& str);
+  template<class charT, class traits, class Allocator>
+    basic_istream<charT, traits>&
+      getline(basic_istream<charT, traits>& is,
+              basic_string<charT, traits, Allocator>& str,
+              charT delim);
+  template<class charT, class traits, class Allocator>
+    basic_istream<charT, traits>&
+      getline(basic_istream<charT, traits>&& is,
+              basic_string<charT, traits, Allocator>& str,
+              charT delim);
+  template<class charT, class traits, class Allocator>
+    basic_istream<charT, traits>&
+      getline(basic_istream<charT, traits>& is,
+              basic_string<charT, traits, Allocator>& str);
+  template<class charT, class traits, class Allocator>
+    basic_istream<charT, traits>&
+      getline(basic_istream<charT, traits>&& is,
+              basic_string<charT, traits, Allocator>& str);
+
+  // \ref{string.erasure}，擦除
+  template<class charT, class traits, class Allocator, class U = charT>
+    constexpr typename basic_string<charT, traits, Allocator>::size_type
+      erase(basic_string<charT, traits, Allocator>& c, const U& value);
+  template<class charT, class traits, class Allocator, class Predicate>
+    constexpr typename basic_string<charT, traits, Allocator>::size_type
+      erase_if(basic_string<charT, traits, Allocator>& c, Predicate pred);
+
+  // \tcode{basic_string} \grammarterm{typedef-name}s
+  using @\libglobal{string}@    = basic_string<char>;
+  using @\libglobal{u8string}@  = basic_string<char8_t>;
+  using @\libglobal{u16string}@ = basic_string<char16_t>;
+  using @\libglobal{u32string}@ = basic_string<char32_t>;
+  using @\libglobal{wstring}@   = basic_string<wchar_t>;
+
+  // \ref{string.conversions}，数值转换
+  int stoi(const string& str, size_t* idx = nullptr, int base = 10);
+  long stol(const string& str, size_t* idx = nullptr, int base = 10);
+  unsigned long stoul(const string& str, size_t* idx = nullptr, int base = 10);
+  long long stoll(const string& str, size_t* idx = nullptr, int base = 10);
+  unsigned long long stoull(const string& str, size_t* idx = nullptr, int base = 10);
+  float stof(const string& str, size_t* idx = nullptr);
+  double stod(const string& str, size_t* idx = nullptr);
+  long double stold(const string& str, size_t* idx = nullptr);
+  string to_string(int val);
+  string to_string(unsigned val);
+  string to_string(long val);
+  string to_string(unsigned long val);
+  string to_string(long long val);
+  string to_string(unsigned long long val);
+  string to_string(float val);
+  string to_string(double val);
+  string to_string(long double val);
+
+  int stoi(const wstring& str, size_t* idx = nullptr, int base = 10);
+  long stol(const wstring& str, size_t* idx = nullptr, int base = 10);
+  unsigned long stoul(const wstring& str, size_t* idx = nullptr, int base = 10);
+  long long stoll(const wstring& str, size_t* idx = nullptr, int base = 10);
+  unsigned long long stoull(const wstring& str, size_t* idx = nullptr, int base = 10);
+  float stof(const wstring& str, size_t* idx = nullptr);
+  double stod(const wstring& str, size_t* idx = nullptr);
+  long double stold(const wstring& str, size_t* idx = nullptr);
+  wstring to_wstring(int val);
+  wstring to_wstring(unsigned val);
+  wstring to_wstring(long val);
+  wstring to_wstring(unsigned long val);
+  wstring to_wstring(long long val);
+  wstring to_wstring(unsigned long long val);
+  wstring to_wstring(float val);
+  wstring to_wstring(double val);
+  wstring to_wstring(long double val);
+
+  namespace pmr {
+    template<class charT, class traits = char_traits<charT>>
+      using basic_string = std::basic_string<charT, traits, polymorphic_allocator<charT>>;
+
+    using string    = basic_string<char>;
+    using u8string  = basic_string<char8_t>;
+    using u16string = basic_string<char16_t>;
+    using u32string = basic_string<char32_t>;
+    using wstring   = basic_string<wchar_t>;
+  }
+
+  // \ref{basic.string.hash}，散列支持
+  template<class T> struct hash;
+  template<class A> struct hash<basic_string<char, char_traits<char>, A>>;
+  template<class A> struct hash<basic_string<char8_t, char_traits<char8_t>, A>>;
+  template<class A> struct hash<basic_string<char16_t, char_traits<char16_t>, A>>;
+  template<class A> struct hash<basic_string<char32_t, char_traits<char32_t>, A>>;
+  template<class A> struct hash<basic_string<wchar_t, char_traits<wchar_t>, A>>;
+
+  inline namespace literals {
+    inline namespace string_literals {
+      // \ref{basic.string.literals}，\tcode{basic_string} 字面量后缀
+      constexpr string    operator""s(const char* str, size_t len);
+      constexpr u8string  operator""s(const char8_t* str, size_t len);
+      constexpr u16string operator""s(const char16_t* str, size_t len);
+      constexpr u32string operator""s(const char32_t* str, size_t len);
+      constexpr wstring   operator""s(const wchar_t* str, size_t len);
+    }
+  }
+}
+\end{codeblock}\rSec2[basic.string]{类模板 \tcode{basic_string}}
+
+\rSec3[basic.string.general]{概述}
+\pnum
+\indexlibraryglobal{basic_string}%
+类模板
+\tcode{basic_string}
+描述的对象能够存储一个由数量可变的任意类字符对象组成的序列，该序列的第一个元素位于位置零。
+若其所持有的类字符对象的类型从上下文中是清晰的，
+这样的序列也称为一个“字符串”。
+在\ref{basic.string} 的其余部分，
+存储在 \tcode{basic_string} 对象中的类字符对象的类型
+由 \tcode{charT} 指代。
+
+\pnum
+\tcode{basic_string} 的特化是连续容器\iref{container.reqmts}。
+
+
+\pnum
+In all cases,
+\crange{data()}{data() + size()} is a valid range,
+\tcode{data() + size()} points at an object with value \tcode{charT()}
+(a ``null terminator''\indextext{string!null terminator}),
+and \tcode{size() <= capacity()} is \tcode{true}.
+
+
+\indexlibraryglobal{basic_string}%
+\indexlibrarymember{traits_type}{basic_string}%
+\indexlibrarymember{value_type}{basic_string}%
+\indexlibrarymember{allocator_type}{basic_string}%
+\indexlibrarymember{size_type}{basic_string}%
+\indexlibrarymember{difference_type}{basic_string}%
+\indexlibrarymember{pointer}{basic_string}%
+\indexlibrarymember{const_pointer}{basic_string}%
+\indexlibrarymember{reference}{basic_string}%
+\indexlibrarymember{const_reference}{basic_string}%
+\indexlibrarymember{iterator}{basic_string}%
+\indexlibrarymember{const_iterator}{basic_string}%
+\indexlibrarymember{reverse_iterator}{basic_string}%
+\indexlibrarymember{const_reverse_iterator}{basic_string}%
+\begin{codeblock}
+namespace std {
+  template<class charT, class traits = char_traits<charT>,
+           class Allocator = allocator<charT>>
+  class basic_string {
+  public:
+    // types
+    using traits_type            = traits;
+    using value_type             = charT;
+    using allocator_type         = Allocator;
+    using size_type              = allocator_traits<Allocator>::size_type;
+    using difference_type        = allocator_traits<Allocator>::difference_type;
+    using pointer                = allocator_traits<Allocator>::pointer;
+    using const_pointer          = allocator_traits<Allocator>::const_pointer;
+    using reference              = value_type&;
+    using const_reference        = const value_type&;
+
+    using iterator               = @\impdefx{type of \tcode{basic_string::iterator}}@; // see \ref{container.requirements}
+    using const_iterator         = @\impdefx{type of \tcode{basic_string::const_iterator}}@; // see \ref{container.requirements}
+    using reverse_iterator       = std::reverse_iterator<iterator>;
+    using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+    static constexpr size_type npos = size_type(-1);
+
+    // \ref{string.cons}, construct/copy/destroy
+    constexpr basic_string() noexcept(noexcept(Allocator())) : basic_string(Allocator()) { }
+    constexpr explicit basic_string(const Allocator& a) noexcept;
+    constexpr basic_string(const basic_string& str);
+    constexpr basic_string(basic_string&& str) noexcept;
+    constexpr basic_string(const basic_string& str, size_type pos,
+                           const Allocator& a = Allocator());
+    constexpr basic_string(const basic_string& str, size_type pos, size_type n,
+                           const Allocator& a = Allocator());
+    constexpr basic_string(basic_string&& str, size_type pos,
+                           const Allocator& a = Allocator());
+    constexpr basic_string(basic_string&& str, size_type pos, size_type n,
+                           const Allocator& a = Allocator());
+    template<class T>
+      constexpr basic_string(const T& t, size_type pos, size_type n,
+                             const Allocator& a = Allocator());
+    template<class T>
+      constexpr explicit basic_string(const T& t, const Allocator& a = Allocator());
+    constexpr basic_string(const charT* s, size_type n, const Allocator& a = Allocator());
+    constexpr basic_string(const charT* s, const Allocator& a = Allocator());
+    basic_string(nullptr_t) = delete;
+    constexpr basic_string(size_type n, charT c, const Allocator& a = Allocator());
+    template<class InputIterator>
+      constexpr basic_string(InputIterator begin, InputIterator end,
+                             const Allocator& a = Allocator());
+    template<@\exposconcept{container-compatible-range}@<charT> R>
+      constexpr basic_string(from_range_t, R&& rg, const Allocator& a = Allocator());
+    constexpr basic_string(initializer_list<charT>, const Allocator& = Allocator());
+    constexpr basic_string(const basic_string&, const Allocator&);
+    constexpr basic_string(basic_string&&, const Allocator&);
+    constexpr ~basic_string();
+
+    constexpr basic_string& operator=(const basic_string& str);
+    constexpr basic_string& operator=(basic_string&& str)
+      noexcept(allocator_traits<Allocator>::propagate_on_container_move_assignment::value ||
+               allocator_traits<Allocator>::is_always_equal::value);
+    template<class T>
+      constexpr basic_string& operator=(const T& t);
+    constexpr basic_string& operator=(const charT* s);
+    basic_string& operator=(nullptr_t) = delete;
+    constexpr basic_string& operator=(charT c);
+    constexpr basic_string& operator=(initializer_list<charT>);
+
+    // \ref{string.iterators}, iterators
+    constexpr iterator       begin() noexcept;
+    constexpr const_iterator begin() const noexcept;
+    constexpr iterator       end() noexcept;
+    constexpr const_iterator end() const noexcept;
+
+    constexpr reverse_iterator       rbegin() noexcept;
+    constexpr const_reverse_iterator rbegin() const noexcept;
+    constexpr reverse_iterator       rend() noexcept;
+    constexpr const_reverse_iterator rend() const noexcept;
+
+    constexpr const_iterator         cbegin() const noexcept;
+    constexpr const_iterator         cend() const noexcept;
+    constexpr const_reverse_iterator crbegin() const noexcept;
+    constexpr const_reverse_iterator crend() const noexcept;
+
+    // \ref{string.capacity}, capacity
+    constexpr size_type size() const noexcept;
+    constexpr size_type length() const noexcept;
+    constexpr size_type max_size() const noexcept;
+    constexpr void resize(size_type n, charT c);
+    constexpr void resize(size_type n);
+    template<class Operation> constexpr void resize_and_overwrite(size_type n, Operation op);
+    constexpr size_type capacity() const noexcept;
+    constexpr void reserve(size_type res_arg);
+    constexpr void shrink_to_fit();
+    constexpr void clear() noexcept;
+    constexpr bool empty() const noexcept;
+
+    // \ref{string.access}, element access
+    constexpr const_reference operator[](size_type pos) const;
+    constexpr reference       operator[](size_type pos);
+    constexpr const_reference at(size_type n) const;
+    constexpr reference       at(size_type n);
+
+    constexpr const charT& front() const;
+    constexpr charT&       front();
+    constexpr const charT& back() const;
+    constexpr charT&       back();
+
+    // \ref{string.modifiers}, modifiers
+    constexpr basic_string& operator+=(const basic_string& str);
+    template<class T>
+      constexpr basic_string& operator+=(const T& t);
+    constexpr basic_string& operator+=(const charT* s);
+    constexpr basic_string& operator+=(charT c);
+    constexpr basic_string& operator+=(initializer_list<charT>);
+    constexpr basic_string& append(const basic_string& str);
+    constexpr basic_string& append(const basic_string& str, size_type pos, size_type n = npos);
+    template<class T>
+      constexpr basic_string& append(const T& t);
+    template<class T>
+      constexpr basic_string& append(const T& t, size_type pos, size_type n = npos);
+    constexpr basic_string& append(const charT* s, size_type n);
+    constexpr basic_string& append(const charT* s);
+    constexpr basic_string& append(size_type n, charT c);
+    template<class InputIterator>
+      constexpr basic_string& append(InputIterator first, InputIterator last);
+    template<@\exposconcept{container-compatible-range}@<charT> R>
+      constexpr basic_string& append_range(R&& rg);
+    constexpr basic_string& append(initializer_list<charT>);
+
+    constexpr void push_back(charT c);
+
+    constexpr basic_string& assign(const basic_string& str);
+    constexpr basic_string& assign(basic_string&& str)
+      noexcept(allocator_traits<Allocator>::propagate_on_container_move_assignment::value ||
+               allocator_traits<Allocator>::is_always_equal::value);
+    constexpr basic_string& assign(const basic_string& str, size_type pos, size_type n = npos);
+    template<class T>
+      constexpr basic_string& assign(const T& t);
+    template<class T>
+      constexpr basic_string& assign(const T& t, size_type pos, size_type n = npos);
+    constexpr basic_string& assign(const charT* s, size_type n);
+    constexpr basic_string& assign(const charT* s);
+    constexpr basic_string& assign(size_type n, charT c);
+    template<class InputIterator>
+      constexpr basic_string& assign(InputIterator first, InputIterator last);
+    template<@\exposconcept{container-compatible-range}@<charT> R>
+      constexpr basic_string& assign_range(R&& rg);
+    constexpr basic_string& assign(initializer_list<charT>);
+
+    constexpr basic_string& insert(size_type pos, const basic_string& str);
+    constexpr basic_string& insert(size_type pos1, const basic_string& str,
+                                   size_type pos2, size_type n = npos);
+    template<class T>
+      constexpr basic_string& insert(size_type pos, const T& t);
+    template<class T>
+      constexpr basic_string& insert(size_type pos1, const T& t,
+                                     size_type pos2, size_type n = npos);
+    constexpr basic_string& insert(size_type pos, const charT* s, size_type n);
+    constexpr basic_string& insert(size_type pos, const charT* s);
+    constexpr basic_string& insert(size_type pos, size_type n, charT c);
+    constexpr iterator insert(const_iterator p, charT c);
+    constexpr iterator insert(const_iterator p, size_type n, charT c);
+    template<class InputIterator>
+      constexpr iterator insert(const_iterator p, InputIterator first, InputIterator last);
+    template<@\exposconcept{container-compatible-range}@<charT> R>
+      constexpr iterator insert_range(const_iterator p, R&& rg);
+    constexpr iterator insert(const_iterator p, initializer_list<charT>);
+
+    constexpr basic_string& erase(size_type pos = 0, size_type n = npos);
+    constexpr iterator erase(const_iterator p);
+    constexpr iterator erase(const_iterator first, const_iterator last);
+
+    constexpr void pop_back();
+
+    constexpr basic_string& replace(size_type pos1, size_type n1, const basic_string& str);
+    constexpr basic_string& replace(size_type pos1, size_type n1, const basic_string& str,
+                                    size_type pos2, size_type n2 = npos);
+    template<class T>
+      constexpr basic_string& replace(size_type pos1, size_type n1, const T& t);
+    template<class T>
+      constexpr basic_string& replace(size_type pos1, size_type n1, const T& t,
+                                      size_type pos2, size_type n2 = npos);
+    constexpr basic_string& replace(size_type pos, size_type n1, const charT* s, size_type n2);
+    constexpr basic_string& replace(size_type pos, size_type n1, const charT* s);
+    constexpr basic_string& replace(size_type pos, size_type n1, size_type n2, charT c);
+    constexpr basic_string& replace(const_iterator i1, const_iterator i2,
+                                    const basic_string& str);
+    template<class T>
+      constexpr basic_string& replace(const_iterator i1, const_iterator i2, const T& t);
+    constexpr basic_string& replace(const_iterator i1, const_iterator i2, const charT* s,
+                                    size_type n);
+    constexpr basic_string& replace(const_iterator i1, const_iterator i2, const charT* s);
+    constexpr basic_string& replace(const_iterator i1, const_iterator i2, size_type n, charT c);
+    template<class InputIterator>
+      constexpr basic_string& replace(const_iterator i1, const_iterator i2,
+                                      InputIterator j1, InputIterator j2);
+    template<@\exposconcept{container-compatible-range}@<charT> R>
+      constexpr basic_string& replace_with_range(const_iterator i1, const_iterator i2, R&& rg);
+    constexpr basic_string& replace(const_iterator, const_iterator, initializer_list<charT>);
+
+    constexpr size_type copy(charT* s, size_type n, size_type pos = 0) const;
+
+    constexpr void swap(basic_string& str)
+      noexcept(allocator_traits<Allocator>::propagate_on_container_swap::value ||
+               allocator_traits<Allocator>::is_always_equal::value);
+
+    // \ref{string.ops}, string operations
+    constexpr const charT* c_str() const noexcept;
+    constexpr const charT* data() const noexcept;
+    constexpr charT* data() noexcept;
+    constexpr operator basic_string_view<charT, traits>() const noexcept;
+    constexpr allocator_type get_allocator() const noexcept;
+
+    template<class T>
+      constexpr size_type find(const T& t, size_type pos = 0) const noexcept(@\seebelow@);
+    constexpr size_type find(const basic_string& str, size_type pos = 0) const noexcept;
+    constexpr size_type find(const charT* s, size_type pos, size_type n) const;
+    constexpr size_type find(const charT* s, size_type pos = 0) const;
+    constexpr size_type find(charT c, size_type pos = 0) const noexcept;
+    template<class T>
+      constexpr size_type rfind(const T& t, size_type pos = npos) const noexcept(@\seebelow@);
+    constexpr size_type rfind(const basic_string& str, size_type pos = npos) const noexcept;
+    constexpr size_type rfind(const charT* s, size_type pos, size_type n) const;
+    constexpr size_type rfind(const charT* s, size_type pos = npos) const;
+    constexpr size_type rfind(charT c, size_type pos = npos) const noexcept;
+
+    template<class T>
+      constexpr size_type find_first_of(const T& t, size_type pos = 0) const noexcept(@\seebelow@);
+    constexpr size_type find_first_of(const basic_string& str, size_type pos = 0) const noexcept;
+    constexpr size_type find_first_of(const charT* s, size_type pos, size_type n) const;
+    constexpr size_type find_first_of(const charT* s, size_type pos = 0) const;
+    constexpr size_type find_first_of(charT c, size_type pos = 0) const noexcept;
+    template<class T>
+      constexpr size_type find_last_of(const T& t,
+                                       size_type pos = npos) const noexcept(@\seebelow@);
+    constexpr size_type find_last_of(const basic_string& str,
+                                     size_type pos = npos) const noexcept;
+    constexpr size_type find_last_of(const charT* s, size_type pos, size_type n) const;
+    constexpr size_type find_last_of(const charT* s, size_type pos = npos) const;
+    constexpr size_type find_last_of(charT c, size_type pos = npos) const noexcept;
+
+    template<class T>
+      constexpr size_type find_first_not_of(const T& t,
+                                            size_type pos = 0) const noexcept(@\seebelow@);
+    constexpr size_type find_first_not_of(const basic_string& str,
+                                          size_type pos = 0) const noexcept;
+    constexpr size_type find_first_not_of(const charT* s, size_type pos, size_type n) const;
+    constexpr size_type find_first_not_of(const charT* s, size_type pos = 0) const;
+    constexpr size_type find_first_not_of(charT c, size_type pos = 0) const noexcept;
+    template<class T>
+      constexpr size_type find_last_not_of(const T& t,
+                                           size_type pos = npos) const noexcept(@\seebelow@);
+    constexpr size_type find_last_not_of(const basic_string& str,
+                                         size_type pos = npos) const noexcept;
+    constexpr size_type find_last_not_of(const charT* s, size_type pos, size_type n) const;
+    constexpr size_type find_last_not_of(const charT* s, size_type pos = npos) const;
+    constexpr size_type find_last_not_of(charT c, size_type pos = npos) const noexcept;
+
+    constexpr basic_string substr(size_type pos = 0, size_type n = npos) const &;
+    constexpr basic_string substr(size_type pos = 0, size_type n = npos) &&;
+    constexpr basic_string_view<charT, traits> subview(size_type pos = 0,
+                                                       size_type n = npos) const;
+
+    template<class T>
+      constexpr int compare(const T& t) const noexcept(@\seebelow@);
+    template<class T>
+      constexpr int compare(size_type pos1, size_type n1, const T& t) const;
+    template<class T>
+      constexpr int compare(size_type pos1, size_type n1, const T& t,
+                            size_type pos2, size_type n2 = npos) const;
+    constexpr int compare(const basic_string& str) const noexcept;
+    constexpr int compare(size_type pos1, size_type n1, const basic_string& str) const;
+    constexpr int compare(size_type pos1, size_type n1, const basic_string& str,
+                          size_type pos2, size_type n2 = npos) const;
+    constexpr int compare(const charT* s) const;
+    constexpr int compare(size_type pos1, size_type n1, const charT* s) const;
+    constexpr int compare(size_type pos1, size_type n1, const charT* s, size_type n2) const;
+
+    constexpr bool starts_with(basic_string_view<charT, traits> x) const noexcept;
+    constexpr bool starts_with(charT x) const noexcept;
+    constexpr bool starts_with(const charT* x) const;
+    constexpr bool ends_with(basic_string_view<charT, traits> x) const noexcept;
+    constexpr bool ends_with(charT x) const noexcept;
+    constexpr bool ends_with(const charT* x) const;
+
+    constexpr bool contains(basic_string_view<charT, traits> x) const noexcept;
+    constexpr bool contains(charT x) const noexcept;
+    constexpr bool contains(const charT* x) const;
+  };
+
+  template<class InputIterator,
+           class Allocator = allocator<typename iterator_traits<InputIterator>::value_type>>
+    basic_string(InputIterator, InputIterator, Allocator = Allocator())
+      -> basic_string<typename iterator_traits<InputIterator>::value_type,
+                      char_traits<typename iterator_traits<InputIterator>::value_type>,
+                      Allocator>;
+
+  template<ranges::@\libconcept{input_range}@ R,
+           class Allocator = allocator<ranges::range_value_t<R>>>
+    basic_string(from_range_t, R&&, Allocator = Allocator())
+      -> basic_string<ranges::range_value_t<R>, char_traits<ranges::range_value_t<R>>,
+                      Allocator>;
+
+  template<class charT,
+           class traits,
+           class Allocator = allocator<charT>>
+    explicit basic_string(basic_string_view<charT, traits>, const Allocator& = Allocator())
+      -> basic_string<charT, traits, Allocator>;
+
+  template<class charT,
+           class traits,
+           class Allocator = allocator<charT>>
+    basic_string(basic_string_view<charT, traits>,
+                 typename @\seebelow@::size_type, typename @\seebelow@::size_type,
+                 const Allocator& = Allocator())
+      -> basic_string<charT, traits, Allocator>;
+}
+\end{codeblock}\pnum
+在 \tcode{basic_string} 的推导指引中，一个 \tcode{size_type} 参数类型指的是该推导指引所推导类型的 \tcode{size_type} 成员类型。
+\pnum
+类型 \tcode{iterator} 和 \tcode{const_iterator} 满足 constexpr 迭代器要求\iref{iterator.requirements.general}。
+
+\rSec3[string.require]{通用要求}
+\pnum
+若任何操作会导致 \tcode{size()} 超过 \tcode{max_size()}，则该操作抛出一个类型为 \tcode{length_error} 的异常对象。
+\pnum
+若 \tcode{basic_string} 的任何成员函数或运算符抛出异常，则该函数或运算符对该 \tcode{basic_string} 对象无其他效果。
+
+\pnum
+对于类型
+\tcode{basic_string<charT, traits, Allocator>}的每个对象，
+都使用一个类型为
+\tcode{Allocator}的对象来根据需要为所包含的\tcode{charT}
+对象分配和释放存储。所用的\tcode{Allocator}对象是
+通过\ref{container.reqmts}中描述的方式获得的。
+在每个特化\tcode{basic_string<charT, traits, Allocator>}中，
+类型\tcode{traits}应满足
+字符特性要求\iref{char.traits}。
+\begin{note}
+每个特化\tcode{basic_string<charT, traits, Allocator>}都是
+一个分配器感知容器\iref{container.alloc.reqmts}，
+但不使用分配器的\tcode{construct}和\tcode{destroy}
+成员函数\iref{container.requirements.pre}。
+若
+\tcode{Allocator::value_type}与\tcode{charT}不是同一类型，
+则程序是非良构的。
+\end{note}
+
+\begin{note}
+若 \tcode{traits::char_type} 与 \tcode{charT} 不是同一类型，则程序为非良构。
+\end{note}
+
+\pnum
+引用、指向或迭代指向 \tcode{basic_string} 序列元素的引用、指针和迭代器，
+可能因以下对该 \tcode{basic_string} 对象的使用而失效：
+
+\begin{itemize}
+\item 作为参数传递给任何以非 const \tcode{basic_string} 的引用为参数的标准库函数。
+\begin{footnote}
+例如，作为非成员函数 \tcode{swap()}\iref{string.special}、
+\tcode{operator>{}>()}\iref{string.io} 和 \tcode{getline()}\iref{string.io} 的参数，
+或作为 \tcode{basic_string::swap()} 的参数。
+\end{footnote}
+
+\item 调用非 const 成员函数，除了
+\tcode{operator[]}、
+\tcode{at}、
+\tcode{data}、
+\tcode{front}、
+\tcode{back}、
+\tcode{begin}、
+\tcode{rbegin}、
+\tcode{end}、
+和
+\tcode{rend} 。
+\end{itemize}
+
+\rSec3[string.cons]{构造函数与赋值运算符}
+
+\indexlibraryctor{basic_string}%
+\begin{itemdecl}
+constexpr explicit basic_string(const Allocator& a) noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+
+\pnum
+\ensures
+\tcode{size()} 等于 \tcode{0}。
+\end{itemdescr}
+
+\indexlibraryctor{basic_string}%
+\begin{itemdecl}
+constexpr basic_string(const basic_string& str);
+constexpr basic_string(basic_string&& str) noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+构造一个对象，其
+值为调用前 \tcode{str} 的值。
+
+\pnum
+\remarks
+第二种形式中，\tcode{str} 处于有效但未指定的状态。
+\end{itemdescr}
+
+\indexlibraryctor{basic_string}%
+\begin{itemdecl}
+constexpr basic_string(const basic_string& str, size_type pos,
+                       const Allocator& a = Allocator());
+constexpr basic_string(const basic_string& str, size_type pos, size_type n,
+                       const Allocator& a = Allocator());
+constexpr basic_string(basic_string&& str, size_type pos,
+                       const Allocator& a = Allocator());
+constexpr basic_string(basic_string&& str, size_type pos, size_type n,
+                       const Allocator& a = Allocator());
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+令
+\begin{itemize}
+\item
+\tcode{s} 为此次调用前的 \tcode{str} 的值，且
+\item
+对于带参数 \tcode{n} 的重载，令 \tcode{rlen} 为 \tcode{pos + min(n, s.size() - pos)}，
+否则为 \tcode{s.size()}。
+\end{itemize}
+
+\pnum
+\effects
+构造一个对象，其初始值为范围 \range{s.data() + pos}{s.data() + rlen}。
+
+\pnum
+\throws
+若 \tcode{pos > s.size()} 则抛出 \tcode{out_of_range}。
+
+\pnum
+\remarks
+对于带 \tcode{basic_string\&\&} 参数的重载，\tcode{str} 将处于有效但未指定的状态。
+
+\pnum
+\recommended
+对于带 \tcode{basic_string\&\&} 参数的重载，若 \tcode{s.get_allocator() == a} 为 \tcode{true}，则实现应避免分配。
+\end{itemdescr}
+
+\indexlibraryctor{basic_string}%
+\begin{itemdecl}
+template<class T>
+  constexpr basic_string(const T& t, size_type pos, size_type n, const Allocator& a = Allocator());
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\constraints
+\tcode{is_convertible_v<const T\&, basic_string_view<charT, traits>>}
+为 \tcode{true}。
+
+\pnum
+\effects
+创建一个变量 \tcode{sv}，如同通过 \tcode{basic_string_view<charT, traits> sv = t;}，然后行为等同于：
+\begin{codeblock}
+basic_string(sv.substr(pos, n), a);
+\end{codeblock}
+\end{itemdescr}
+
+\indexlibraryctor{basic_string}%
+\begin{itemdecl}
+template<class T>
+  constexpr explicit basic_string(const T& t, const Allocator& a = Allocator());
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\constraints
+\begin{itemize}
+\item
+\tcode{is_convertible_v<const T\&, basic_string_view<charT, traits>>} 为
+\tcode{true} 且
+\item
+\tcode{is_convertible_v<const T\&, const charT*>} 为
+\tcode{false}。
+\end{itemize}
+
+\pnum
+\effects
+如同通过 \tcode{basic_string_view<charT, traits> sv = t;} 创建变量 \tcode{sv}，
+然后行为与 \tcode{basic_string(sv.data(), sv.size(), a)} 相同。
+\end{itemdescr}
+
+\indexlibraryctor{basic_string}%
+\begin{itemdecl}
+constexpr basic_string(const charT* s, size_type n, const Allocator& a = Allocator());
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\expects
+\range{s}{s + n} 是有效范围。
+
+\pnum
+\effects
+构造一个对象，其初始值为范围 \range{s}{s + n}。
+
+\pnum
+\ensures
+\tcode{size()} 等于 \tcode{n}，且
+\tcode{traits::compare(data(), s, n)} 等于 \tcode{0}。
+\end{itemdescr}
+
+\indexlibraryctor{basic_string}%
+\begin{itemdecl}
+constexpr basic_string(const charT* s, const Allocator& a = Allocator());
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\expects
+\range{s}{s + traits::length(s)} 是有效范围。
+
+\pnum
+\effects
+构造一个对象，其初始值为范围 \range{s}{s + traits::length(s)}。
+
+\pnum
+\ensures
+\tcode{size()} 等于 \tcode{traits::length(s)}，且
+\tcode{traits::compare(data(), s, traits::length(s))} 等于 \tcode{0}。
+\end{itemdescr}
+
+\begin{itemdescr}
+\pnum
+\constraints
+\tcode{Allocator} 是一种
+符合分配器资格的类型\iref{container.reqmts}。
+\begin{note}
+这会影响类模板实参推导。
+\end{note}
+
+\pnum
+\effects
+等价于：\tcode{basic_string(s, traits::length(s), a)}。
+\end{itemdescr}
+
+\indexlibraryctor{basic_string}%
+\begin{itemdecl}
+constexpr basic_string(size_type n, charT c, const Allocator& a = Allocator());
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\constraints
+\tcode{Allocator} 是一种
+符合分配器资格的类型\iref{container.reqmts}。
+\begin{note}
+这会影响类模板实参推导。
+\end{note}
+
+\pnum
+\effects
+构造一个对象，其值由 \tcode{n} 个 \tcode{c} 的副本组成。
+\end{itemdescr}
+
+\indexlibraryctor{basic_string}%
+\begin{itemdecl}
+template<class InputIterator>
+  constexpr basic_string(InputIterator begin, Iterator end, const Allocator& a = Allocator());
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\constraints
+\tcode{InputIterator} 是符合输入迭代器\iref{container.reqmts}要求的类型。
+
+\pnum
+\effects
+按照 \ref{sequence.reqmts} 中的规定，以范围 \range{begin}{end} 中的值构造字符串。
+\end{itemdescr}
+
+\indexlibraryctor{basic_string}%
+\begin{itemdecl}
+template<@\exposconcept{container-compatible-range}@<charT> R>
+  constexpr basic_string(from_range_t, R&& rg, const Allocator& = Allocator());
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+以 \tcode{rg} 范围内的值构造一个字符串，如 \ref{sequence.reqmts} 中所规定。
+\end{itemdescr}
+
+\indexlibraryctor{basic_string}%
+\begin{itemdecl}
+constexpr basic_string(initializer_list<charT> il, const Allocator& a = Allocator());
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于 \tcode{basic_string(il.begin(), il.end(), a)}。
+\end{itemdescr}
+
+\indexlibraryctor{basic_string}%
+\begin{itemdecl}
+constexpr basic_string(const basic_string& str, const Allocator& alloc);
+constexpr basic_string(basic_string&& str, const Allocator& alloc);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+构造一个对象，其值为此调用前 \tcode{str} 的值。
+存储的分配器由 \tcode{alloc} 构造。
+在第二种形式中，\tcode{str} 被置于有效但未指定的状态。
+
+\pnum
+\throws
+若 \tcode{alloc == str.get_allocator()}，第二种形式不抛出异常。
+\end{itemdescr}
+
+\begin{itemdecl}
+template<class InputIterator,
+         class Allocator = allocator<typename iterator_traits<InputIterator>::value_type>>
+  basic_string(InputIterator, InputIterator, Allocator = Allocator())
+    -> basic_string<typename iterator_traits<InputIterator>::value_type,
+                    char_traits<typename iterator_traits<InputIterator>::value_type>,
+                    Allocator>;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\constraints
+\tcode{InputIterator} 是满足输入迭代器要求的类型，
+且 \tcode{Allocator} 是满足分配器要求的类型\iref{container.reqmts}。
+\end{itemdescr}
+
+\begin{itemdecl}
+template<class charT,
+         class traits,
+         class Allocator = allocator<charT>>
+  explicit basic_string(basic_string_view<charT, traits>, const Allocator& = Allocator())
+    -> basic_string<charT, traits, Allocator>;
+
+template<class charT,
+         class traits,
+         class Allocator = allocator<charT>>
+  basic_string(basic_string_view<charT, traits>,
+               typename @\seebelow@::size_type, typename @\seebelow@::size_type,
+               const Allocator& = Allocator())
+    -> basic_string<charT, traits, Allocator>;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\constraints
+\tcode{Allocator} 是一种满足分配器要求的类型\iref{container.reqmts}。
+\end{itemdescr}
+
+\indexlibrarymember{operator=}{basic_string}%
+\begin{itemdecl}
+constexpr basic_string& operator=(const basic_string& str);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+如果 \tcode{*this} 与 \tcode{str} 是同一对象，则无效果。
+否则，以 \tcode{str} 的副本替换 \tcode{*this} 的值。
+
+\pnum
+\returns
+\tcode{*this}。
+\end{itemdescr}
+
+\indexlibrarymember{operator=}{basic_string}%
+\begin{itemdecl}
+constexpr basic_string& operator=(basic_string&& str)
+  noexcept(allocator_traits<Allocator>::propagate_on_container_move_assignment::value ||
+           allocator_traits<Allocator>::is_always_equal::value);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+若 \tcode{*this} 和 \tcode{str} 为同一对象，则无效果。
+否则，以 \tcode{str} 的值替换 \tcode{*this} 的内容。
+\begin{note}
+使用移动赋值意味着将 \tcode{str} 的有效状态留在满足其所有不变的某一状态中。
+\end{note}
+
+\pnum
+\returns
+\tcode{*this}。
+\end{itemdescr}
+
+\begin{itemdescr}
+\pnum
+\effects
+如同序列容器般移动赋值\iref{sequence.reqmts}，
+但迭代器、指针和引用可能失效。
+
+\pnum
+\returns
+\tcode{*this}。
+\end{itemdescr}
+
+\indexlibrarymember{operator=}{basic_string}%
+\begin{itemdecl}
+template<class T>
+  constexpr basic_string& operator=(const T& t);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\constraints
+\begin{itemize}
+\item \tcode{is_convertible_v<const T\&, basic_string_view<charT, traits>>}
+为 \tcode{true} 且
+\item \tcode{is_convertible_v<const T\&, const charT*>}
+为 \tcode{false}。
+\end{itemize}
+
+\pnum
+\effects
+等价于：
+\begin{codeblock}
+basic_string_view<charT, traits> sv = t;
+return assign(sv);
+\end{codeblock}
+\end{itemdescr}
+
+\indexlibrarymember{operator=}{basic_string}%
+\begin{itemdecl}
+constexpr basic_string& operator=(const charT* s);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：
+\tcode{return *this = basic_string_view<charT, traits>(s);}
+\end{itemdescr}
+
+\indexlibrarymember{operator=}{basic_string}%
+\begin{itemdecl}
+constexpr basic_string& operator=(charT c);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：
+\begin{codeblock}
+return *this = basic_string_view<charT, traits>(addressof(c), 1);
+\end{codeblock}
+\end{itemdescr}
+
+\indexlibrarymember{operator=}{basic_string}%
+\begin{itemdecl}
+constexpr basic_string& operator=(initializer_list<charT> il);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：
+\begin{codeblock}
+return *this = basic_string_view<charT, traits>(il.begin(), il.size());
+\end{codeblock}
+\end{itemdescr}
+
+\rSec3[string.iterators]{迭代器支持}
+
+\indexlibrarymember{begin}{basic_string}%
+\indexlibrarymember{cbegin}{basic_string}%
+\begin{itemdecl}
+constexpr iterator       begin() noexcept;
+constexpr const_iterator begin() const noexcept;
+constexpr const_iterator cbegin() const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+指向字符串首字符的迭代器。
+\end{itemdescr}
+
+\indexlibrarymember{end}{basic_string}%
+\indexlibrarymember{cend}{basic_string}%
+\begin{itemdecl}
+constexpr iterator       end() noexcept;
+constexpr const_iterator end() const noexcept;
+constexpr const_iterator cend() const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+尾后迭代器。
+\end{itemdescr}
+
+\indexlibrarymember{rbegin}{basic_string}%
+\indexlibrarymember{crbegin}{basic_string}%
+\begin{itemdecl}
+constexpr reverse_iterator       rbegin() noexcept;
+constexpr const_reverse_iterator rbegin() const noexcept;
+constexpr const_reverse_iterator crbegin() const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+语义上等价于
+\tcode{reverse_iterator(end())}
+的迭代器。
+\end{itemdescr}
+
+\indexlibrarymember{rend}{basic_string}%
+\indexlibrarymember{crend}{basic_string}%
+\begin{itemdecl}
+constexpr reverse_iterator       rend() noexcept;
+constexpr const_reverse_iterator rend() const noexcept;
+constexpr const_reverse_iterator crend() const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+语义上等价于
+\tcode{reverse_iterator(begin())}
+的迭代器。
+\end{itemdescr}
+
+\rSec3[string.capacity]{容量}
+
+\indexlibrarymember{size}{basic_string}%  
+\indexlibrarymember{length}{basic_string}%  
+\begin{itemdecl}
+constexpr size_type size() const noexcept;
+constexpr size_type length() const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns 返回当前字符串中类字符对象的数量。
+
+\pnum
+\complexity 常数时间。
+\end{itemdescr}
+
+\indexlibrarymember{max_size}{basic_string}%  
+\begin{itemdecl}
+constexpr size_type max_size() const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+可以存储在 \tcode{basic_string} 中的字符类型对象的最大可能数量。
+
+\pnum
+\complexity
+常数时间。
+\end{itemdescr}
+
+\indexlibrarymember{resize}{basic_string}%
+\begin{itemdecl}
+constexpr void resize(size_type n, charT c);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+按如下方式改变 \tcode{*this} 的值：
+\begin{itemize}
+\item
+若 \tcode{n <= size()}，则擦除末尾的 \tcode{size() - n} 个元素。
+\item
+若 \tcode{n > size()}，则追加 \tcode{n - size()} 个 \tcode{c} 的副本。
+\end{itemize}
+\end{itemdescr}
+
+\indexlibrarymember{resize}{basic_string}%
+\begin{itemdecl}
+constexpr void resize(size_type n);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于 \tcode{resize(n, charT())}。
+\end{itemdescr}
+
+\indexlibrarymember{resize_and_overwrite}{basic_string}%
+\begin{itemdecl}
+template<class Operation> constexpr void resize_and_overwrite(size_type n, Operation op);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+令
+\begin{itemize}
+\item
+\tcode{o} 为调用 \tcode{resize_and_overwrite} 前的 \tcode{size()}。
+\item
+\tcode{k} 为 \tcode{min(o, n)}。
+\item
+\tcode{p} 为 \tcode{charT*} 或 \tcode{charT* const} 类型的值，使得在调用前区间 \crange{p}{p + n} 有效，且 \tcode{this->compare(0, k, p, k) == 0} 为 \tcode{true}。区间 \crange{p + k}{p + n} 中的值可能为未明确的\iref{basic.indet}。
+\item
+\tcode{m} 为 \tcode{size_type} 或 \tcode{const size_type} 类型的值，等于 \tcode{n}。
+\item
+\tcode{\placeholder{OP}} 为表达式 \tcode{std::move(op)(p, m)}。
+\item
+\tcode{r} = \tcode{\placeholder{OP}}。
+\end{itemize}
+
+\pnum
+\mandates
+\tcode{\placeholder{OP}} 具有整数类型\iref{iterator.concept.winc}。
+
+\pnum
+\expects
+\begin{itemize}
+\item
+\tcode{\placeholder{OP}} 不抛出异常，也不修改 \tcode{p} 或 \tcode{m}。
+\item
+$\tcode{r} \geq 0$。
+\item
+$\tcode{r} \leq \tcode{m}$。
+\item
+在求值 \tcode{\placeholder{OP}} 后，区间 \range{p}{p + r} 中没有未明确的值。
+\end{itemize}
+
+\pnum
+\effects
+求值 \tcode{\placeholder{OP}}，将 \tcode{*this} 的内容替换为 \range{p}{p + r}，并使所有指向区间 \crange{p}{p + n} 的指针和引用失效。
+
+\pnum
+\recommended
+实现应避免不必要的复制和分配，例如，可以将 \tcode{p} 设为指向内部存储的指针，并在求值 \tcode{\placeholder{OP}} 后将 \tcode{*(p + r)} 恢复为 \tcode{charT()}。
+\end{itemdescr}
+
+\indexlibrarymember{capacity}{basic_string}%
+\begin{itemdecl}
+constexpr size_type capacity() const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+字符串中已分配存储的大小。
+
+\pnum
+\complexity
+常数时间。
+\end{itemdescr}
+
+\indexlibrarymember{reserve}{basic_string}%
+\begin{itemdecl}
+constexpr void reserve(size_type res_arg);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+一个指令，用于告知 \tcode{basic_string} 计划的大小变更，以便相应管理存储分配。
+在调用 \tcode{reserve} 后，
+如果发生重分配，则 \tcode{capacity()} 大于或等于 \tcode{reserve} 的实参；
+否则等于 \tcode{capacity()} 的先前值。
+当且仅当当前容量小于 \tcode{reserve} 的实参时，此时会发生重分配。
+
+\pnum
+\throws
+若 \tcode{res_arg > max_size()} 则抛出 \tcode{length_error} 或
+由 \tcode{allocator_traits<Allocator>::allocate} 抛出的任何异常。
+\end{itemdescr}
+
+\indexlibrarymember{shrink_to_fit}{basic_string}%
+\begin{itemdecl}
+constexpr void shrink_to_fit();
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+\tcode{shrink_to_fit} 是一个非强制请求，要求将 \tcode{capacity()} 减少至 \tcode{size()}。
+\begin{note}
+该请求是非强制的，以便为实现特定的优化留出余地。
+\end{note}
+它不会增加 \tcode{capacity()}，但可能通过导致重新分配来减少 \tcode{capacity()}。
+
+\pnum
+\complexity
+如果当前大小不等于旧的容量，则复杂度与序列的大小成线性关系；
+否则为常数。
+
+\pnum
+\remarks
+重新分配会使所有指向序列中元素的引用、指针和迭代器以及尾后迭代器失效。
+\begin{note}
+如果没有发生重新分配，它们保持有效。
+\end{note}
+\end{itemdescr}
+
+\indexlibrarymember{clear}{basic_string}%
+\begin{itemdecl}
+constexpr void clear() noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：\tcode{erase(begin(), end());}
+\end{itemdescr}
+
+\indexlibrarymember{empty}{basic_string}%
+\begin{itemdecl}
+constexpr bool empty() const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：
+\tcode{return size() == 0;}
+\end{itemdescr}
+
+\rSec3[string.access]{元素访问}
+
+\indexlibrarymember{operator[]}{basic_string}%
+\begin{itemdecl}
+constexpr const_reference operator[](size_type pos) const;
+constexpr reference       operator[](size_type pos);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\hardexpects
+\tcode{pos <= size()} 为 \tcode{true}。
+
+\pnum
+\returns
+若 \tcode{pos < size()} 则返回 \tcode{*(begin() + pos)}。否则，返回一个对值为 \tcode{charT()} 的 \tcode{charT} 类型对象的引用，将该对象修改为任何不等于 \tcode{charT()} 的值会导致未定义行为。
+
+\pnum
+\throws
+无。
+
+\pnum
+\complexity
+常数时间。
+\end{itemdescr}
+
+\indexlibrarymember{at}{basic_string}%
+\begin{itemdecl}
+constexpr const_reference at(size_type pos) const;
+constexpr reference       at(size_type pos);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{operator[](pos)}。
+
+\pnum
+\throws
+若 \tcode{pos >= size()} 则抛出 \tcode{out_of_range}。
+\end{itemdescr}
+
+\indexlibrarymember{front}{basic_string}%
+\begin{itemdecl}
+constexpr const charT& front() const;
+constexpr charT& front();
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\hardexpects
+\tcode{empty()} 为 \tcode{false}。
+
+\pnum
+\effects
+等价于：\tcode{return operator[](0);}
+\end{itemdescr}
+
+\indexlibrarymember{back}{basic_string}%
+\begin{itemdecl}
+constexpr const charT& back() const;
+constexpr charT& back();
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\hardexpects
+\tcode{empty()} 为 \tcode{false}。
+
+\pnum
+\effects
+等价于：\tcode{return operator[](size() - 1);}
+\end{itemdescr}
+
+\rSec3[string.modifiers]{修饰符}
+
+\rSec4[string.op.append]{\tcode{basic_string::operator+=}}
+
+\indexlibrarymember{operator+=}{basic_string}%
+\begin{itemdecl}
+constexpr basic_string& operator+=(const basic_string& str);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：\tcode{return append(str);}
+\end{itemdescr}
+
+\indexlibrarymember{operator+=}{basic_string}%
+\begin{itemdecl}
+template<class T>
+  constexpr basic_string& operator+=(const T& t);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\constraints
+\begin{itemize}
+\item
+\tcode{is_convertible_v<const T\&, basic_string_view<charT, traits>>} 为
+\tcode{true} 且
+\item
+\tcode{is_convertible_v<const T\&, const charT*>} 为
+\tcode{false}。
+\end{itemize}
+
+\pnum
+\effects
+等价于：
+\begin{codeblock}
+basic_string_view<charT, traits> sv = t;
+return append(sv);
+\end{codeblock}
+\end{itemdescr}
+
+\indexlibrarymember{operator+=}{basic_string}%
+\begin{itemdecl}
+constexpr basic_string& operator+=(const charT* s);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：\tcode{return append(s);}
+\end{itemdescr}
+
+\indexlibrarymember{operator+=}{basic_string}%
+\begin{itemdecl}
+constexpr basic_string& operator+=(charT c);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：\tcode{return append(size_type\{1\}, c);}
+\end{itemdescr}
+
+\indexlibrarymember{operator+=}{basic_string}%
+\begin{itemdecl}
+constexpr basic_string& operator+=(initializer_list<charT> il);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：\tcode{return append(il);}
+\end{itemdescr}
+
+\rSec4[string.append]{\tcode{basic_string::append}}
+
+\indexlibrarymember{append}{basic_string}%
+\begin{itemdecl}
+constexpr basic_string& append(const basic_string& str);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：\tcode{return append(str.data(), str.size());}
+\end{itemdescr}
+
+\indexlibrarymember{append}{basic_string}%
+\begin{itemdecl}
+constexpr basic_string& append(const basic_string& str, size_type pos, size_type n = npos);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：
+\begin{codeblock}
+return append(basic_string_view<charT, traits>(str).substr(pos, n));
+\end{codeblock}
+\end{itemdescr}
+
+\indexlibrarymember{append}{basic_string}%
+\begin{itemdecl}
+template<class T>
+  constexpr basic_string& append(const T& t);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\constraints
+\begin{itemize}
+\item
+\tcode{is_convertible_v<const T\&, basic_string_view<charT, traits>>} 为
+\tcode{true} 且
+\item
+\tcode{is_convertible_v<const T\&, const charT*>} 为
+\tcode{false}。
+\end{itemize}
+
+\pnum
+\effects
+等价于：
+\begin{codeblock}
+basic_string_view<charT, traits> sv = t;
+return append(sv.data(), sv.size());
+\end{codeblock}
+\end{itemdescr}
+
+\indexlibrarymember{append}{basic_string}%
+\begin{itemdecl}
+template<class T>
+  constexpr basic_string& append(const T& t, size_type pos, size_type n = npos);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\constraints
+\begin{itemize}
+\item
+\tcode{is_convertible_v<const T\&, basic_string_view<charT, traits>>} 为
+\tcode{true} 且
+\item
+\tcode{is_convertible_v<const T\&, const charT*>} 为
+\tcode{false}。
+\end{itemize}
+
+\pnum
+\effects
+等价于：
+\begin{codeblock}
+basic_string_view<charT, traits> sv = t;
+return append(sv.substr(pos, n));
+\end{codeblock}
+\end{itemdescr}
+
+\indexlibrarymember{append}{basic_string}%
+\begin{itemdecl}
+constexpr basic_string& append(const charT* s, size_type n);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\expects
+\range{s}{s + n} 是一个有效范围。
+
+\pnum
+\effects
+将范围 \range{s}{s + n} 的副本追加到字符串。
+
+\pnum
+\returns
+\tcode{*this}。
+\end{itemdescr}
+
+\indexlibrarymember{append}{basic_string}%
+\begin{itemdecl}
+constexpr basic_string& append(const charT* s);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等效于：\tcode{return append(s, traits::length(s));}
+\end{itemdescr}
+
+\indexlibrarymember{append}{basic_string}%
+\begin{itemdecl}
+constexpr basic_string& append(size_type n, charT c);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+将 \tcode{c} 的 \tcode{n} 个副本追加到字符串。
+
+\pnum
+\returns
+\tcode{*this}。
+\end{itemdescr}
+
+\indexlibrarymember{append}{basic_string}%
+\begin{itemdecl}
+template<class InputIterator>
+  constexpr basic_string& append(InputIterator first, InputIterator last);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\constraints
+\tcode{InputIterator} 是符合输入迭代器要求的类型\iref{container.reqmts}。
+
+\pnum
+\effects
+等价于：\tcode{return append(basic_string(first, last, get_allocator()));}
+\end{itemdescr}
+
+\indexlibrarymember{append_range}{basic_string}%
+\begin{itemdecl}
+template<@\exposconcept{container-compatible-range}@<charT> R>
+  constexpr basic_string& append_range(R&& rg);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等效于： \tcode{return append(basic_string(from_range, std::forward<R>(rg), get_allocator()));}
+\end{itemdescr}
+
+\indexlibrarymember{append}{basic_string}%
+\begin{itemdecl}
+constexpr basic_string& append(initializer_list<charT> il);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等效于： \tcode{return append(il.begin(), il.size());}
+\end{itemdescr}
+
+\indexlibrarymember{push_back}{basic_string}%
+\begin{itemdecl}
+constexpr void push_back(charT c);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于
+\tcode{append(size\_type\{1\}, c)}。
+\end{itemdescr}
+
+\rSec4[string.assign]{\tcode{basic\_string::assign}}
+
+\indexlibrarymember{assign}{basic_string}%
+\begin{itemdecl}
+constexpr basic_string& assign(const basic_string& str);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于： \tcode{return *this = str;}
+\end{itemdescr}
+
+\indexlibrarymember{assign}{basic_string}%
+\begin{itemdecl}
+constexpr basic_string& assign(basic_string&& str)
+  noexcept(allocator_traits<Allocator>::propagate_on_container_move_assignment::value ||
+           allocator_traits<Allocator>::is_always_equal::value);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：\tcode{return *this = std::move(str);}
+\end{itemdescr}
+
+
+\indexlibrarymember{assign}{basic_string}%
+\begin{itemdecl}
+constexpr basic_string& assign(const basic_string& str, size_type pos, size_type n = npos);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：
+\begin{codeblock}
+return assign(basic_string_view<charT, traits>(str).substr(pos, n));
+\end{codeblock}
+\end{itemdescr}
+
+\indexlibrarymember{assign}{basic_string}%
+\begin{itemdecl}
+template<class T>
+  constexpr basic_string& assign(const T& t);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\constraints
+\begin{itemize}
+\item
+\tcode{is_convertible_v<const T\&, basic_string_view<charT, traits>>} 为
+\tcode{true}，且
+\item
+\tcode{is_convertible_v<const T\&, const charT*>} 为
+\tcode{false}。
+\end{itemize}
+
+\pnum
+\effects
+等价于：
+\begin{codeblock}
+basic_string_view<charT, traits> sv = t;
+return assign(sv.data(), sv.size());
+\end{codeblock}
+\end{itemdescr}
+
+\indexlibrarymember{assign}{basic_string}%
+\begin{itemdecl}
+template<class T>
+  constexpr basic_string& assign(const T& t, size_type pos, size_type n = npos);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\constraints
+\begin{itemize}
+\item
+\tcode{is_convertible_v<const T\&, basic_string_view<charT, traits>>} 为
+\tcode{true}，且
+\item
+\tcode{is_convertible_v<const T\&, const charT*>} 为
+\tcode{false}。
+\end{itemize}
+
+\pnum
+\effects
+等价于：
+\begin{codeblock}
+basic_string_view<charT, traits> sv = t;
+return assign(sv.substr(pos, n));
+\end{codeblock}
+\end{itemdescr}
+
+\indexlibrarymember{assign}{basic_string}%
+\begin{itemdecl}
+constexpr basic_string& assign(const charT* s, size_type n);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\expects
+范围 \range{s}{s + n} 是有效范围。
+
+\pnum
+\effects
+将 \tcode{*this} 控制的字符串替换为范围 \range{s}{s + n} 的副本。
+
+\pnum
+\returns
+\tcode{*this}。
+\end{itemdescr}
+
+\indexlibrarymember{assign}{basic_string}%
+\begin{itemdecl}
+constexpr basic_string& assign(const charT* s);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：\tcode{return assign(s, traits::length(s));}
+\end{itemdescr}
+
+\indexlibrarymember{assign}{basic_string}%
+\begin{itemdecl}
+constexpr basic_string& assign(initializer_list<charT> il);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：\tcode{return assign(il.begin(), il.size());}
+\end{itemdescr}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：\tcode{return assign(il.begin(), il.size());}
+\end{itemdescr}
+
+\indexlibrarymember{assign}{basic_string}%
+\begin{itemdecl}
+constexpr basic_string& assign(size_type n, charT c);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：
+\begin{codeblock}
+clear();
+resize(n, c);
+return *this;
+\end{codeblock}
+\end{itemdescr}
+
+\indexlibrarymember{assign}{basic_string}%
+\begin{itemdecl}
+template<class InputIterator>
+  constexpr basic_string& assign(InputIterator first, InputIterator last);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\constraints
+\tcode{InputIterator} 是符合输入迭代器要求的类型\iref{container.reqmts}。
+
+\pnum
+\effects
+效果等价于：\tcode{return assign(basic_string(first, last, get_allocator()));}
+\end{itemdescr}
+
+\indexlibrarymember{assign_range}{basic_string}%
+\begin{itemdecl}
+template<@\exposconcept{container-compatible-range}@<charT> R>
+  constexpr basic_string& assign_range(R&& rg);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+效果等价于：\tcode{return assign(basic_string(from_range, std::forward<R>(rg), get_allocator()));}
+\end{itemdescr}
+
+\rSec4[string.insert]{\tcode{basic_string::insert}}
+
+\indexlibrarymember{insert}{basic_string}%
+\begin{itemdecl}
+constexpr basic_string& insert(size_type pos, const basic_string& str);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于： \tcode{return insert(pos, str.data(), str.size());}
+\end{itemdescr}
+
+\indexlibrarymember{insert}{basic_string}%
+\begin{itemdecl}
+constexpr basic_string& insert(size_type pos1, const basic_string& str,
+                               size_type pos2, size_type n = npos);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：
+\begin{codeblock}
+return insert(pos1, basic_string_view<charT, traits>(str), pos2, n);
+\end{codeblock}
+\end{itemdescr}
+
+\indexlibrarymember{insert}{basic_string}%
+\begin{itemdecl}
+template<class T>
+  constexpr basic_string& insert(size_type pos, const T& t);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\constraints
+\begin{itemize}
+\item
+\tcode{is_convertible_v<const T\&, basic_string_view<charT, traits>>} 为
+\tcode{true} 且
+\item
+\tcode{is_convertible_v<const T\&, const charT*>} 为
+\tcode{false}。
+\end{itemize}
+
+\pnum
+\effects
+等价于：
+\begin{codeblock}
+basic_string_view<charT, traits> sv = t;
+return insert(pos, sv.data(), sv.size());
+\end{codeblock}
+\end{itemdescr}
+
+\indexlibrarymember{insert}{basic_string}%
+\begin{itemdecl}
+template<class T>
+  constexpr basic_string& insert(size_type pos1, const T& t,
+                                 size_type pos2, size_type n = npos);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\constraints
+\begin{itemize}
+\item
+\tcode{is_convertible_v<const T\&, basic_string_view<charT, traits>>} 为
+\tcode{true} 并且
+\item
+\tcode{is_convertible_v<const T\&, const charT*>} 为
+\tcode{false}。
+\end{itemize}
+
+\pnum
+\effects
+等价于：
+\begin{codeblock}
+basic_string_view<charT, traits> sv = t;
+return insert(pos1, sv.substr(pos2, n));
+\end{codeblock}
+\end{itemdescr}
+
+\indexlibrary{insert}{basic_string}%
+\begin{itemdecl}
+constexpr basic_string& insert(size_type pos, const charT* s, size_type n);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\expects
+\range{s}{s + n} 是一个有效范围。
+
+\pnum
+\effects
+在 \tcode{pos} 位置的字符之前插入范围 \range{s}{s + n} 的一份副本，若 \tcode{pos < size()}；否则插入到字符串末尾。
+
+\pnum
+\returns
+\tcode{*this}。
+
+\pnum
+\throws
+\begin{itemize}
+\item 如果 \tcode{pos > size()}，抛出 \tcode{out_of_range}，
+\item 如果 \tcode{n > max_size() - size()}，抛出 \tcode{length_error}，或
+\item 抛出由 \tcode{allocator_traits<Allocator>::allocate} 抛出的任何异常。
+\end{itemize}
+\end{itemdescr}
+
+\indexlibrarymember{insert}{basic_string}%
+\begin{itemdecl}
+constexpr basic_string& insert(size_type pos, const charT* s);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：\tcode{return insert(pos, s, traits::length(s));}
+\end{itemdescr}
+
+\indexlibrarymember{insert}{basic_string}%
+\begin{itemdecl}
+constexpr basic_string& insert(size_type pos, size_type n, charT c);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+若 \tcode{pos < size()}，则在位置 \tcode{pos} 的字符前插入 \tcode{n} 个 \tcode{c} 的副本；
+否则在字符串的末尾插入。
+
+\pnum
+\returns
+\tcode{*this}。
+
+\pnum
+\throws
+\begin{itemize}
+\item 若 \tcode{pos > size()}，则为 \tcode{out_of_range}，
+\item 若 \tcode{n > max_size() - size()}，则为 \tcode{length_error}，或
+\item 任何 \tcode{allocator_traits<Allocator>::allocate} 抛出的异常。
+\end{itemize}
+\end{itemdescr}
+
+\indexlibrarymember{insert}{basic_string}%
+\begin{itemdecl}
+constexpr iterator insert(const_iterator p, charT c);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\expects
+\tcode{p} 是 \tcode{*this} 上的有效迭代器。
+
+\pnum
+\effects
+在位置 \tcode{p} 处插入 \tcode{c} 的副本。
+
+\pnum
+\returns
+一个指向被插入字符的迭代器。
+\end{itemdescr}
+
+\indexlibrarymember{insert}{basic_string}%
+\begin{itemdecl}
+constexpr iterator insert(const_iterator p, size_type n, charT c);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\expects
+\tcode{p} 是 \tcode{*this} 上的有效迭代器。
+
+\pnum
+\effects
+在位置 \tcode{p} 处插入 \tcode{n} 个 \tcode{c} 的副本。
+
+\pnum
+\returns
+一个指向首个被插入字符的迭代器，或若 \tcode{n == 0} 则为 \tcode{p}。
+\end{itemdescr}
+
+\indexlibrarymember{insert}{basic_string}%
+\begin{itemdecl}
+template<class InputIterator>
+  constexpr iterator insert(const_iterator p, InputIterator first, InputIterator last);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\constraints
+\tcode{InputIterator} 是满足输入
+迭代器\iref{container.reqmts} 要求的类型。
+
+\pnum
+\expects
+\tcode{p} 是 \tcode{*this} 上的有效迭代器。
+
+\pnum
+\effects
+效果等同于
+\tcode{insert(p - begin(), basic_string(first, last, get_allocator()))}。
+
+\pnum
+\returns
+返回指向首个被插入字符的迭代器，或者若 \tcode{first == last} 则返回 \tcode{p}。
+\end{itemdescr}
+
+\indexlibrarymember{insert_range}{basic_string}%
+\begin{itemdecl}
+template<@\exposconcept{container-compatible-range}@<charT> R>
+  constexpr iterator insert_range(const_iterator p, R&& rg);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\expects
+\tcode{p} 是 \tcode{*this} 上的一个有效迭代器。
+
+\pnum
+\effects
+等价于
+\tcode{insert(p - begin(), basic_string(from_range, std::forward<R>(rg), get_allocator()))}。
+
+\pnum
+\returns
+一个引用到第一个被插入字符的迭代器，或者
+\tcode{p} 如果 \tcode{rg} 为空。
+\end{itemdescr}
+
+\indexlibrarymember{insert}{basic_string}%
+\begin{itemdecl}
+constexpr iterator insert(const_iterator p, initializer_list<charT> il);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于： \tcode{return insert(p, il.begin(), il.end());}
+\end{itemdescr}
+
+\rSec4[string.erase]{\tcode{basic_string::erase}}
+
+\indexlibrarymember{erase}{basic_string}%
+\begin{itemdecl}
+constexpr basic_string& erase(size_type pos = 0, size_type n = npos);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+确定要被移除的字符串的有效长度 \tcode{xlen}
+为 \tcode{n} 与 \tcode{size() - pos} 中较小者。
+移除范围 \range{begin() + pos}{begin() + pos + xlen} 中的字符。
+
+\pnum
+\returns
+\tcode{*this}。
+
+\pnum
+\throws
+若 \tcode{pos > size()} 则抛出 \tcode{out_of_range}。
+\end{itemdescr}
+
+\indexlibrarymember{erase}{basic_string}%
+\begin{itemdecl}
+constexpr iterator erase(const_iterator p);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\expects
+\tcode{p} 是 \tcode{*this} 上的有效可解引用迭代器。
+
+\pnum
+\effects
+移除 \tcode{p} 所指向的字符。
+
+\pnum
+\returns
+一个迭代器，指向被擦除元素之前紧接 \tcode{p} 之后的元素。
+若不存在这样的元素，则返回 \tcode{end()}。
+
+\pnum
+\throws
+无。
+\end{itemdescr}
+
+\indexlibrarymember{erase}{basic_string}%
+\begin{itemdecl}
+constexpr iterator erase(const_iterator first, const_iterator last);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\expects
+\tcode{first} 与 \tcode{last} 是 \tcode{*this} 上的有效迭代器。
+\range{first}{last} 是一个有效范围。
+
+\pnum
+\effects
+移除范围 \range{first}{last} 中的字符。
+
+\pnum
+\returns
+一个迭代器，指向其他元素被擦除之前由 \tcode{last} 指向的元素。
+若不存在这样的元素，则返回 \tcode{end()}。
+
+\pnum
+\throws
+无。
+\end{itemdescr}
+
+\indexlibrarymember{pop_back}{basic_string}%
+\begin{itemdecl}
+constexpr void pop_back();
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\hardexpects
+\tcode{empty()} 为 \tcode{false}。
+
+\pnum
+\effects
+等价于 \tcode{erase(end() - 1)}。
+
+\pnum
+\throws
+无。
+\end{itemdescr}
+
+\rSec4[string.replace]{\tcode{basic_string::replace}}
+
+\indexlibrarymember{replace}{basic_string}%
+\begin{itemdecl}
+constexpr basic_string& replace(size_type pos1, size_type n1, const basic_string& str);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：\tcode{return replace(pos1, n1, str.data(), str.size());}
+\end{itemdescr}
+
+\indexlibrarymember{replace}{basic_string}%
+\begin{itemdecl}
+constexpr basic_string& replace(size_type pos1, size_type n1, const basic_string& str,
+                                size_type pos2, size_type n2 = npos);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：
+\begin{codeblock}
+return replace(pos1, n1, basic_string_view<charT, traits>(str).substr(pos2, n2));
+\end{codeblock}
+\end{itemdescr}
+
+\indexlibrarymember{replace}{basic_string}%
+\begin{itemdecl}
+template<class T>
+  constexpr basic_string& replace(size_type pos1, size_type n1, const T& t);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\constraints
+\begin{itemize}
+\item
+\tcode{is_convertible_v<const T\&, basic_string_view<charT, traits>>} 为
+\tcode{true}，且
+\item
+\tcode{is_convertible_v<const T\&, const charT*>} 为
+\tcode{false}。
+\end{itemize}
+
+\pnum
+\effects
+等价于：
+\begin{codeblock}
+basic_string_view<charT, traits> sv = t;
+return replace(pos1, n1, sv.data(), sv.size());
+\end{codeblock}
+\end{itemdescr}
+
+\indexlibrarymember{replace}{basic_string}%
+\begin{itemdecl}
+template<class T>
+  constexpr basic_string& replace(size_type pos1, size_type n1, const T& t,
+                                  size_type pos2, size_type n2 = npos);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\constraints
+\begin{itemize}
+\item
+\tcode{is_convertible_v<const T\&, basic_string_view<charT, traits>>} 为
+\tcode{true} 且
+\item
+\tcode{is_convertible_v<const T\&, const charT*>} 为
+\tcode{false}。
+\end{itemize}
+
+\pnum
+\effects
+等价于：
+\begin{codeblock}
+basic_string_view<charT, traits> sv = t;
+return replace(pos1, n1, sv.substr(pos2, n2));
+\end{codeblock}
+\end{itemdescr}
+
+\indexlibrarymember{replace}{basic_string}%
+\begin{itemdecl}
+constexpr basic_string& replace(size_type pos1, size_type n1, const charT* s, size_type n2);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\expects
+\range{s}{s + n2} 是有效范围。
+
+\pnum
+\effects
+确定待移除字符串的有效长度 \tcode{xlen} 为 \tcode{n1} 与 \tcode{size() - pos1} 的较小者。若 \tcode{size() - xlen >= max_size() - n2} 则抛出 \tcode{length_error}。否则，此函数将范围 \range{begin() + pos1}{begin() + pos1 + xlen} 中的字符替换为范围 \range{s}{s + n2} 的副本。
+
+\pnum
+\returns
+\tcode{*this}。
+
+\pnum
+\throws
+\begin{itemize}
+\item 若 \tcode{pos1 > size()} 则为 \tcode{out_of_range}，
+\item 若结果字符串的长度将超过 \tcode{max_size()} 则为 \tcode{length_error}，或
+\item \tcode{allocator_traits<Allocator>::allocate} 抛出的任何异常。
+\end{itemize}
+\end{itemdescr}
+
+\indexlibrarymember{replace}{basic_string}%
+\begin{itemdecl}
+constexpr basic_string& replace(size_type pos, size_type n, const charT* s);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：\tcode{return replace(pos, n, s, traits::length(s));}
+\end{itemdescr}
+
+\indexlibrarymember{replace}{basic_string}%
+\begin{itemdecl}
+constexpr basic_string& replace(size_type pos1, size_type n1, size_type n2, charT c);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+确定待移除字符串的有效长度 \tcode{xlen} 为 \tcode{n1} 与 \tcode{size() - pos1} 中的较小者。
+若 \tcode{size() - xlen >=} \tcode{max_size() - n2} 则抛出 \tcode{length_error}。
+否则，该函数以 \tcode{n2} 个 \tcode{c} 的副本替换范围
+\range{begin() + pos1}{begin() + pos1 + xlen} 中的字符。
+
+\pnum
+\returns
+\tcode{*this}。
+
+\pnum
+\throws
+\begin{itemize}
+\item 若 \tcode{pos1 > size()} 则抛出 \tcode{out_of_range}，
+\item 若结果字符串的长度将超过 \tcode{max_size()} 则抛出 \tcode{length_error}，或
+\item \tcode{allocator_traits<Allocator>::allocate} 所抛出的任何异常。
+\end{itemize}
+\end{itemdescr}
+
+\indexlibrarymember{replace}{basic_string}%
+\begin{itemdecl}
+constexpr basic_string& replace(const_iterator i1, const_iterator i2, const basic_string& str);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等效于：\tcode{return replace(i1, i2, basic_string_view<charT, traits>(str));}
+\end{itemdescr}
+
+\indexlibrarymember{replace}{basic_string}%
+\begin{itemdecl}
+template<class T>
+  constexpr basic_string& replace(const_iterator i1, const_iterator i2, const T& t);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\constraints
+\begin{itemize}
+\item
+\tcode{is_convertible_v<const T\&, basic_string_view<charT, traits>>} 为
+\tcode{true} 且
+\item
+\tcode{is_convertible_v<const T\&, const charT*>} 为
+\tcode{false}。
+\end{itemize}
+
+\pnum
+\expects
+\range{begin()}{i1} 与 \range{i1}{i2} 为有效范围。
+
+\pnum
+\effects
+等效于：
+\begin{codeblock}
+basic_string_view<charT, traits> sv = t;
+return replace(i1 - begin(), i2 - i1, sv.data(), sv.size());
+\end{codeblock}
+\end{itemdescr}
+
+\indexlibrarymember{replace}{basic_string}%
+\begin{itemdecl}
+constexpr basic_string& replace(const_iterator i1, const_iterator i2, const charT* s, size_type n);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等效于：\tcode{return replace(i1, i2, basic_string_view<charT, traits>(s, n));}
+\end{itemdescr}
+
+\indexlibrarymember{replace}{basic_string}%
+\begin{itemdecl}
+constexpr basic_string& replace(const_iterator i1, const_iterator i2, const charT* s);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等效于：\tcode{return replace(i1, i2, basic_string_view<charT, traits>(s));}
+\end{itemdescr}
+
+\indexlibrarymember{replace}{basic_string}%
+\begin{itemdecl}
+constexpr basic_string& replace(const_iterator i1, const_iterator i2, size_type n, charT c);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\expects
+\range{begin()}{i1} 和 \range{i1}{i2} 是有效范围。
+
+\pnum
+\effects
+等价于： \tcode{return replace(i1 - begin(), i2 - i1, n, c);}
+\end{itemdescr}
+
+\indexlibrarymember{replace}{basic_string}%
+\begin{itemdecl}
+template<class InputIterator>
+  constexpr basic_string& replace(const_iterator i1, const_iterator i2,
+                                  InputIterator j1, InputIterator j2);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\expects
+\range{begin()}{i1} 和 \range{i1}{i2} 是有效范围。
+
+\pnum
+\effects
+等价于： \tcode{return replace(i1 - begin(), i2 - i1, basic_string(j1, j2));}
+\end{itemdescr}
+
+\begin{itemdescr}
+\pnum
+\constraints
+\tcode{InputIterator} 是一种满足输入迭代器要求的类型\iref{container.reqmts}。
+
+\pnum
+\effects
+等价于：\tcode{return replace(i1, i2, basic_string(j1, j2, get_allocator()));}
+\end{itemdescr}
+
+\indexlibrarymember{replace_with_range}{basic_string}%
+\begin{itemdecl}
+template<@\exposconcept{container-compatible-range}@<charT> R>
+  constexpr basic_string& replace_with_range(const_iterator i1, const_iterator i2, R&& rg);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：
+\begin{codeblock}
+return replace(i1, i2, basic_string(from_range, std::forward<R>(rg), get_allocator()));
+\end{codeblock}
+\end{itemdescr}
+
+\indexlibrarymember{replace}{basic_string}%
+\begin{itemdecl}
+constexpr basic_string& replace(const_iterator i1, const_iterator i2, initializer_list<charT> il);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等效于：\tcode{return replace(i1, i2, il.begin(), il.size());}
+\end{itemdescr}
+
+\rSec4[string.copy]{\tcode{basic_string::copy}}
+
+\indexlibrarymember{copy}{basic_string}%
+\begin{itemdecl}
+constexpr size_type copy(charT* s, size_type n, size_type pos = 0) const;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等效于：
+\tcode{return basic_string_view<charT, traits>(*this).copy(s, n, pos);}
+\begin{note}
+此操作不会用空字符终止 \tcode{s}。
+\end{note}
+\end{itemdescr}
+
+\rSec4[string.swap]{\tcode{basic_string::swap}}
+
+\indexlibrarymember{swap}{basic_string}%
+\begin{itemdecl}
+constexpr void swap(basic_string& s)
+  noexcept(allocator_traits<Allocator>::propagate_on_container_swap::value ||
+           allocator_traits<Allocator>::is_always_equal::value);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\expects
+\tcode{allocator_traits<Allocator>::propagate_on_container_swap::value} 为 \tcode{true}
+或
+\tcode{get_allocator() == s.get_allocator()}。
+
+\pnum
+\ensures
+\tcode{*this}
+含有原本在 \tcode{s} 中的同一字符序列，
+\tcode{s} 含有原本在
+\tcode{*this} 中的同一字符序列。
+
+\pnum
+\throws
+无。
+
+\pnum
+\complexity
+常数时间。
+\end{itemdescr}
+
+\rSec3[string.ops]{字符串操作}
+
+\rSec4[string.accessors]{访问器}
+
+\indexlibrarymember{c_str}{basic_string}%
+\indexlibrarymember{data}{basic_string}%
+\begin{itemdecl}
+constexpr const charT* c_str() const noexcept;
+constexpr const charT* data() const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+返回指针 \tcode{p}，使得对于 \crange{0}{size()} 中的每个 \tcode{i}，均有 \tcode{p + i == addressof(operator[](i))}。
+
+\pnum
+\complexity
+常数时间。
+
+\pnum
+\remarks
+程序不得修改存储于字符数组中的任何值；否则行为未定义。
+\end{itemdescr}
+
+\indexlibrarymember{data}{basic_string}%
+\begin{itemdecl}
+constexpr charT* data() noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+返回指针 \tcode{p}，使得对于 \crange{0}{size()} 中的每个 \tcode{i}，均有 \tcode{p + i == addressof(operator[](i))}。
+
+\pnum
+\complexity
+常数时间。
+
+\pnum
+\remarks
+程序不得将存储在 \tcode{p + size()} 处的值修改为除 \tcode{charT()} 以外的任何值；否则行为未定义。
+\end{itemdescr}
+
+\indexlibrarymember{operator basic_string_view}{basic_string}%
+\begin{itemdecl}
+constexpr operator basic_string_view<charT, traits>() const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：
+\tcode{return basic_string_view<charT, traits>(data(), size());}
+\end{itemdescr}
+
+\indexlibrarymember{get_allocator}{basic_string}%
+\begin{itemdecl}
+constexpr allocator_type get_allocator() const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+返回用于构造字符串的 \tcode{Allocator} 对象副本，或者如果该分配器已被替换，则返回最新替换的副本。
+\end{itemdescr}
+
+\rSec4[string.find]{搜索}
+\pnum
+\indexlibrarymember{find}{basic_string}%
+\indexlibrarymember{rfind}{basic_string}%
+\indexlibrarymember{find_first_of}{basic_string}%
+\indexlibrarymember{find_last_of}{basic_string}%
+\indexlibrarymember{find_first_not_of}{basic_string}%
+\indexlibrarymember{find_last_not_of}{basic_string}%
+令 \placeholder{F} 为 \tcode{find}、\tcode{rfind}、\tcode{find_first_of}、\tcode{find_last_of}、\tcode{find_first_not_of} 和 \tcode{find_last_not_of} 其中之一。
+
+\begin{itemize}
+\item
+形式如
+\begin{codeblock}
+constexpr size_type @\placeholder{F}@(const basic_string& str, size_type pos) const noexcept;
+\end{codeblock}
+的每个成员函数具有等价于：
+\tcode{return \placeholder{F}(basic_string_view<charT, traits>(str), pos);}
+的效果。
+
+\item
+形式如
+\begin{codeblock}
+constexpr size_type @\placeholder{F}@(const charT* s, size_type pos) const;
+\end{codeblock}
+的每个成员函数具有等价于：
+\tcode{return \placeholder{F}(basic_string_view<charT, traits>(s), pos);}
+的效果。
+
+\item
+形式如
+\begin{codeblock}
+constexpr size_type @\placeholder{F}@(const charT* s, size_type pos, size_type n) const;
+\end{codeblock}
+的每个成员函数具有等价于：
+\tcode{return \placeholder{F}(basic_string_view<charT, traits>(s, n), pos);}
+的效果。
+
+\item
+形式如
+\begin{codeblock}
+constexpr size_type @\placeholder{F}@(charT c, size_type pos) const noexcept;
+\end{codeblock}
+的每个成员函数具有等价于：
+\begin{codeblock}
+return @\placeholder{F}@(basic_string_view<charT, traits>(addressof(c), 1), pos);
+\end{codeblock}
+的效果。
+\end{itemize}
+
+\indexlibrarymember{find}{basic_string}%
+\indexlibrarymember{rfind}{basic_string}%
+\indexlibrarymember{find_first_of}{basic_string}%
+\indexlibrarymember{find_last_of}{basic_string}%
+\indexlibrarymember{find_first_not_of}{basic_string}%
+\indexlibrarymember{find_last_not_of}{basic_string}%
+\begin{itemdecl}
+template<class T>
+  constexpr size_type find(const T& t, size_type pos = 0) const noexcept(@\seebelow@);
+template<class T>
+  constexpr size_type rfind(const T& t, size_type pos = npos) const noexcept(@\seebelow@);
+template<class T>
+  constexpr size_type find_first_of(const T& t, size_type pos = 0) const noexcept(@\seebelow@);
+template<class T>
+  constexpr size_type find_last_of(const T& t, size_type pos = npos) const noexcept(@\seebelow@);
+template<class T>
+  constexpr size_type find_first_not_of(const T& t, size_type pos = 0) const noexcept(@\seebelow@);
+template<class T>
+  constexpr size_type find_last_not_of(const T& t, size_type pos = npos) const noexcept(@\seebelow@);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\constraints
+\begin{itemize}
+\item
+\tcode{is_convertible_v<const T\&, basic_string_view<charT, traits>>} 为
+\tcode{true} 且
+\item
+\tcode{is_convertible_v<const T\&, const charT*>} 为
+\tcode{false}。
+\end{itemize}
+
+\pnum
+\effects
+令 \placeholder{G} 为该函数名。
+等价于：
+\begin{codeblock}
+basic_string_view<charT, traits> s = *this, sv = t;
+return s.@\placeholder{G}@(sv, pos);
+\end{codeblock}
+
+\pnum
+\remarks
+该异常规范等价于
+\tcode{is_nothrow_convertible_v<const T\&, basic_string_view<charT, traits>>}。
+\end{itemdescr}
+
+\rSec4[string.substr]{\tcode{basic_string::substr}}
+
+\indexlibrarymember{substr}{basic_string}%
+\begin{itemdecl}
+constexpr basic_string substr(size_type pos = 0, size_type n = npos) const &;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：\tcode{return basic_string(*this, pos, n);}
+\end{itemdescr}
+
+\indexlibrarymember{substr}{basic_string}%
+\begin{itemdecl}
+constexpr basic_string substr(size_type pos = 0, size_type n = npos) &&;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：\tcode{return basic_string(std::move(*this), pos, n);}
+\end{itemdescr}
+
+\indexlibrarymember{subview}{basic_string}%
+\begin{itemdecl}
+constexpr basic_string_view<charT, traits> subview(size_type pos = 0, size_type n = npos) const;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：\tcode{return basic_string_view<charT, traits>(*this).subview(pos, n);}
+\end{itemdescr}
+
+\rSec4[string.compare]{\tcode{basic_string::compare}}
+
+\indexlibrarymember{compare}{basic_string}%
+\begin{itemdecl}
+template<class T>
+  constexpr int compare(const T& t) const noexcept(@\seebelow@);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\constraints
+\begin{itemize}
+\item
+\tcode{is_convertible_v<const T\&, basic_string_view<charT, traits>>} 为
+\tcode{true} 且
+\item
+\tcode{is_convertible_v<const T\&, const charT*>} 为
+\tcode{false}。
+\end{itemize}
+
+\pnum
+\effects
+等价于：\tcode{return basic_string_view<charT, traits>(*this).compare(t);}
+
+\pnum
+\remarks
+异常规范等价于
+\tcode{is_nothrow_convertible_v<const T\&, basic_string_view<charT, traits>>}。
+\end{itemdescr}
+
+\indexlibrarymember{compare}{basic_string}%
+\begin{itemdecl}
+template<class T>
+  constexpr int compare(size_type pos1, size_type n1, const T& t) const;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\constraints
+\begin{itemize}
+\item
+\tcode{is_convertible_v<const T\&, basic_string_view<charT, traits>>} 为
+\tcode{true} 且
+\item
+\tcode{is_convertible_v<const T\&, const charT*>} 为
+\tcode{false}。
+\end{itemize}
+
+\pnum
+\effects
+等价于：
+\begin{codeblock}
+return basic_string_view<charT, traits>(*this).substr(pos1, n1).compare(t);
+\end{codeblock}
+\end{itemdescr}
+
+\indexlibrarymember{compare}{basic_string}%
+\begin{itemdecl}
+template<class T>
+  constexpr int compare(size_type pos1, size_type n1, const T& t,
+                        size_type pos2, size_type n2 = npos) const;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\constraints
+\begin{itemize}
+\item
+\tcode{is_convertible_v<const T\&, basic_string_view<charT, traits>>} 为
+\tcode{true}，且
+\item
+\tcode{is_convertible_v<const T\&, const charT*>} 为
+\tcode{false}。
+\end{itemize}
+
+\pnum
+\effects
+等价于：
+\begin{codeblock}
+basic_string_view<charT, traits> s = *this, sv = t;
+return s.substr(pos1, n1).compare(sv.substr(pos2, n2));
+\end{codeblock}
+\end{itemdescr}
+
+\indexlibrarymember{compare}{basic_string}%
+\begin{itemdecl}
+constexpr int compare(const basic_string& str) const noexcept;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：
+\tcode{return compare(basic_string_view<charT, traits>(str));}
+\end{itemdescr}
+
+\indexlibrarymember{compare}{basic_string}%
+\begin{itemdecl}
+constexpr int compare(size_type pos1, size_type n1, const basic_string& str) const;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：
+\tcode{return compare(pos1, n1, basic_string_view<charT, traits>(str));}
+\end{itemdescr}
+
+\indexlibrarymember{compare}{basic_string}%
+\begin{itemdecl}
+constexpr int compare(size_type pos1, size_type n1, const basic_string& str,
+                      size_type pos2, size_type n2 = npos) const;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：
+\begin{codeblock}
+return compare(pos1, n1, basic_string_view<charT, traits>(str), pos2, n2);
+\end{codeblock}
+\end{itemdescr}
+
+\indexlibrarymember{compare}{basic_string}%
+\begin{itemdecl}
+constexpr int compare(const charT* s) const;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：
+\begin{codeblock}
+return compare(basic_string_view<charT, traits>(s));
+\end{codeblock}
+\end{itemdescr}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：
+\tcode{return compare(basic_string_view<charT, traits>(s));}
+\end{itemdescr}
+
+\indexlibrarymember{compare}{basic_string}%
+\begin{itemdecl}
+constexpr int compare(size_type pos, size_type n1, const charT* s) const;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：\tcode{return compare(pos, n1, basic_string_view<charT, traits>(s));}
+\end{itemdescr}
+
+\indexlibrarymember{compare}{basic_string}%
+\begin{itemdecl}
+constexpr int compare(size_type pos, size_type n1, const charT* s, size_type n2) const;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：\tcode{return compare(pos, n1, basic_string_view<charT, traits>(s, n2));}
+\end{itemdescr}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于： \tcode{return compare(pos, n1, basic_string_view<charT, traits>(s, n2));}
+\end{itemdescr}
+
+\rSec4[string.starts.with]{\tcode{basic_string::starts_with}}
+
+\indexlibrarymember{starts_with}{basic_string}%
+\begin{itemdecl}
+constexpr bool starts_with(basic_string_view<charT, traits> x) const noexcept;
+constexpr bool starts_with(charT x) const noexcept;
+constexpr bool starts_with(const charT* x) const;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：
+\begin{codeblock}
+return basic_string_view<charT, traits>(data(), size()).starts_with(x);
+\end{codeblock}
+\end{itemdescr}
+
+\rSec4[string.ends.with]{\tcode{basic_string::ends_with}}
+
+\indexlibrarymember{ends_with}{basic_string}%
+\begin{itemdecl}
+constexpr bool ends_with(basic_string_view<charT, traits> x) const noexcept;
+constexpr bool ends_with(charT x) const noexcept;
+constexpr bool ends_with(const charT* x) const;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：
+\begin{codeblock}
+return basic_string_view<charT, traits>(data(), size()).ends_with(x);
+\end{codeblock}
+\end{itemdescr}
+
+\rSec4[string.contains]{\tcode{basic_string::contains}}
+
+\indexlibrarymember{contains}{basic_string}%
+\begin{itemdecl}
+constexpr bool contains(basic_string_view<charT, traits> x) const noexcept;
+constexpr bool contains(charT x) const noexcept;
+constexpr bool contains(const charT* x) const;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：
+\begin{codeblock}
+return basic_string_view<charT, traits>(data(), size()).contains(x);
+\end{codeblock}
+\end{itemdescr}
+
+\rSec2[string.nonmembers]{非成员函数}
+
+\indexlibraryglobal{basic_string}
+
+\rSec3[string.op.plus]{\tcode{operator+}}
+
+\indexlibrarymember{operator+}{basic_string}%
+\begin{itemdecl}
+template<class charT, class traits, class Allocator>
+  constexpr basic_string<charT, traits, Allocator>
+    operator+(const basic_string<charT, traits, Allocator>& lhs,
+              const basic_string<charT, traits, Allocator>& rhs);
+template<class charT, class traits, class Allocator>
+  constexpr basic_string<charT, traits, Allocator>
+    operator+(const basic_string<charT, traits, Allocator>& lhs, const charT* rhs);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等效于：
+\begin{codeblock}
+basic_string<charT, traits, Allocator> r = lhs;
+r.append(rhs);
+return r;
+\end{codeblock}
+\end{itemdescr}
+
+\indexlibrarymember{operator+}{basic_string}%
+\begin{itemdecl}
+template<class charT, class traits, class Allocator>
+  constexpr basic_string<charT, traits, Allocator>
+    operator+(basic_string<charT, traits, Allocator>&& lhs,
+              const basic_string<charT, traits, Allocator>& rhs);
+template<class charT, class traits, class Allocator>
+  constexpr basic_string<charT, traits, Allocator>
+    operator+(basic_string<charT, traits, Allocator>&& lhs, const charT* rhs);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：
+\begin{codeblock}
+lhs.append(rhs);
+return std::move(lhs);
+\end{codeblock}
+\end{itemdescr}
+
+\indexlibrarymember{operator+}{basic_string}%
+\begin{itemdecl}
+template<class charT, class traits, class Allocator>
+  constexpr basic_string<charT, traits, Allocator>
+    operator+(basic_string<charT, traits, Allocator>&& lhs,
+              basic_string<charT, traits, Allocator>&& rhs);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：
+\begin{codeblock}
+lhs.append(rhs);
+return std::move(lhs);
+\end{codeblock}
+不同之处在于 \tcode{lhs} 与 \tcode{rhs}
+均被置于合法但未指定的状态。
+\begin{note}
+若 \tcode{lhs} 与 \tcode{rhs} 拥有相等的分配器，
+实现可从任意一方移动。
+\end{note}
+\end{itemdescr}
+
+\indexlibrarymember{operator+}{basic_string}%
+\begin{itemdecl}
+template<class charT, class traits, class Allocator>
+  constexpr basic_string<charT, traits, Allocator>
+    operator+(const basic_string<charT, traits, Allocator>& lhs,
+              basic_string<charT, traits, Allocator>&& rhs);
+template<class charT, class traits, class Allocator>
+  constexpr basic_string<charT, traits, Allocator>
+    operator+(const charT* lhs, basic_string<charT, traits, Allocator>&& rhs);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+效果等同于：
+\begin{codeblock}
+rhs.insert(0, lhs);
+return std::move(rhs);
+\end{codeblock}
+\end{itemdescr}
+
+\indexlibrarymember{operator+}{basic_string}%
+\begin{itemdecl}
+template<class charT, class traits, class Allocator>
+  constexpr basic_string<charT, traits, Allocator>
+    operator+(const charT* lhs, const basic_string<charT, traits, Allocator>& rhs);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等效于：
+\begin{codeblock}
+basic_string<charT, traits, Allocator> r = rhs;
+r.insert(0, lhs);
+return r;
+\end{codeblock}
+\end{itemdescr}
+
+\indexlibrarymember{operator+}{basic_string}%
+\begin{itemdecl}
+template<class charT, class traits, class Allocator>
+  constexpr basic_string<charT, traits, Allocator>
+    operator+(charT lhs, const basic_string<charT, traits, Allocator>& rhs);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等效于：
+\begin{codeblock}
+basic_string<charT, traits, Allocator> r = rhs;
+r.insert(0, lhs);
+return r;
+\end{codeblock}
+\end{itemdescr}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：
+\begin{codeblock}
+basic_string<charT, traits, Allocator> r = rhs;
+r.insert(r.begin(), lhs);
+return r;
+\end{codeblock}
+\end{itemdescr}
+
+\indexlibrarymember{operator+}{basic_string}%
+\begin{itemdecl}
+template<class charT, class traits, class Allocator>
+  constexpr basic_string<charT, traits, Allocator>
+    operator+(charT lhs, basic_string<charT, traits, Allocator>&& rhs);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：
+\begin{codeblock}
+rhs.insert(rhs.begin(), lhs);
+return std::move(rhs);
+\end{codeblock}
+\end{itemdescr}
+
+\indexlibrarymember{operator+}{basic_string}%
+\begin{itemdecl}
+template<class charT, class traits, class Allocator>
+  constexpr basic_string<charT, traits, Allocator>
+    operator+(const basic_string<charT, traits, Allocator>& lhs, charT rhs);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：
+\begin{codeblock}
+basic_string<charT, traits, Allocator> r = lhs;
+r.push_back(rhs);
+return r;
+\end{codeblock}
+\end{itemdescr}
+
+\indexlibrarymember{operator+}{basic_string}%
+\begin{itemdecl}
+template<class charT, class traits, class Allocator>
+  constexpr basic_string<charT, traits, Allocator>
+    operator+(basic_string<charT, traits, Allocator>&& lhs, charT rhs);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：
+\begin{codeblock}
+lhs.push_back(rhs);
+return std::move(lhs);
+\end{codeblock}
+\end{itemdescr}
+
+\indexlibrarymember{operator+}{basic_string}%
+\begin{itemdecl}
+template<class charT, class traits, class Allocator>
+  constexpr basic_string<charT, traits, Allocator>
+    operator+(const basic_string<charT, traits, Allocator>& lhs,
+              type_identity_t<basic_string_view<charT, traits>> rhs);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：
+\begin{codeblock}
+basic_string<charT, traits, Allocator> r = lhs;
+r.append(rhs);
+return r;
+\end{codeblock}
+\end{itemdescr}
+
+\indexlibrarymember{operator+}{basic_string}%
+\begin{itemdecl}
+template<class charT, class traits, class Allocator>
+  constexpr basic_string<charT, traits, Allocator>
+    operator+(basic_string<charT, traits, Allocator>&& lhs,
+              type_identity_t<basic_string_view<charT, traits>> rhs);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+等价于：
+\begin{codeblock}
+lhs.append(rhs);
+return std::move(lhs);
+\end{codeblock}
+\end{itemdescr}
+
+\indexlibrarymember{operator+}{basic_string}%
+\begin{itemdecl}
+template<class charT, class traits, class Allocator>
+  constexpr basic_string<charT, traits, Allocator>
+    operator+(type_identity_t<basic_string_view<charT, traits>> lhs,
+              const basic_string<charT, traits, Allocator>& rhs);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+等价于：
+\begin{codeblock}
+return basic_string<charT, traits, Allocator>(lhs) += rhs;
+\end{codeblock}
+\end{itemdescr}
+
+\begin{itemdescr}
+\pnum
+等价于：
+\begin{codeblock}
+basic_string<charT, traits, Allocator> r = rhs;
+r.insert(0, lhs);
+return r;
+\end{codeblock}
+\end{itemdescr}
+
+\indexlibrarymember{operator+}{basic_string}%
+\begin{itemdecl}
+template<class charT, class traits, class Allocator>
+  constexpr basic_string<charT, traits, Allocator>
+    operator+(type_identity_t<basic_string_view<charT, traits>> lhs,
+              basic_string<charT, traits, Allocator>&& rhs);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+等价于：
+\begin{codeblock}
+rhs.insert(0, lhs);
+return std::move(rhs);
+\end{codeblock}
+\end{itemdescr}
+
+\pnum
+\begin{note}
+将 \tcode{type_identity_t} 的特化用作参数类型，确保类型为 \tcode{basic_string<charT, traits, Allocator>}
+的对象可与具有隐式转换到 \tcode{basic_string_view<charT, traits>}\iref{over.match.oper} 的类型 \tcode{T} 的对象连接。
+\end{note}
+
+\rSec3[string.cmp]{非成员比较运算符函数}
+\begin{itemdecl}
+template<class charT, class traits, class Allocator>
+  constexpr bool
+    operator==(const basic_string<charT, traits, Allocator>& lhs,
+               const basic_string<charT, traits, Allocator>& rhs) noexcept;
+template<class charT, class traits, class Allocator>
+  constexpr bool operator==(const basic_string<charT, traits, Allocator>& lhs,
+                            const charT* rhs);
+
+template<class charT, class traits, class Allocator>
+  constexpr @\seebelow@ operator<=>(const basic_string<charT, traits, Allocator>& lhs,
+            @\itcorr@                      const basic_string<charT, traits, Allocator>& rhs) noexcept;
+template<class charT, class traits, class Allocator>
+  constexpr @\seebelow@ operator<=>(const basic_string<charT, traits, Allocator>& lhs,
+            @\itcorr@                      const charT* rhs);
+\end{itemdecl}
+\begin{itemdescr}
+\pnum
+\effects
+令 \tcode{\placeholder{op}} 为该运算符。
+等价于：
+\begin{codeblock}
+return basic_string_view<charT, traits>(lhs) @\placeholder{op}@ basic_string_view<charT, traits>(rhs);
+\end{codeblock}
+\end{itemdescr}
+
+\rSec3[string.special]{\tcode{swap}}
+
+\indexlibrarymember{swap}{basic_string}%
+\begin{itemdecl}
+template<class charT, class traits, class Allocator>
+  constexpr void
+    swap(basic_string<charT, traits, Allocator>& lhs,
+         basic_string<charT, traits, Allocator>& rhs)
+      noexcept(noexcept(lhs.swap(rhs)));
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于 \tcode{lhs.swap(rhs)}。
+\end{itemdescr}
+
+\rSec3[string.io]{插入器与提取器}
+
+\indexlibrarymember{operator>>}{basic_string}%
+\begin{itemdecl}
+template<class charT, class traits, class Allocator>
+  basic_istream<charT, traits>&
+    operator>>(basic_istream<charT, traits>& is, basic_string<charT, traits, Allocator>& str);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+行为如格式化输入函数\iref{istream.formatted.reqmts}所述。
+构造 \tcode{sentry} 对象后，
+若 \tcode{sentry} 对象转换为 \tcode{bool} 类型值得到 \tcode{true}，
+则调用 \tcode{str.erase()}，
+随后从 \tcode{is} 提取字符并将其追加到 \tcode{str}，如同调用 \tcode{str.append(1, c)}。
+若 \tcode{is.width()} 大于零，则追加的字符最大数量 \tcode{n} 为 \tcode{is.width()}；
+否则 \tcode{n} 为 \tcode{str.max_size()}。
+字符将被提取并追加直至发生以下任一情况：
+\begin{itemize}
+\item
+存储了
+\textit{n}
+个字符；
+\item
+输入序列出现文件结束；
+\item
+对下一个可用输入字符
+\textit{c}
+有
+\tcode{isspace(c, is.getloc())}
+为
+\tcode{true}。
+\end{itemize}
+
+\pnum
+最后一个字符（若存在）被提取后，
+调用 \tcode{is.width(0)} 并销毁
+\tcode{sentry}
+对象。
+
+\pnum
+若函数未提取任何字符，则在调用 \tcode{setstate} 前，
+在输入函数的局部错误状态中设置 \tcode{ios_base::failbit}。
+
+\pnum
+\returns
+\tcode{is}。
+\end{itemdescr}
+
+\indexlibrarymember{operator<<}{basic_string}%
+\begin{itemdecl}
+template<class charT, class traits, class Allocator>
+  basic_ostream<charT, traits>&
+    operator<<(basic_ostream<charT, traits>& os,
+               const basic_string<charT, traits, Allocator>& str);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等价于：\tcode{return os << basic_string_view<charT, traits>(str);}
+\end{itemdescr}
+
+\indexlibrarymember{getline}{basic_string}%
+\begin{itemdecl}
+template<class charT, class traits, class Allocator>
+  basic_istream<charT, traits>&
+    getline(basic_istream<charT, traits>& is,
+            basic_string<charT, traits, Allocator>& str,
+            charT delim);
+template<class charT, class traits, class Allocator>
+  basic_istream<charT, traits>&
+    getline(basic_istream<charT, traits>&& is,
+            basic_string<charT, traits, Allocator>& str,
+            charT delim);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+从输入流 \tcode{is} 读取字符存入 \tcode{str} 直至遇到分隔符 \tcode{delim}、到达流尾或发生错误。若 \tcode{delim} 被读取，将其提取但不存入 \tcode{str}。
+
+\pnum
+\ensures
+若未读取任何字符（立即遇到文件尾或错误），则调用 \tcode{str.erase()}；否则 \tcode{str} 为读取的字符序列。
+
+\pnum
+\returns
+\tcode{is}。
+\end{itemdescr}
+
+\begin{itemdescr}
+\pnum
+\effects
+表现为一个未格式化输入函数\iref{istream.unformatted}，除了它不影响后续对
+\tcode{basic_istream<>::gcount()} 调用所返回的值。
+在构造一个 \tcode{sentry} 对象之后，
+如果该 \tcode{sentry} 对象在转换为类型 \tcode{bool} 的值时返回 \tcode{true}，
+则调用 \tcode{str.erase()}，
+然后从 \tcode{is} 中提取字符并附加它们到 \tcode{str}，
+如同通过调用
+\tcode{str.append(1, c)}
+直至以下任意情况发生：
+\begin{itemize}
+\item
+输入序列中出现文件结束；
+\item
+对于下一个可用的输入字符
+\textit{c}，
+满足
+\tcode{traits::eq(c, delim)}
+（在此情况下，
+\textit{c}
+被提取但不被附加）；
+\item
+存储了
+\tcode{str.max_size()}
+个字符
+（在此情况下，
+\tcode{ios_base::failbit} 被设置到输入函数的局部错误状态中）。
+\end{itemize}
+
+\pnum
+条件按照所示顺序测试。
+在任何情况下，
+在最后一个字符被提取后，
+\tcode{sentry}
+对象被销毁。
+
+\pnum
+如果函数未提取任何字符，
+则在调用 \tcode{setstate} 前，
+\tcode{ios_base::failbit} 被设置到输入函数的局部错误状态中。
+
+\pnum
+\returns
+\tcode{is}.
+\end{itemdescr}
+
+\indexlibrarymember{getline}{basic_string}%
+\begin{itemdecl}
+template<class charT, class traits, class Allocator>
+  basic_istream<charT, traits>&
+    getline(basic_istream<charT, traits>& is,
+            basic_string<charT, traits, Allocator>& str);
+template<class charT, class traits, class Allocator>
+  basic_istream<charT, traits>&
+    getline(basic_istream<charT, traits>&& is,
+            basic_string<charT, traits, Allocator>& str);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{getline(is, str, is.widen('\textbackslash n'))}.
+\end{itemdescr}
+
+\rSec3[string.erasure]{擦除}
+
+\indexlibrarymember{erase}{basic_string}%
+\begin{itemdecl}
+template<class charT, class traits, class Allocator, class U = charT>
+  constexpr typename basic_string<charT, traits, Allocator>::size_type
+    erase(basic_string<charT, traits, Allocator>& c, const U& value);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等效于：
+\begin{codeblock}
+auto it = remove(c.begin(), c.end(), value);
+auto r = distance(it, c.end());
+c.erase(it, c.end());
+return r;
+\end{codeblock}
+\end{itemdescr}
+
+\indexlibrarymember{erase_if}{basic_string}%
+\begin{itemdecl}
+template<class charT, class traits, class Allocator, class Predicate>
+  constexpr typename basic_string<charT, traits, Allocator>::size_type
+    erase_if(basic_string<charT, traits, Allocator>& c, Predicate pred);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+等效于：
+\begin{codeblock}
+auto it = remove_if(c.begin(), c.end(), pred);
+auto r = distance(it, c.end());
+c.erase(it, c.end());
+return r;
+\end{codeblock}
+\end{itemdescr}
+
+\rSec2[string.conversions]{数值转换}
+
+\indexlibraryglobal{stoi}%
+\indexlibraryglobal{stol}%
+\indexlibraryglobal{stoul}%
+\indexlibraryglobal{stoll}%
+\indexlibraryglobal{stoull}%
+\begin{itemdecl}
+int stoi(const string& str, size_t* idx = nullptr, int base = 10);
+long stol(const string& str, size_t* idx = nullptr, int base = 10);
+unsigned long stoul(const string& str, size_t* idx = nullptr, int base = 10);
+long long stoll(const string& str, size_t* idx = nullptr, int base = 10);
+unsigned long long stoull(const string& str, size_t* idx = nullptr, int base = 10);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+前两个函数调用 \tcode{strtol(str.c_str(), ptr, base)}，
+而最后三个函数分别调用 \tcode{strtoul(str.c_str(), ptr, base)}、
+\tcode{strtoll(str.c_str(), ptr, base)} 与 \tcode{strtoull(\brk{}str.c_str(), ptr,
+base)}。每个函数都返回转换后的结果（如果存在）。参数 \tcode{ptr} 指定指向函数内部对象的指针，
+该指针用于确定在 \tcode{*idx} 处存储何值。若函数不抛出异常且 \tcode{idx != nullptr}，
+则该函数在 \tcode{*idx} 中存储 \tcode{str} 中第一个未被转换的元素的索引。
+
+\pnum
+\returns
+转换后的结果。
+
+\pnum
+\throws
+若 \tcode{strtol}、\tcode{strtoul}、\tcode{strtoll} 或 \tcode{strtoull} 报告无法执行转换，
+则抛出 \tcode{invalid_argument}。若 \tcode{strtol}、\tcode{strtoul}、\tcode{strtoll} 或 \tcode{strtoull}
+将 \tcode{errno} 设为 \tcode{ERANGE}，或转换后的值超出返回类型可表示值的范围，则抛出 \tcode{out_of_range}。
+\end{itemdescr}
+
+\indexlibraryglobal{stof}%
+\indexlibraryglobal{stod}%
+\indexlibraryglobal{stold}%
+\begin{itemdecl}
+float stof(const string& str, size_t* idx = nullptr);
+double stod(const string& str, size_t* idx = nullptr);
+long double stold(const string& str, size_t* idx = nullptr);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+这些函数分别调用
+\tcode{strtof(str.c_str(), ptr)}、\tcode{strtod(str.c_str(), ptr)} 以及
+\tcode{strtold(\brk{}str.c_str(), ptr)}。每个函数返回转换结果（若存在）。参数 \tcode{ptr} 指定一个指向函数内部对象的指针，该指针用于确定在 \tcode{*idx} 处存储什么。若函数未抛出异常且 \tcode{idx != nullptr}，则该函数在 \tcode{*idx} 中存储 \tcode{str} 的第一个未转换元素的索引。
+
+\pnum
+\returns
+转换后的结果。
+
+\pnum
+\throws
+若 \tcode{strtof}、\tcode{strtod} 或 \tcode{strtold} 报告无法执行转换，则抛出 \tcode{invalid_argument}。若 \tcode{strtof}、\tcode{strtod} 或 \tcode{strtold} 将 \tcode{errno} 设置为 \tcode{ERANGE}，或者转换后的值超出返回类型可表示值的范围，则抛出 \tcode{out_of_range}。
+\end{itemdescr}
+
+\indexlibraryglobal{to_string}%
+\begin{itemdecl}
+string to_string(int val);
+string to_string(unsigned val);
+string to_string(long val);
+string to_string(unsigned long val);
+string to_string(long long val);
+string to_string(unsigned long long val);
+string to_string(float val);
+string to_string(double val);
+string to_string(long double val);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{format("\{\}", val)}.
+\end{itemdescr}
+
+\indexlibraryglobal{stoi}%
+\indexlibraryglobal{stol}%
+\indexlibraryglobal{stoul}%
+\indexlibraryglobal{stoll}%
+\indexlibraryglobal{stoull}%
+\begin{itemdecl}
+int stoi(const wstring& str, size_t* idx = nullptr, int base = 10);
+long stol(const wstring& str, size_t* idx = nullptr, int base = 10);
+unsigned long stoul(const wstring& str, size_t* idx = nullptr, int base = 10);
+long long stoll(const wstring& str, size_t* idx = nullptr, int base = 10);
+unsigned long long stoull(const wstring& str, size_t* idx = nullptr, int base = 10);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+前两个函数调用 \tcode{wcstol(str.c_str(), ptr, base)}，
+后三个函数分别调用 \tcode{wcstoul(str.c_str(), ptr, base)}、\tcode{wcstoll(str.c_str(), ptr, base)} 和 \tcode{wcstoull(\brk{}str.c_str(), ptr, base)}。每个函数返回转换后的结果（若存在）。参数 \tcode{ptr} 指定一个指向函数内部对象的指针，该对象用于确定在 \tcode{*idx} 处存储的内容。如果函数未抛出异常且 \tcode{idx != nullptr}，则函数将 \tcode{str} 中第一个未转换元素的下标存储到 \tcode{*idx} 中。
+
+\pnum
+\returns
+转换后的结果。
+
+\pnum
+\throws
+如果 \tcode{wcstol}、\tcode{wcstoul}、\tcode{wcstoll} 或 \tcode{wcstoull} 报告无法执行转换，则抛出 \tcode{invalid_argument}。如果转换后的值超出返回类型的可表示值范围，则抛出 \tcode{out_of_range}。
+\end{itemdescr}
+
+\indexlibraryglobal{stof}%
+\indexlibraryglobal{stod}%
+\indexlibraryglobal{stold}%
+\begin{itemdecl}
+float stof(const wstring& str, size_t* idx = nullptr);
+double stod(const wstring& str, size_t* idx = nullptr);
+long double stold(const wstring& str, size_t* idx = nullptr);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+这些函数分别调用 \tcode{wcstof(str.c\_str(), ptr)}、\tcode{wcstod(str.c\_str(), ptr)} 和 \tcode{wcstold(\brk{}str.c\_str(), ptr)}。每个函数返回转换结果，如果有的话。实参 \tcode{ptr} 指向函数内部用于确定在 \tcode{*idx} 处存储何物的对象的指针。如果该函数未抛出异常且 \tcode{idx != nullptr}，则该函数将 \tcode{str} 的首个未转换元素的下标存储于 \tcode{*idx}。
+
+\pnum
+\returns
+转换结果。
+
+\pnum
+\throws
+如果 \tcode{wcstof}、\tcode{wcstod} 或 \tcode{wcstold} 报告无法执行转换，则抛出 \tcode{invalid\_argument}。如果 \tcode{wcstof}、\tcode{wcstod} 或 \tcode{wcstold} 将 \tcode{errno} 设为 \tcode{ERANGE}，则抛出 \tcode{out\_of\_range}。
+\end{itemdescr}
+
+\indexlibraryglobal{to_wstring}%
+\begin{itemdecl}
+wstring to_wstring(int val);
+wstring to_wstring(unsigned val);
+wstring to_wstring(long val);
+wstring to_wstring(unsigned long val);
+wstring to_wstring(long long val);
+wstring to_wstring(unsigned long long val);
+wstring to_wstring(float val);
+wstring to_wstring(double val);
+wstring to_wstring(long double val);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{format(L"\{\}", val)}.
+\end{itemdescr}
+
+\rSec2[basic.string.hash]{哈希支持}
+
+\indexlibrarymember{hash}{basic_string}%
+\indexlibrarymember{hash}{string}%
+\indexlibrarymember{hash}{u8string}%
+\indexlibrarymember{hash}{u16string}%
+\indexlibrarymember{hash}{u32string}%
+\indexlibrarymember{hash}{wstring}%
+\begin{itemdecl}
+template<class A> struct hash<basic_string<char, char_traits<char>, A>>;
+template<class A> struct hash<basic_string<char8_t, char_traits<char8_t>, A>>;
+template<class A> struct hash<basic_string<char16_t, char_traits<char16_t>, A>>;
+template<class A> struct hash<basic_string<char32_t, char_traits<char32_t>, A>>;
+template<class A> struct hash<basic_string<wchar_t, char_traits<wchar_t>, A>>;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+若 \tcode{S} 属于这些字符串类型之一，
+\tcode{SV} 属于对应的字符串视图类型，且
+\tcode{s} 属于类型为 \tcode{S} 的对象，
+则 \tcode{hash<S>()(s) == hash<SV>()(SV(s))}。
+\end{itemdescr}
+
+\rSec2[basic.string.literals]{\tcode{basic_string} 字面量的后缀}
+
+\indexlibrarymember{operator""""s}{string}%
+\begin{itemdecl}
+constexpr string operator""s(const char* str, size_t len);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{string\{str, len\}}.
+\end{itemdescr}
+
+\indexlibrarymember{operator""""s}{u8string}%
+\begin{itemdecl}
+constexpr u8string operator""s(const char8_t* str, size_t len);
+\end{itemdecl}
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{u8string\{str, len\}}.
+\end{itemdescr}
+
+\indexlibrarymember{operator""""s}{u16string}%
+\begin{itemdecl}
+constexpr u16string operator""s(const char16_t* str, size_t len);
+\end{itemdecl}
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{u16string\{str, len\}}.
+\end{itemdescr}
+
+\indexlibrarymember{operator""""s}{u32string}%
+\begin{itemdecl}
+constexpr u32string operator""s(const char32_t* str, size_t len);
+\end{itemdecl}
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{u32string\{str, len\}}.
+\end{itemdescr}
+
+\indexlibrarymember{operator""""s}{wstring}%
+\begin{itemdecl}
+constexpr wstring operator""s(const wchar_t* str, size_t len);
+\end{itemdecl}
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{wstring\{str, len\}}.
+\end{itemdescr}
+
+\pnum
+\begin{note}
+相同的后缀 \tcode{s} 用于表示秒的 \tcode{chrono::duration} 字面量，但不存在冲突，因为持续时间后缀应用于数字，而字符串字面量后缀应用于字符数组字面量。
+\end{note}
+
+\rSec1[c.strings]{空终止序列工具}
+
+\rSec2[cstring.syn]{头文件 \tcode{<cstring>} 概要}
+
+\indexlibraryglobal{memchr}%
+\indexlibraryglobal{memcmp}%
+\indexlibraryglobal{memcpy}%
+\indexlibraryglobal{memmove}%
+\indexlibraryglobal{memset}%
+\indexlibraryglobal{size_t}%
+\indexlibraryglobal{strcat}%
+\indexlibraryglobal{strchr}%
+\indexlibraryglobal{strcmp}%
+\indexlibraryglobal{strcoll}%
+\indexlibraryglobal{strcpy}%
+\indexlibraryglobal{strcspn}%
+\indexlibraryglobal{strerror}%
+\indexlibraryglobal{strlen}%
+\indexlibraryglobal{strncat}%
+\indexlibraryglobal{strncmp}%
+\indexlibraryglobal{strncpy}%
+\indexlibraryglobal{strpbrk}%
+\indexlibraryglobal{strrchr}%
+\indexlibraryglobal{strspn}%
+\indexlibraryglobal{strstr}%
+\indexlibraryglobal{strtok}%
+\indexlibraryglobal{strxfrm}%
+\begin{codeblock}
+#define __STDC_VERSION_STRING_H__ 202311L
+
+namespace std {
+  using size_t = @\textit{见 \ref{support.types.layout}}@;                                            // 独立实现
+
+  void* memcpy(void* s1, const void* s2, size_t n);                     // 独立实现
+  void* memccpy(void* s1, const void* s2, int c, size_t n);             // 独立实现
+  void* memmove(void* s1, const void* s2, size_t n);                    // 独立实现
+  char* strcpy(char* s1, const char* s2);                               // 独立实现
+  char* strncpy(char* s1, const char* s2, size_t n);                    // 独立实现
+  char* strdup(const char* s);
+  char* strndup(const char* s, size_t size);
+  char* strcat(char* s1, const char* s2);                               // 独立实现
+  char* strncat(char* s1, const char* s2, size_t n);                    // 独立实现
+  int memcmp(const void* s1, const void* s2, size_t n);                 // 独立实现
+  int strcmp(const char* s1, const char* s2);                           // 独立实现
+  int strcoll(const char* s1, const char* s2);
+  int strncmp(const char* s1, const char* s2, size_t n);                // 独立实现
+  size_t strxfrm(char* s1, const char* s2, size_t n);
+  const void* memchr(const void* s, int c, size_t n);                   // 独立实现；见 \ref{library.c}
+  void* memchr(void* s, int c, size_t n);                               // 独立实现；见 \ref{library.c}
+  const char* strchr(const char* s, int c);                             // 独立实现；见 \ref{library.c}
+  char* strchr(char* s, int c);                                         // 独立实现；见 \ref{library.c}
+  size_t strcspn(const char* s1, const char* s2);                       // 独立实现
+  const char* strpbrk(const char* s1, const char* s2);                  // 独立实现；见 \ref{library.c}
+  char* strpbrk(char* s1, const char* s2);                              // 独立实现；见 \ref{library.c}
+  const char* strrchr(const char* s, int c);                            // 独立实现；见 \ref{library.c}
+  char* strrchr(char* s, int c);                                        // 独立实现；见 \ref{library.c}
+  size_t strspn(const char* s1, const char* s2);                        // 独立实现
+  const char* strstr(const char* s1, const char* s2);                   // 独立实现；见 \ref{library.c}
+  char* strstr(char* s1, const char* s2);                               // 独立实现；见 \ref{library.c}
+  char* strtok(char* s1, const char* s2);
+  void* memset(void* s, int c, size_t n);                               // 独立实现
+  void* memset_explicit(void* s, int c, size_t n);                      // 独立实现
+  char* strerror(int errnum);
+  size_t strlen(const char* s);                                         // 独立实现
+}
+
+#define NULL @\textit{见 \ref{support.types.nullptr}}@                                                // 独立实现
+\end{codeblock}
+
+\pnum
+头文件 \libheaderdef{cstring} 的内容和含义与 C 标准库头文件 \libheader{string.h} 相同。
+\pnum
+不要求函数 \tcode{strerror} 和 \tcode{strtok} 避免数据竞争\iref{res.on.data.races}。
+\pnum
+\indextext{signal-safe!\idxcode{memcpy}}%
+\indextext{signal-safe!\idxcode{memmove}}%
+函数 \tcode{memcpy} 和 \tcode{memmove} 是信号安全的\iref{support.signal}。
+这些函数中的每一个在复制字符序列到目标区域之前，都在目标存储区域中隐式创建对象\iref{intro.object}。
+这些函数中的每一个都返回指向适当创建的对象的指针（若有），否则返回第一个参数的值。
+
+\pnum
+\begin{note}
+函数
+\tcode{strchr}、\tcode{strpbrk}、\tcode{strrchr}、\tcode{strstr} 与 \tcode{memchr}
+在本文件中有不同的签名，
+但它们的行为与 C 标准库中的相同\iref{library.c}。
+\end{note}
+
+\xrefc{7.26}
+

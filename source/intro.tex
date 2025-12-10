@@ -1,0 +1,415 @@
+%!TEX root = std.tex
+
+\clearpage
+\bigskip\noindent\textlarger{\textbf{程序设计语言 --- \Cpp{}}}
+\bigskip\bigskip
+
+\begingroup
+\let\clearpage\relax
+
+\rSec0[intro.scope]{范围}
+\endgroup
+\copypagestyle{cpppageone}{cpppage}
+\makeoddhead{cpppageone}{\textbf{工作草案}}{}{\leaders\hrule height 2pt\hfill\kern0pt\\\textbf{\docno}}
+\makeheadrule{cpppageone}{\textwidth}{2pt}
+\thispagestyle{cpppageone}
+
+\pnum
+\indextext{scope|(}%
+本文件规定了\Cpp{}实现的要求，\Cpp{}是一种通用编程语言。
+首要要求就是：实现必须实现该语言，因此本文件也定义了\Cpp{}。
+对首要要求的其他要求和放宽出现在本文件的各个位置。
+\indextext{scope|)}
+
+\rSec0[intro.refs]{规范性引用文件}%
+\indextext{规范性引用文件|see{references, normative}}%
+
+\pnum
+\indextext{references!normative|(}%
+下列文件通过文中引用，使其部分或全部内容构成本文件的要求。对于注日期的引用文件，仅所引版本适用；对于未注日期的引用文件，其最新版本（包括任何修订）适用。
+\begin{itemize}
+% ISO 文件按数字顺序排列。
+\item ISO/IEC 2382, \doccite{信息技术——词汇}
+\item ISO 8601-1:2019, \doccite{日期和时间——信息交换用表示法——第1部分：基本规则}
+\item \IsoC{}, \doccite{信息技术——编程语言——C}
+\item \IsoPosix{}, \doccite{信息技术——可移植操作系统接口（POSIX\textregistered）\begin{footnote}
+POSIX\textregistered\ 是电气与电子工程师协会的注册商标。
+提供此信息仅为方便本文件使用者，并不构成ISO或IEC对该产品的认可。
+\end{footnote}
+基本规范，第7版}
+\item \IsoPosix{}/Cor 1:2013, \doccite{信息技术——可移植操作系统接口
+（POSIX\textregistered）基本规范，第7版——技术勘误1}
+\item \IsoPosix{}/Cor 2:2017, \doccite{信息技术——可移植操作系统接口
+（POSIX\textregistered）基本规范，第7版——技术勘误2}
+\item \IsoFloatUndated{}:2020, \doccite{信息技术——微处理器系统——浮点运算}
+\item ISO 80000-2:2019, \doccite{量和单位——第2部分：数学}
+% 其他国际标准。
+\item Ecma International, \doccite{ECMAScript
+\begin{footnote}
+ECMAScript\textregistered\ 是 Ecma International 的注册商标。
+提供此信息仅为方便本文件使用者，并不构成ISO或IEC对该产品的认可。
+\end{footnote}
+语言规范},
+标准Ecma-262，第3版，1999年。
+\item
+Unicode联盟。 \doccite{Unicode标准}, 版本15.1。
+获取地址：\url{https://www.unicode.org/versions/Unicode15.1.0/}
+\end{itemize}
+\indextext{references!normative|)}
+
+\definition{signature}{defns.signature.templ.friend}
+\defncontext{带涉及外围模板参数的约束的友元函数模板}
+名称，
+参数类型列表，
+返回类型，
+封闭类，
+\grammarterm{模板头部}的\termref{defns.signature.template.head}{signature}{}，
+以及
+尾随 \grammarterm{requires-clause}（若有）
+
+\indexdefn{signature}%
+\definition{signature}{defns.signature.spec}
+\defncontext{函数模板特化}其模板\termref{defns.signature.templ}{signature}{}及模板实参（无论显式指定还是推导所得）
+
+\indexdefn{signature}%
+\definition{signature}{defns.signature.member}
+\defncontext{类成员函数}
+名称，
+参数类型列表，
+函数所属类，
+\cv 限定符（若有），
+\grammarterm{ref-qualifier}（若有），
+以及
+尾随 \grammarterm{requires-clause}（若有）
+
+\indexdefn{signature}%
+\definition{signature}{defns.signature.member.templ}
+\defncontext{类成员函数模板}
+名称，
+参数类型列表，
+函数所属类，
+\cv 限定符（若有），
+\grammarterm{ref-qualifier}（若有），
+返回类型（若有），
+\grammarterm{模板头部}的\termref{defns.signature.template.head}{signature}{}，
+以及
+尾随 \grammarterm{requires-clause}（若有）
+
+\indexdefn{signature}%
+\definition{signature}{defns.signature.member.spec}
+\defncontext{类成员函数模板特化}其成员函数模板\termref{defns.signature.member.templ}{signature}{}及模板实参（无论显式指定还是推导所得）
+
+\indexdefn{signature}%
+\definition{signature}{defns.signature.template.head}
+\defncontext{\grammarterm{模板头部}}
+模板形参列表，
+不含模板参数名及默认实参，
+以及
+\grammarterm{requires-clause}（若有）
+
+\definition{stable algorithm}{defns.stable}
+\defncontext{库}
+\indexdefn{algorithm!stable}%
+\indexdefn{stable algorithm}%
+在适当情况下保持元素顺序的算法
+
+\begin{defnote}
+稳定算法的要求见 \ref{algorithm.stable}。
+\end{defnote}
+
+\indexdefn{type!static}%
+\definition{static type}{defns.static.type}
+通过分析程序而不考虑执行语义得到的表达式类型
+
+\begin{defnote}
+表达式的静态类型仅依赖于其所在程序的形式，在程序执行期间不变。
+\end{defnote}
+
+\definition{sub-expression}{defns.regex.subexpression}
+\defncontext{正则表达式}
+\indexdefn{sub-expression!regular expression}%
+由圆括号标记的正则表达式子集
+
+\definition{traits class}{defns.traits}
+\defncontext{库}
+\indexdefn{traits}%
+封装一组类型和函数的类，供类模板和函数模板实例化时操作相应类型的对象
+
+\indexdefn{unblock}%
+\definition{unblock}{defns.unblock}
+满足一个或多个被\termref{defns.block}{block}{}的执行线程正在等待的条件
+
+\indexdefn{behavior!undefined}%
+\definition{undefined behavior}{defns.undefined}
+本文档未规定的行为
+
+\begin{defnote}
+当本文档省略行为明确定义，或程序使用不正确构造或无效数据时，可能出现未定义行为。
+允许的未定义行为范围
+从完全忽略该情形并产生不可预测结果，
+到在翻译或程序执行期间以环境特有的文档化方式表现（无论是否发出\termref{defns.diagnostic}{诊断消息}{}），
+直至终止翻译或执行（并发出诊断消息）。许多不正确的程序构造不会引发未定义行为；它们必须被诊断。
+常量表达式求值\iref{expr.const}永远不会表现出在\ref{intro}至\ref{\lastcorechapter}中被明确指定为未定义的行为。
+\end{defnote}
+
+\indexdefn{behavior!unspecified}%
+\definition{unspecified behavior}{defns.unspecified}
+对于\termref{defns.well.formed}{良构程序}{}构造和正确数据，行为依赖于实现
+
+\begin{defnote}
+实现无需记录发生何种行为。可能的行为范围通常由本文档划定。
+\end{defnote}
+
+\definition{valid but unspecified state}{defns.valid}
+\defncontext{库}
+\indexdefn{valid but unspecified state}%
+对象所处的值未作规定，但对象不变量得以满足，且对其执行的操作按类型的规定行为
+
+\begin{example}
+若类型为 \tcode{std::vector<int>} 的对象 \tcode{x} 处于合法但未规定的状态，可无门槛调用 \tcode{x.empty()}，且仅当 \tcode{x.empty()} 返回 \tcode{false} 时才可调用 \tcode{x.front()}。
+\end{example}
+
+\indexdefn{program!well-formed}%
+\definition{well-formed program}{defns.well.formed}
+依据语法和语义规则构造的 \Cpp{} 程序
+\indextext{definitions|)}
+
+\rSec1[intro.compliance]{实现合规}%
+\indextext{诊断消息|见{message, diagnostic}}%
+\indexdefn{有条件支持的行为|见{behavior, con\-ditionally-supported}}%
+\indextext{动态类型|见{type, dynamic}}%
+\indextext{静态类型|见{type, static}}%
+\indextext{畸形程序|见{program, ill-formed}}%
+\indextext{良构程序|见{program, well-formed}}%
+\indextext{实现定义的行为|见{behavior, im\-plementation-defined}}%
+\indextext{未定义行为|见{behavior, undefined}}%
+\indextext{未指明行为|见{behavior, unspecified}}%
+\indextext{实现限制|见{limits, implementation}}%
+\indextext{本地化特定行为|见{behavior, locale-spe\-cific}}%
+\indextext{多字节字符|见{character, multibyte}}%
+\indextext{对象|亦见{object model}}%
+\indextext{子对象|亦见{object model}}%
+\indextext{派生类!最|见{most derived class}}%
+\indextext{派生对象!最|见{most derived object}}%
+\indextext{程序执行!如同规则|见{as-if rule}}%
+\indextext{可观察行为|见{behavior, observable}}%
+\indextext{运算符优先级|见{operator, precedence of}}%
+\indextext{表达式求值顺序|见{expression, order of evaluation of}}%
+\indextext{多线程|见{threads, multiple}}%
+
+\rSec2[intro.compliance.general]{概述}
+
+\pnum
+\indextext{符合性要求|(}%
+\indextext{符合性要求!一般|(}%
+本文件中的\defn{可诊断规则}集包含所有语法和语义规则，但那些包含显式注明“不需要诊断”或描述为导致“未定义行为”的规则除外。
+
+\pnum
+\indextext{符合性要求!描述方法}%
+尽管本文件仅规定了对\Cpp{}实现的要求，但若将这些要求表述为对程序、程序部分或程序执行的要求，则通常更易于理解。此类要求具有以下含义：
+\begin{itemize}
+\item
+如果程序不违反\ref{lex}至\ref{\lastlibchapter}以及\ref{depr}中规定的规则，则符合性实现应当接受并正确执行\begin{footnote}
+“正确执行”可以包含未定义行为和错误行为，具体取决于正在处理的数据；见\ref{intro.defs}和~\ref{intro.execution}。
+\end{footnote}该程序，除非超过实现的限制（见下文）。
+
+\item
+\indextext{行为!未定义}%
+如果程序违反了某个不要求诊断的规则，则本文件不对实现就该程序提出要求。
+
+\item
+\indextext{消息!诊断}%
+\indextext{契约求值语义!检查}%
+\indextext{契约求值语义!终止}%
+否则，如果程序包含
+\begin{itemize}
+\item
+任何可诊断规则的违反、
+\item
+带有\tcode{\#warning}预处理指令\iref{cpp.error}的预处理翻译单元、
+\item
+本文件中描述为“有条件支持”的构造，而实现不支持该构造的出现、或
+\item
+在明显常量求值上下文\iref{expr.const}中以检查语义求值的契约断言\iref{basic.contract.eval}导致契约违反，
+\end{itemize}
+则符合性实现应当发出至少一条诊断消息。
+\end{itemize}
+\begin{note}
+在模板实参推导和替换期间，其他上下文中需要诊断的某些构造会被不同对待；
+见~\ref{temp.deduct}。
+\end{note}
+此外，符合性实现不应接受
+\begin{itemize}
+\item
+包含\tcode{\#error}预处理指令\iref{cpp.error}的预处理翻译单元、
+\item
+带有失败的\grammarterm{static_assert声明}\iref{dcl.pre}的翻译单元、或
+\item
+在明显常量求值上下文\iref{expr.const}中以终止语义求值的契约断言\iref{basic.contract.eval}导致契约违反。
+\end{itemize}
+
+\pnum
+\indextext{符合性要求!库|(}%
+\indextext{符合性要求!类}%
+\indextext{符合性要求!类模板}%
+对于类和类模板，库条款规定了部分定义。私有成员\iref{class.access}未被规定，但每个实现应当根据库条款中的描述提供它们以完成定义。
+
+\pnum
+对于函数、函数模板、对象和值，库条款规定了声明。实现应当提供与库条款中的描述一致的定义。
+
+\pnum
+\Cpp{}翻译单元\iref{lex.phases}通过包含适当的标准库头文件或导入适当的标准库命名头单元\iref{using.headers}来获得对库中定义的名字的访问。
+
+\pnum
+库中的模板、类、函数和对象具有外部链接\iref{basic.link}。实现为标准库实体提供定义（必要时），同时将翻译单元组合以形成完整的\Cpp{}程序\iref{lex.phases}。%
+\indextext{符合性要求!库|)}
+
+\pnum
+实现要么是\defnadj{托管}{实现}，要么是\defnadj{独立}{实现}。独立实现是无需操作系统支持即可执行的实现。托管实现支持本文件描述的所有设施，而独立实现支持\ref{lex}至\ref{\lastcorechapter}描述的整个\Cpp{}语言以及\ref{compliance}描述的库设施子集。
+
+\pnum
+实现是否为\defnadj{硬化}{实现}是\impldef{实现是否为硬化实现}。如果是硬化实现，违反加固前提条件会导致契约违反\iref{structure.specifications}。
+
+\pnum
+鼓励实现尽可能且在已知的情况下记录其能够成功处理的程序在大小或复杂度上的限制。
+\ref{implimits}列出了一些可能受到限制的量以及每个量的潜在最小支持值。
+
+\pnum
+符合性实现可以使用比\ref{intro.refs}引用的版本更晚的实现定义版本的Unicode标准。
+
+\pnum
+符合性实现可以有扩展（包括额外的库函数），前提是它们不改变任何良构程序的行为。实现需要诊断使用了此类扩展且根据本文件属于非良构的程序。在诊断之后，它们可以编译和执行此类程序。
+
+\pnum
+每个实现应当包含文档，标识其不支持的所有有条件支持构造\indextext{行为!有条件支持}并定义所有区域特定的特性。
+\begin{footnote}
+此文档也定义了实现定义行为；
+见~\ref{intro.abstract}。
+\end{footnote}
+\indextext{符合性要求!一般|)}%
+\indextext{符合性要求|)}%
+
+\rSec2[intro.abstract]{抽象机}
+
+\pnum
+\indextext{program execution|(}%
+\indextext{program execution!abstract machine}%
+本文档中的语义描述定义了一台参数化的非确定性抽象机。本文档对符合标准的实现结构不作任何要求。特别是，它们无需复制或模拟抽象机的结构。
+\indextext{as-if rule}%
+\indextext{behavior!observable}%
+相反，符合标准的实现只需模拟（且仅需模拟）抽象机的可观察行为，如下所述。
+\begin{footnote}
+这一规定有时称为“as-if”规则，因为实现可忽略本文档的任何要求，只要从程序的可观察行为能够判断，其结果\emph{如同}已遵守该要求。例如，若实现能推断出某部分表达式的值未被使用，且不会产生任何
+\indextext{side effects}%
+影响程序可观察行为的副作用，则无需对该部分求值。
+\end{footnote}
+
+\pnum
+\indextext{behavior!implementation-defined}%
+本文档将抽象机的某些方面和操作描述为实现定义行为（例如
+\tcode{sizeof(int)}）。这些构成了抽象机的参数。每个实现必须附带文档，说明其在这些方面的特性和行为。
+\begin{footnote}
+该文档还应包含有条件支持的构造和本地化特定行为。
+见~\ref{intro.compliance.general}。
+\end{footnote}
+该文档应定义与该实现对应的抽象机实例（下文称“对应实例”）。
+
+\pnum
+\indextext{behavior!unspecified}%
+本文档将抽象机的另一些方面和操作描述为未指定行为（例如
+函数调用中实参的求值顺序\iref{expr.call}）。只要可能，本文档会给出允许的若干行为。这些定义了抽象机的非确定性方面。因此，对于同一程序、同一输入，抽象机实例可能存在多种执行路径。
+
+\pnum
+\indextext{behavior!undefined}%
+本文档将另一些操作描述为
+未定义行为（例如
+试图修改 const 对象的效果）。
+
+\pnum
+程序执行中的某些事件称为 \defnadj{可观察}{检查点}。
+\begin{note}
+调用 \tcode{std::observable_checkpoint}\iref{utility.undefined}
+是一个可观察检查点，
+契约断言求值的某些部分也是\iref{basic.contract}。
+\end{note}
+
+\pnum
+\indextext{program!well-formed}%
+\indextext{behavior!observable}%
+一次执行的 \defnadj{已定义}{前缀} 由所有操作 $O$ 组成，使得对于每个未定义操作 $U$，都存在一个可观察检查点 $C$，满足 $O$ happens before $C$ 且 $C$ happens before $U$。
+
+\begin{note}
+数据竞争导致的未定义行为\iref{intro.races}
+会波及所有参与线程。
+\end{note}
+
+符合标准的实现执行良构程序时，必须产生对应抽象机实例（同一程序、同一输入）的某一可能执行的已定义前缀的可观察行为。
+\indextext{behavior!undefined}%
+若所选执行包含未定义操作，则实现此后可产生任意附加可观察行为。若执行包含被指定为错误行为的操作，实现可发出诊断，并可在该操作之后的某个未指定时刻终止执行。
+
+\pnum
+\recommended
+实现应在执行此类操作时发出诊断。
+\begin{note}
+若实现根据实现特定的程序行为假设，能断定错误行为可达，则可发出诊断，这可能产生误报。
+\end{note}
+
+\pnum
+\indextext{conformance requirements}%
+程序的可观察行为由以下事项确定：
+\begin{itemize}
+\item
+通过 volatile 泛左值的访问必须严格按照抽象机规则求值。
+\item
+数据被提交到宿主环境，写入文件（\xrefc{7.23.3}）。
+
+\begin{note}
+提交数据后会伴随一个可观察检查点\iref{cstdio.syn}。
+并非所有宿主环境都在程序终止前允许访问文件内容。
+\end{note}
+
+\item
+交互式设备的输入输出必须保证提示输出真正先于程序等待输入而完成。何为交互式设备由
+\impldef{interactive device}。
+\end{itemize}
+
+\begin{note}
+实现可自行定义抽象语义与实际语义之间更严格的对应关系。
+\end{note}
+\indextext{program execution|)}%
+
+\rSec1[intro.structure]{本文档的结构}
+
+\pnum
+\indextext{standard!structure of|(}%
+\indextext{standard!structure of}%
+\ref{lex} 至 \ref{\lastcorechapter} 描述了 \Cpp{} 编程语言。该描述包括以~\ref{syntax} 所述形式给出的详细语法规范。为方便起见，\ref{gram} 重复了所有这些语法规范。
+
+\pnum
+\ref{\firstlibchapter} 至 \ref{\lastlibchapter} 以及 \ref{depr}（即\defn{库条款}）描述了 \Cpp{} 标准库。该描述包括以 \ref{library} 所述形式给出的构成库的实体和宏的详细说明。
+
+\pnum
+\ref{implimits} 推荐了符合实现应满足的容量下限。
+
+\pnum
+\ref{diff} 总结了自 \Cpp{} 首次发布描述以来的演进历程，并详细解释了 \Cpp{} 与 C\@ 之间的差异。\Cpp{} 的某些特性仅出于兼容性目的而存在；\ref{depr} 描述了这些特性。
+\indextext{standard!structure of|)}
+
+\pnum
+\indextext{notation!syntax|(}%
+本文档使用的语法表示法中，语法类别以\fakegrammarterm{italic, sans-serif}字体表示，而文字单词和字符则以\tcode{constant} \tcode{width}字体表示。替代项列在单独行上，除非在少数情况下，一长组替代项会用短语“one of”标记。若替代项文本过长无法容纳于一行，则文本会在后续行继续，并从首行起缩进。可选终结符或非终结符符号由下标“\opt{\relax}”指示，因此
+\begin{ncbnf}
+\terminal{\{} \opt{expression} \terminal{\}}
+\end{ncbnf}
+表示由大括号括起的可选表达式。%
+
+\pnum
+语法类别的名称通常按以下规则选择：
+\begin{itemize}
+\item \fakegrammarterm{X-name}是在确定其含义的上下文中使用的标识符（例如\grammarterm{class-name}、\grammarterm{typedef-name}）。
+\item \fakegrammarterm{X-id}是不依赖上下文的标识符（例如\grammarterm{qualified-id}）。
+\item \fakegrammarterm{X-seq}是一个或多个无分隔符的\fakegrammarterm{X}（例如\grammarterm{declaration-seq}即\grammarterm{declaration}的序列）。
+\item \fakegrammarterm{X-list}是一个或多个由逗号分隔的\fakegrammarterm{X}（例如\grammarterm{identifier-list}即由逗号分隔的\grammarterm{identifier}序列）。
+\end{itemize}%
+\indextext{notation!syntax|)}
+

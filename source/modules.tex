@@ -1,0 +1,956 @@
+%!TEX root = std.tex
+\rSec0[module]{模块}%
+
+\gramSec[gram.module]{模块}
+
+\rSec1[module.unit]{模块单元与作用域}
+
+\begin{bnf}
+\nontermdef{module-declaration}\br
+    \opt{export-keyword} module-keyword module-name \opt{module-partition} \opt{attribute-specifier-seq} \terminal{;}
+\end{bnf}
+
+\begin{bnf}
+\nontermdef{module-name}\br
+    \opt{module-name-qualifier} identifier
+\end{bnf}
+
+\begin{bnf}
+\nontermdef{module-partition}\br
+    \terminal{:} \opt{module-name-qualifier} identifier
+\end{bnf}
+
+\begin{bnf}
+\nontermdef{module-name-qualifier}\br
+    identifier \terminal{.}\br
+    module-name-qualifier identifier \terminal{.}
+\end{bnf}
+
+\pnum
+\defn{模块单元}是包含 \grammarterm{module-declaration} 的翻译单元。
+\defnadj{命名}{模块}是具有相同 \grammarterm{module-name} 的模块单元的集合。
+标识符 \tcode{module} 与 \tcode{import} 不应在 \grammarterm{module-name} 或 \grammarterm{module-partition} 中作为 \grammarterm{identifier} 出现。
+\indextext{模块!保留名称}%
+所有以由 \tcode{std} 后接零个或多个 \grammarterm{digit} 组成的 \grammarterm{identifier} 开头，或包含保留标识符\iref{lex.name} 的 \grammarterm{module-name} 均被保留，不应在 \grammarterm{module-declaration} 中指定；不要求诊断。
+若某个保留的 \grammarterm{module-name} 中任一个 \grammarterm{identifier} 是保留标识符，则该模块名称保留供 \Cpp{} 实现使用；否则保留用于未来标准化。
+可选的 \grammarterm{attribute-specifier-seq} 归属于 \grammarterm{module-declaration}。
+
+\pnum
+\defn{模块接口单元}是其 \grammarterm{module-declaration} 以 \grammarterm{export-keyword} 开头的模块单元；任何其他模块单元是 \defn{模块实现单元}。
+命名模块应恰好包含一个不含 \grammarterm{module-partition} 的模块接口单元，称为该模块的 \defn{主模块接口单元}；不要求诊断。
+
+\pnum
+\defn{模块分区}是其 \grammarterm{module-declaration} 包含 \grammarterm{module-partition} 的模块单元。
+命名模块不应包含多个具有相同 \grammarterm{module-partition} 的模块分区。
+一个模块中所有作为模块接口单元的模块分区，均应由主模块接口单元直接或间接导出\iref{module.import}。
+违反这些规则不要求诊断。
+\begin{note}
+模块分区只能由同一模块中的其他模块单元导入。
+模块划分为模块单元的情况在模块外部不可见。
+\end{note}
+
+\pnum
+\begin{example}
+\begin{codeblocktu}{翻译单元 \#1}
+export module A;
+export import :Foo;
+export int baz();
+\end{codeblocktu}
+
+\begin{codeblocktu}{翻译单元 \#2}
+export module A:Foo;
+import :Internals;
+export int foo() { return 2 * (bar() + 1); }
+\end{codeblocktu}
+
+\begin{codeblocktu}{翻译单元 \#3}
+module A:Internals;
+int bar();
+\end{codeblocktu}
+
+\begin{codeblocktu}{翻译单元 \#4}
+module A;
+import :Internals;
+int bar() { return baz() - 10; }
+int baz() { return 30; }
+\end{codeblocktu}
+
+模块 \tcode{A} 包含四个翻译单元：
+\begin{itemize}
+\item 一个主模块接口单元，
+\item 一个模块分区 \tcode{A:Foo}，它是构成模块 \tcode{A} 接口一部分的模块接口单元，
+\item 一个模块分区 \tcode{A:Internals}，它不贡献于模块 \tcode{A} 的外部接口，以及
+\item 一个提供 \tcode{bar} 和 \tcode{baz} 定义的模块实现单元，该单元因其无分区名称而不可被导入。
+\end{itemize}
+\end{example}
+
+\pnum
+\defnadj{模块单元}{purview} 是从 \grammarterm{module-declaration} 开始并延伸到翻译单元末尾的 \grammarterm{token} 序列。
+命名模块 \tcode{M} 的 \defnx{purview}{purview!命名模块} 是 \tcode{M} 的模块单元的模块单元 purview 的集合。
+
+\pnum
+\defnadj{全局}{模块} 是所有 \grammarterm{global-module-fragment} 及所有非模块单元的翻译单元的集合。
+出现在此上下文中的声明称为属于全局模块的 \defnx{purview}{purview!全局模块}。
+\begin{note}
+全局模块无名，无模块接口单元，且不由任何 \grammarterm{module-declaration} 引入。
+\end{note}
+
+\pnum
+\defn{模块}指命名模块或全局模块。
+声明按以下方式 \defnx{attached}{attached!声明} 于某个模块：
+\begin{itemize}
+\item
+若该声明是一个非依赖友元声明，且指名了一个函数，其 \grammarterm{declarator-id} 是 \grammarterm{qualified-id} 或 \grammarterm{template-id}，或指名了一个类，且非使用既无 \grammarterm{nested-name-specifier} 也无 \grammarterm{simple-template-id} 的 \grammarterm{elaborated-type-specifier}，则它附属于此友元所附属的模块\iref{basic.link}。
+\item 否则，若该声明
+\begin{itemize}
+\item 声明了具有外部链接的名称的名字空间，
+\item 声明了类型别名，
+\item 声明了名字空间别名，或
+\item 出现在 \grammarterm{linkage-specification}\iref{dcl.link} 中
+\end{itemize}
+则它附属于全局模块。
+
+\item 否则，该声明附属于其出现的作用域所属的模块。
+\end{itemize}
+
+\pnum
+既不包含 \grammarterm{export-keyword} 也不包含 \grammarterm{module-partition} 的 \grammarterm{module-declaration} 会隐式导入该模块的主模块接口单元，如同通过一条 \grammarterm{module-import-declaration}。
+\begin{example}
+\begin{codeblocktu}{翻译单元 \#1}
+module B:Y;                     // 不隐式导入 \tcode{B}
+int y();
+\end{codeblocktu}
+
+\begin{codeblocktu}{翻译单元 \#2}
+export module B;
+import :Y;                      // OK，不创建接口依赖环
+int n = y();
+\end{codeblocktu}
+
+\begin{codeblocktu}{翻译单元 \#3}
+module B:X1;                    // 不隐式导入 \tcode{B}
+int &a = n;                     // 错误：\tcode{n} 在此不可见
+\end{codeblocktu}
+
+\begin{codeblocktu}{翻译单元 \#4}
+module B:X2;                    // 不隐式导入 \tcode{B}
+import B;
+int &b = n;                     // OK
+\end{codeblocktu}
+
+\begin{codeblocktu}{翻译单元 \#5}
+module B;                       // 隐式导入 \tcode{B}
+int &c = n;                     // OK
+\end{codeblocktu}
+\end{example}
+
+\rSec1[module.interface]{导出声明}%
+
+\begin{bnf}
+\nontermdef{export-declaration}\br
+    \keyword{export} 名称声明\br
+    \keyword{export} \terminal{\{} \opt{declaration-seq} \terminal{\}}\br
+    export-keyword 模块导入声明
+\end{bnf}
+
+\pnum
+一个 \grammarterm{export-declaration} 应位于一个名字空间作用域，并出现在一个模块接口单元的作用域内。
+一个 \grammarterm{export-declaration} 不应直接或间接地出现在一个未命名名字空间或一个 \grammarterm{private-module-fragment} 内。
+一个 \grammarterm{export-declaration} 具有其
+\grammarterm{name-declaration}、
+\grammarterm{declaration-seq}（如果有）或
+\grammarterm{module-import-declaration} 的声明性效果。
+一个 \grammarterm{export-declaration} 的 \grammarterm{name-declaration} 不应声明一个部分特化\iref{temp.decls.general}。
+一个 \grammarterm{export-declaration} 的
+\grammarterm{declaration-seq}
+不应包含一个 \grammarterm{export-declaration} 或
+\grammarterm{module-import-declaration}。
+\begin{note}
+一个 \grammarterm{export-declaration} 并不建立作用域。
+\end{note}
+
+\pnum
+如果一个声明在一个 \grammarterm{export-declaration} 内声明且位于名字空间作用域，或它是
+\begin{itemize}
+\item 一个包含导出声明的 \grammarterm{namespace-definition}，或
+\item 一个头单元\iref{module.import} 中引入至少一个名称的声明。
+\end{itemize}
+则该声明是 \defnx{被导出的}{declaration!exported}。
+
+\pnum
+如果一个被导出的声明不在一个头单元内，则它不应声明一个具有内部链接的名称。
+
+\pnum
+\begin{example}
+\begin{codeblocktu}{源文件 \tcode{"a.h"}}
+export int x;
+\end{codeblocktu}
+
+\begin{codeblocktu}{翻译单元 \#1}
+module;
+#include "a.h"                  // 错误：\tcode{x} 的声明不在
+                                // 模块接口单元的作用域内
+export module M;
+export namespace {}             // 错误：名字空间具有内部链接
+namespace {
+  export int a2;                // 错误：导出了具有内部链接的名称
+}
+export static int b;            // 错误：b 被显式声明为 \keyword{static}
+export int f();                 // OK
+export namespace N { }          // OK
+export using namespace N;       // OK
+\end{codeblocktu}
+\end{example}
+
+\pnum
+如果一个被导出的声明是一个 \grammarterm{using-declaration}\iref{namespace.udecl}
+且不在一个头单元内，则所有由
+\grammarterm{using-declarator}{s}（如果有）命名的实体要么是一个类型别名，
+要么曾用一个具有外部链接的名称引入。
+\begin{example}
+\begin{codeblocktu}{源文件 \tcode{"b.h"}}
+int f();
+\end{codeblocktu}
+
+\begin{codeblocktu}{可导入头文件 \tcode{"c.h"}}
+int g();
+\end{codeblocktu}
+
+\begin{codeblocktu}{翻译单元 \#1}
+export module X;
+export int h();
+\end{codeblocktu}
+
+\begin{codeblocktu}{翻译单元 \#2}
+module;
+#include "b.h"
+export module M;
+import "c.h";
+import X;
+export using ::f, ::g, ::h;     // OK
+struct S;
+export using ::S;               // 错误：\tcode{S} 具有模块链接
+namespace N {
+  export int h();
+  static int h(int);            // \#1
+}
+export using N::h;              // 错误：\#1 具有内部链接
+\end{codeblocktu}
+\end{example}
+\begin{note}
+被导出类型别名的底层实体不需要有一个具有外部链接的名称。
+\begin{example}
+\begin{codeblock}
+export module M;
+struct S;
+export using T = S;             // OK，导出名称 \tcode{T} 代表类型 \tcode{S}
+\end{codeblock}
+\end{example}
+\end{note}
+
+\pnum
+一个实体 $X$ 的重声明
+是隐式导出的，
+如果 $X$ 曾由一个被导出的声明引入；
+否则它不应被导出，
+除非它是一个类型别名、一个名字空间或一个名字空间别名。
+\begin{example}
+\begin{codeblock}
+export module M;
+struct S { int n; };
+typedef S S;
+export typedef S S;             // OK
+export struct S;                // 错误：被导出的声明跟在非导出的声明之后
+namespace N {                   // 外部链接，附属于全局模块，未导出
+  void f();
+}
+namespace N {                   // OK，导出名字空间重声明非导出名字空间
+  export void g();
+}
+\end{codeblock}
+\end{example}
+
+\pnum
+\begin{note}
+由被导出的声明引入的名称
+要么具有外部链接，要么没有链接；见 \ref{basic.link}。
+模块导出的名字空间作用域声明可以通过名称查找在导入该模块的任何翻译单元中找到\iref{basic.lookup}。
+类和枚举成员名称可以通过名称查找在类型的定义可达的任何上下文中找到。
+\end{note}
+\begin{example}
+\begin{codeblocktu}{ \tcode{M} 的接口单元 }
+export module M;
+export struct X {
+  static void f();
+  struct Y { };
+};
+
+namespace {
+  struct S { };
+}
+export void f(S);               // OK
+struct T { };
+export T id(T);                 // OK
+
+export struct A;                // \tcode{A} 作为不完整类型导出
+
+export auto rootFinder(double a) {
+  return [=](double x) { return (x + a/x)/2; };
+}
+
+export const int n = 5;         // OK，\tcode{n} 具有外部链接
+\end{codeblocktu}
+
+\begin{codeblocktu}{ \tcode{M} 的实现单元 }
+module M;
+struct A {
+  int value;
+};
+\end{codeblocktu}
+
+\begin{codeblocktu}{主程序}
+import M;
+int main() {
+  X::f();                       // OK，\tcode{X} 被导出且 \tcode{X} 的定义可达
+  X::Y y;                       // OK，\tcode{X::Y} 作为完整类型导出
+  auto f = rootFinder(2);       // OK
+  return A{45}.value;           // 错误：\tcode{A} 不完整
+}
+\end{codeblocktu}
+\end{example}
+
+\pnum
+\begin{note}
+在被导出的 \grammarterm{namespace-definition}
+或一个被导出的 \grammarterm{linkage-specification}\iref{dcl.link} 中的声明是被导出的，并遵从关于被导出声明的规则。
+\begin{example}
+\begin{codeblock}
+export module M;
+int g;
+export namespace N {
+  int x;                        // OK
+  using ::g;                    // 错误：\tcode{::g} 具有模块链接
+}
+\end{codeblock}
+\end{example}
+\end{note}
+
+\rSec1[module.import]{导入声明}%
+
+\begin{bnf}
+\nontermdef{module-import-declaration}\br
+    import-keyword module-name \opt{attribute-specifier-seq} \terminal{;}\br
+    import-keyword module-partition \opt{attribute-specifier-seq} \terminal{;}\br
+    import-keyword header-name \opt{attribute-specifier-seq} \terminal{;}
+\end{bnf}
+
+\pnum
+\grammarterm{module-import-declaration} 应当位于全局名字空间作用域。
+在模块单元中，所有 \grammarterm{module-import-declaration} 以及导出的 \grammarterm{module-import-declaration} 的 \grammarterm{export-declaration} 应当出现在该 \grammarterm{translation-unit} 的 \grammarterm{declaration-seq} 以及（可能存在的） \grammarterm{private-module-fragment} 中所有其它 \grammarterm{declaration} 之前。
+可选的 \grammarterm{attribute-specifier-seq} 依附于该 \grammarterm{module-import-declaration}。
+
+\pnum
+一个 \grammarterm{module-import-declaration} \defnx{导入}{import} 一组如下文所确定的翻译单元。
+\begin{note}
+被导入翻译单元导出的名字空间作用域声明可以通过在导入翻译单元中进行名字查找\iref{basic.lookup}来找到，
+并且导入翻译单元内的声明在导入声明之后在导入翻译单元中变为可达\iref{module.reach}。
+\end{note}
+
+\pnum
+指定了 \grammarterm{module-name} \tcode{M} 的 \grammarterm{module-import-declaration} 导入 \tcode{M} 的所有模块接口单元。
+
+\pnum
+指定了 \grammarterm{module-partition} 的 \grammarterm{module-import-declaration} 应当仅出现在某个模块 \tcode{M} 的模块单元中的 \grammarterm{module-declaration} 之后。
+这样的声明导入 \tcode{M} 的以此命名的模块分区。
+
+\pnum
+指定了 \grammarterm{header-name} \tcode{H} 的 \grammarterm{module-import-declaration} 导入一个合成 \defn{头文件单元}，
+该头文件单元是通过对由 \tcode{H} 所指定的源文件或头文件应用翻译的阶段 1 到 7\iref{lex.phases} 而形成的翻译单元，
+且该头文件单元不得含有 \grammarterm{module-declaration}。
+\begin{note}
+头文件单元是一个具有独立宏定义的独立翻译单元。
+头文件单元内的所有声明都隐式地被导出\iref{module.interface}，并且依附于全局模块\iref{module.unit}。
+\end{note}
+一个 \defnadj{可导入}{头文件} 属于由 \impldef{how the set of importable headers is determined} 确定的头文件集合的一员，该集合包括所有可导入的 \Cpp{} 库头文件\iref{headers}。
+\tcode{H} 应当标识一个可导入的头文件。
+给定两个这样的 \grammarterm{module-import-declaration}：
+\begin{itemize}
+\item
+如果它们的 \grammarterm{header-name} 标识了不同的头文件或源文件\iref{cpp.include}，
+则它们导入不同的头文件单元；
+\item
+否则，如果它们出现在同一个翻译单元中，
+则它们导入相同的头文件单元；
+\item
+否则，它们是否导入相同的头文件单元是未指明的。
+\begin{note}
+因此在可导入的头文件中具有内部链接的实体的声明可能存在多个副本。
+\end{note}
+\end{itemize}
+\begin{note}
+指定了 \grammarterm{header-name} 的 \grammarterm{module-import-declaration} 也由预处理器识别，
+并使得在头文件单元翻译的阶段 4 结束时定义的宏可见，如 \ref{cpp.import} 所述。
+任何其它 \grammarterm{module-import-declaration} 不会使宏可见。
+\end{note}
+
+\pnum
+允许在头文件单元中声明具有内部链接的名字，尽管所有声明都隐式地被导出\iref{module.interface}。
+\begin{note}
+出现在多个翻译单元中的定义通常不能引用这类名字\iref{basic.def.odr}。
+\end{note}
+头文件单元不得含有名字具有外部链接的非内联函数或变量的定义。
+
+\pnum
+当一个 \grammarterm{module-import-declaration} 导入翻译单元 $T$ 时，
+它也导入由 $T$ 中导出的 \grammarterm{module-import-declaration} 导入的所有翻译单元；
+此类翻译单元被称为由 $T$ \defnx{导出}{module!exported}。
+此外，当某个模块 $M$ 的模块单元中的一个 \grammarterm{module-import-declaration} 导入 $M$ 的另一个模块单元 $U$ 时，
+它还导入在 $U$ 的模块单元辖域中由非导出的 \grammarterm{module-import-declaration} 导入的所有翻译单元。
+\begin{footnote}
+这与导入名字的查找规则是相符的\iref{basic.lookup}。
+\end{footnote}
+这些规则进而会导致导入更多的翻译单元。
+\begin{note}
+这类间接导入不会使宏可用，因为翻译单元是翻译阶段 7 中的记号序列\iref{lex.phases}。
+可以通过直接导入头文件单元来使宏可用，如 \ref{cpp.import} 所述。
+\end{note}
+
+\pnum
+模块实现单元不得被导出。
+\begin{example}
+\begin{codeblocktu}{Translation unit \#1}
+module M:Part;
+\end{codeblocktu}
+
+\begin{codeblocktu}{Translation unit \#2}
+export module M;
+export import :Part;    // 错误：被导出的分区 \tcode{:Part} 是一个实现单元
+\end{codeblocktu}
+\end{example}
+
+\pnum
+若非模块分区的模块 \tcode{M} 的模块实现单元不得含有指定 \tcode{M} 的 \grammarterm{module-import-declaration}。
+\begin{example}
+\begin{codeblock}
+module M;
+import M;               // 错误：不能在自身单元内导入 \tcode{M}
+\end{codeblock}
+\end{example}
+
+\pnum
+若翻译单元含有（可能为 \grammarterm{module-declaration} 的）声明导入 \tcode{U}，
+或若其在与 \tcode{U} 存在接口依赖的翻译单元具有接口依赖，
+则该翻译单元在翻译单元 \tcode{U} 上具有一个 \defn{接口依赖}。
+翻译单元不能在自身存在接口依赖。
+\begin{example}
+\begin{codeblocktu}{Interface unit of \tcode{M1}}
+export module M1;
+import M2;
+\end{codeblocktu}
+
+\begin{codeblocktu}{Interface unit of \tcode{M2}}
+export module M2;
+import M3;
+\end{codeblocktu}
+
+\begin{codeblocktu}{Interface unit of \tcode{M3}}
+export module M3;
+import M1;              // 错误：循环的接口依赖 $\mathtt{M3} \rightarrow \mathtt{M1} \rightarrow \mathtt{M2} \rightarrow \mathtt{M3}$
+\end{codeblocktu}
+\end{example}
+
+\rSec1[module.global.frag]{全局模块片段}
+
+\begin{bnf}
+\nontermdef{global-module-fragment}\br
+    module-keyword \terminal{;} \opt{declaration-seq}
+\end{bnf}
+
+\pnum
+\begin{note}
+在翻译的第4阶段之前，
+只有预处理指令可以出现在
+\grammarterm{declaration-seq}\iref{cpp.pre}中。
+\end{note}
+
+\pnum
+一个 \grammarterm{global-module-fragment} 为模块单元指定
+全局模块片段的内容。
+全局模块片段可以用来提供声明，
+这些声明附加到全局模块并在模块单元内可用。
+
+\pnum
+在同一翻译单元中，若满足下列条件，则称声明 $D$ 从声明 $S$ \defn{decl-reachable}：
+\begin{itemize}
+\item
+$D$ 不声明函数或函数模板，且
+$S$ 包含
+\grammarterm{id-expression}、
+\grammarterm{namespace-name}、
+\grammarterm{type-name}、
+\grammarterm{template-name} 或
+\grammarterm{concept-name}
+命名了 $D$，或
+
+\item
+$D$ 声明函数或函数模板，且
+被出现在 $S$ 中的表达式\iref{basic.def.odr}命名，或
+
+\item
+$S$ 包含依赖调用 \tcode{E}\iref{temp.dep}，且 $D$ 由
+将每个类型依赖的实参或操作数替换为
+无关联命名空间或实体的占位符类型的值
+后，从 \tcode{E} 合成的表达式进行的任何名称查找找到，或
+\begin{note}
+这包括在考虑重写 \tcode{!=} 表达式时对 \tcode{\keyword{operator}==} 执行的查找，
+在考虑重写关系比较时对 \tcode{\keyword{operator}<=>} 执行的查找，
+以及在考虑 \tcode{\keyword{operator}==} 是否为重写目标时对 \tcode{\keyword{operator}!=} 执行的查找。
+\end{note}
+
+\item
+$S$ 包含表达式
+对包含 $D$ 的重载集\iref{over.over}取地址，
+且目标类型是依赖的，或
+
+\item
+存在声明 $M$，它不是 \grammarterm{namespace-definition}，
+且 $M$ 从 $S$ decl-reachable，并满足以下之一：
+\begin{itemize}
+\item
+$D$ 从 $M$ decl-reachable，或
+\item
+$D$ 与 $M$ 声明同一实体，
+且 $D$ 既不是友元声明也不位于块作用域，或
+\item
+$D$ 声明命名空间 $N$ 且 $M$ 是 $N$ 的成员，或
+\item
+$D$ 与 $M$ 之一声明类或类模板 $C$，
+而另一个声明 $C$ 的成员或友元，或
+\item
+$D$ 与 $M$ 之一声明枚举 $E$，
+而另一个声明 $E$ 的枚举量，或
+\item
+$D$ 声明函数或变量且 $M$ 在 $D$ 内声明，
+\begin{footnote}
+声明可出现在变量初始化器中
+\grammarterm{lambda-expression} 内。
+\end{footnote}
+或
+\item
+$D$ 与 $M$ 之一声明模板，而另一个声明
+该模板的偏特化或显式特化或
+隐式或显式实例化，或
+\item
+$M$ 声明类模板
+且 $D$ 是该模板的 deduction guide，或
+\item
+$D$ 与 $M$ 之一声明类或枚举类型，
+而另一个为该类型引入用于链接目的的 typedef 名称。
+\end{itemize}
+\end{itemize}
+在此判定中，以下项目未指明：
+\begin{itemize}
+\item
+对
+\grammarterm{alias-declaration}、
+\tcode{typedef} 声明、
+\grammarterm{using-declaration} 或
+\grammarterm{namespace-alias-definition}
+的引用是否在此判定前被它们所命名的声明替换，
+
+\item
+不表示依赖类型且其
+\grammarterm{template-name} 命名别名模板的
+\grammarterm{simple-template-id}
+是否在此判定前被其表示的类型替换，
+
+\item
+不表示依赖类型的
+\grammarterm{decltype-specifier}
+是否在此判定前被其表示的类型替换，
+
+\item
+非值依赖的常量表达式
+是否在此判定前被常量求值结果替换，
+以及
+
+\item
+\grammarterm{splice-expression}、
+\grammarterm{splice-type-specifier}、
+\grammarterm{splice-scope-specifier}
+或前述之外的任何
+\grammarterm{splice-specifier} 或
+\grammarterm{splice-specialization-specifier}
+是否在此判定前的任何非依赖上下文中被其指代的构造替换。
+\end{itemize}
+
+\pnum
+若模块单元的 global module fragment 中的声明 \tcode{D}
+从该 \grammarterm{translation-unit} 的
+\grammarterm{declaration-seq} 中的任何 \grammarterm{declaration}
+均不 decl-reachable，则 \tcode{D} 被 \defnx{discarded}{discarded!declaration}。
+\begin{note}
+discarded 声明在模块单元外对名称查找既不可达也不可见，
+在其实例化点\iref{temp.point}位于模块单元外的模板实例化中同样如此，
+即使实例化上下文\iref{module.context} 包含该模块单元。
+\end{note}
+
+\pnum
+\begin{example}
+\begin{codeblock}
+const int size = 2;
+int ary1[size];                 // 未指明 \tcode{size} 是否从 \tcode{ary1} decl-reachable
+constexpr int identity(int x) { return x; }
+int ary2[identity(2)];          // 未指明 \tcode{identity} 是否从 \tcode{ary2} decl-reachable
+
+template<typename> struct S;
+template<typename, int> struct S2;
+constexpr int g(int);
+
+template<typename T, int N>
+S<S2<T, g(N)>> f();             // \tcode{S}、\tcode{S2}、\tcode{g} 和 \tcode{::} 从 \tcode{f} decl-reachable
+
+template<int N>
+void h() noexcept(g(N) == N);   // \tcode{g} 和 \tcode{::} 从 \tcode{h} decl-reachable
+\end{codeblock}
+\end{example}
+
+\pnum
+\begin{example}
+\begin{codeblocktu}{源文件 \tcode{"foo.h"}}
+namespace N {
+  struct X {};
+  int d();
+  int e();
+  inline int f(X, int = d()) { return e(); }
+  int g(X);
+  int h(X);
+}
+\end{codeblocktu}
+
+\begin{codeblocktu}{模块 \tcode{M} 接口}
+module;
+#include "foo.h"
+export module M;
+template<typename T> int use_f() {
+  N::X x;                       // \tcode{N::X}、\tcode{N} 和 \tcode{::} 从 \tcode{use_f} decl-reachable
+  return f(x, 123);             // \tcode{N::f} 从 \tcode{use_f} decl-reachable，
+                                // \tcode{N::e} 间接从 \tcode{use_f} decl-reachable
+                                //   因其从 \tcode{N::f} decl-reachable，且
+                                // \tcode{N::d} 从 \tcode{use_f} decl-reachable
+                                //   因其从 \tcode{N::f} decl-reachable
+                                //   即使此次调用中未使用它
+}
+template<typename T> int use_g() {
+  N::X x;                       // \tcode{N::X}、\tcode{N} 和 \tcode{::} 从 \tcode{use_g} decl-reachable
+  return g((T(), x));           // \tcode{N::g} 不从 \tcode{use_g} decl-reachable
+}
+template<typename T> int use_h() {
+  N::X x;                       // \tcode{N::X}、\tcode{N} 和 \tcode{::} 从 \tcode{use_h} decl-reachable
+  return h((T(), x));           // \tcode{N::h} 不从 \tcode{use_h} decl-reachable，但
+                                // \tcode{N::h} 从 \tcode{use_h<int>} decl-reachable
+}
+int k = use_h<int>();
+  // \tcode{use_h<int>} 从 \tcode{k} decl-reachable，因此
+  // \tcode{N::h} 从 \tcode{k} decl-reachable
+\end{codeblocktu}
+
+\begin{codeblocktu}{模块 \tcode{M} 实现}
+module M;
+int a = use_f<int>();           // OK
+int b = use_g<int>();           // 错误：无可行函数调用 \tcode{g}；
+                                // \tcode{g} 从模块 \tcode{M} 接口的 purview
+                                // 不 decl-reachable，故被 discarded
+int c = use_h<int>();           // OK
+\end{codeblocktu}
+\end{example}
+
+\rSec1[module.private.frag]{私有模块片段}
+
+\begin{bnf}
+\nontermdef{private-module-fragment}\br
+    module-keyword \terminal{:} \keyword{private} \terminal{;} \opt{declaration-seq}
+\end{bnf}
+
+\pnum
+\grammarterm{private-module-fragment} 只应出现在主模块接口单元中\iref{module.unit}。含有一个 \grammarterm{private-module-fragment} 的模块单元应是其所属模块的唯一模块单元；不要求诊断。
+
+\pnum
+\begin{note}
+\grammarterm{private-module-fragment} 结束了模块接口单元中能够影响其他翻译单元行为的部分。\grammarterm{private-module-fragment} 允许模块表现为单个翻译单元，同时不让模块的所有内容对导入者可达。\grammarterm{private-module-fragment} 的存在会影响：
+\begin{itemize}
+\item
+需要内联函数或变量定义的时间点\iref{dcl.inline}，
+
+\item
+需要具有占位符返回类型的导出函数定义的时间点\iref{dcl.spec.auto}，
+
+\item
+声明是否被要求不是暴露\iref{basic.link}，
+
+\item
+内联函数和模板定义必须出现的位置\iref{basic.def.odr,dcl.inline,temp.pre}，
+
+\item
+在其之前实例化的模板的实例化上下文\iref{module.context}，以及
+
+\item
+其中声明的可达性\iref{module.reach}。
+\end{itemize}
+\end{note}
+
+\pnum
+\begin{example}
+\begin{codeblock}
+export module A;
+export inline void fn_e();      // 错误：导出的内联函数 \tcode{fn_e} 在私有模块片段前未定义
+inline void fn_m();             // 错误：非导出的内联函数 \tcode{fn_m} 在私有模块片段前未定义
+static void fn_s();
+export struct X;
+export void g(X *x) {
+  fn_s();                       // OK，调用同一翻译单元中的静态函数
+}
+export X *factory();            // OK
+
+module :private;
+struct X {};                    // 定义对 \tcode{A} 的导入者不可达
+X *factory() {
+  return new X ();
+}
+void fn_e() {}
+void fn_m() {}
+void fn_s() {}
+\end{codeblock}
+\end{example}
+
+\rSec1[module.context]{实例化上下文}
+
+\pnum
+\defn{实例化上下文}是程序内的一组点，它决定了
+通过依赖于实参的名称查找\iref{basic.lookup.argdep}能找到哪些声明，
+以及在特定声明或模板实例化的上下文中哪些声明是可抵达的\iref{module.reach}。
+
+\pnum
+在默认函数的隐式定义期间\iref{special,class.compare.default}，
+实例化上下文包含来自类定义的实例化上下文中的每个点，以及
+导致该默认函数隐式定义的程序构造的实例化上下文中的每个点。
+
+\pnum
+在模板的隐式实例化期间，如果其实例化点被指定为外层特化的实例化点\iref{temp.point}，
+则实例化上下文包含外层特化的实例化上下文中的每个点，并且，
+如果该模板定义在模块 $M$ 的模块接口单元中，且实例化点不在 $M$ 的模块接口单元中，
+则还包含 $M$ 的主模块接口单元的 \grammarterm{declaration-seq} 末尾的点
+（在 \grammarterm{private-module-fragment} 之前，如果有的话）。
+
+\pnum
+在模板的隐式实例化期间，若该模板因其从默认函数的隐式定义内部被引用而隐式实例化，
+则实例化上下文包含该默认函数的实例化上下文中的每个点。
+
+\pnum
+在任何其他模板特化的实例化期间，
+实例化上下文包含该模板的实例化点。
+
+\pnum
+在作为核心常量表达式的表达式求值导致的任何构造的隐式实例化期间，
+实例化上下文包含求值上下文\iref{expr.const}中的每个点。
+\begin{note}
+隐式实例化可能源于库函数的调用\iref{meta.reflection}。
+求值上下文可以包含与注入声明相关联的合成点，
+这些声明由 \tcode{std::meta::define_aggregate}\iref{meta.reflection.define.aggregate} 产生。
+\end{note}
+
+\pnum
+在任何其他情况下，程序内某点的实例化上下文包含该点。
+
+\pnum
+实例化上下文仅包含上述指定的点。
+
+\pnum
+\begin{example}
+\begin{codeblocktu}{翻译单元 \#1}
+export module stuff;
+export template<typename T, typename U> void foo(T, U u) { auto v = u; }
+export template<typename T, typename U> void bar(T, U u) { auto v = *u; }
+\end{codeblocktu}
+
+\begin{codeblocktu}{翻译单元 \#2}
+export module M1;
+import "defn.h";        // 提供 \tcode{struct X \{\};}
+import stuff;
+export template<typename T> void f(T t) {
+  X x;
+  foo(t, x);
+}
+\end{codeblocktu}
+
+\begin{codeblocktu}{翻译单元 \#3}
+export module M2;
+import "decl.h";        // 提供 \tcode{struct X;}（非定义）
+import stuff;
+export template<typename T> void g(T t) {
+  X *x;
+  bar(t, x);
+}
+\end{codeblocktu}
+
+\begin{codeblocktu}{翻译单元 \#4}
+import M1;
+import M2;
+void test() {
+  f(0);
+  g(0);
+}
+\end{codeblocktu}
+对 \tcode{f(0)} 的调用是有效的；
+\tcode{foo<int, X>} 的实例化上下文包括
+\begin{itemize}
+\item 翻译单元 \#1 末尾的点，
+\item 翻译单元 \#2 末尾的点，以及
+\item 对 \tcode{f(0)} 调用的点，
+\end{itemize}
+因此 \tcode{X} 的定义是可抵达的\iref{module.reach}。
+
+对 \tcode{g(0)} 的调用是否有效是未指明的：
+\tcode{bar<int, X>} 的实例化上下文包括
+\begin{itemize}
+\item 翻译单元 \#1 末尾的点，
+\item 翻译单元 \#3 末尾的点，以及
+\item 对 \tcode{g(0)} 调用的点，
+\end{itemize}
+因此 \tcode{X} 的定义不一定是可抵达的，
+如 \ref{module.reach} 所述。
+\end{example}
+
+\rSec1[module.reach]{可达性}
+
+\indextext{necessarily reachable|see{reachable, necessarily}}
+\pnum
+翻译单元 $U$ 从点 $P$ \defnx{必然可达}{reachable!necessarily!translation unit}，若
+$U$ 是一个模块接口单元，且包含 $P$ 的翻译单元对 $U$ 有接口依赖，或者
+包含 $P$ 的翻译单元导入了 $U$，
+且在上述任一情形中，该操作发生于 $P$ 之前\iref{module.import}。
+\begin{note}
+尽管模块接口单元即使仅通过非导出导入声明被传递式导入时也是可达的，
+但来自此类模块接口单元的名字空间作用域名称无法通过
+名称查找找到\iref{basic.lookup}。
+\end{note}
+
+\pnum
+所有必然可达的翻译单元均为
+\defnx{可达}{reachable!translation unit}的。
+程序中的点对之具有接口依赖的额外翻译单元可被视为可达，
+但哪些是可达的以及在何种情况下可达均未作规定。
+\begin{footnote}
+因此，不要求实现阻止参与编译的其他翻译单元的语义效果被观察到。
+\end{footnote}
+\begin{note}
+在期望可移植的程序中，建议避免
+依赖于任何额外翻译单元的可达性。
+\end{note}
+
+\pnum
+声明 $D$ 从点 $P$ \defnx{可达}{reachable from!declaration}，若
+\begin{itemize}
+\item
+$P$ 是一个非合成点，且
+\begin{itemize}
+\item $D$ 在同一翻译单元中出现在 $P$ 之前，或
+\item $D$ 未被丢弃\iref{module.global.frag}，
+出现在一个从 $P$ 可达的翻译单元中，
+且
+未出现在 \grammarterm{private-module-fragment} 内；或
+\end{itemize}
+\item
+$D$ 是注入的声明，
+而 $P$ 是其对应的合成点。
+\end{itemize}
+\begin{example}
+\begin{codeblock}
+class Incomplete;
+
+consteval {
+  int n = nonstatic_data_members_of(
+      define_aggregate(^^Incomplete, {data_member_spec(^^int, {.name="x"})}),
+      std::meta::access_context::current()
+    ).size();
+
+  Incomplete y;         // 错误：\tcode{y} 的类型不完整
+}
+/* P */
+\end{codeblock}
+\tcode{n} 的值为 1。
+成员 \tcode{Incomplete::x}
+members-of-precedes\iref{meta.reflection.member.queries}
+与通过调用 \tcode{define_aggregate} 产生的注入声明相关联的合成点 P。
+\end{example}
+
+\pnum
+声明是 \defnx{可达}{reachable!declaration}的，若它从
+实例化上下文中的任意点可达\iref{module.context}。
+\begin{note}
+声明是否被导出与其是否可达无关。
+\end{note}
+
+\pnum
+在一个上下文中，实体所有可达声明的累积属性
+决定了该实体在该上下文中的行为。
+\begin{note}
+这些可达的语义属性包括类型完整性、
+类型定义、初始化器、
+函数或模板声明的默认实参、属性、
+绑定的名称等。
+由于默认实参在调用表达式的上下文中求值，
+相应参数类型的可达语义属性在该上下文中适用。
+\begin{example}
+\begin{codeblocktu}{翻译单元 \#1}
+export module M:A;
+export struct B;
+\end{codeblocktu}
+
+\begin{codeblocktu}{翻译单元 \#2}
+module M:B;
+struct B {
+  operator int();
+};
+\end{codeblocktu}
+
+\begin{codeblocktu}{翻译单元 \#3}
+module M:C;
+import :A;
+B b1;                           // 错误：\tcode{struct B} 无可达定义
+\end{codeblocktu}
+
+\begin{codeblocktu}{翻译单元 \#4}
+export module M;
+export import :A;
+import :B;
+B b2;
+export void f(B b = B());
+\end{codeblocktu}
+
+\begin{codeblocktu}{翻译单元 \#5}
+import M;
+B b3;                           // 错误：\tcode{struct B} 无可达定义
+void g() { f(); }               // 错误：\tcode{struct B} 无可达定义
+\end{codeblocktu}
+\end{example}
+\end{note}
+
+\pnum
+\begin{note}
+即使无法通过名称查找到，实体的声明也可能可达。
+\end{note}
+\begin{example}
+\begin{codeblocktu}{翻译单元 \#1}
+export module A;
+struct X {};
+export using Y = X;
+\end{codeblocktu}
+
+\begin{codeblocktu}{翻译单元 \#2}
+import A;
+Y y;                // OK，\tcode{X} 的定义可达
+X x;                // 错误：\tcode{X} 对非限定查找不可见
+\end{codeblocktu}
+\end{example}
+

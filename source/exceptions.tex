@@ -1,0 +1,921 @@
+%!TEX root = std.tex
+\rSec0[except]{异常处理}%
+\indextext{异常处理|(}
+
+\gramSec[gram.except]{异常处理}
+
+\indextext{异常对象|see{异常处理, 异常对象}}%
+\indextext{对象!异常|see{异常处理, 异常对象}}
+
+\rSec1[except.pre]{前言}
+
+\pnum
+异常处理提供了一种机制，将控制和信息从线程执行过程中的某一点，转移到与之前已执行过的某个点相关联的异常处理器。只有当下列情况下抛出异常时，才会调用处理器：在处理器对应的 \tcode{try} 块内部执行的代码中，或在该 \tcode{try} 块所调用的函数中。
+
+\indextext{\idxcode{try}}%
+%
+\begin{bnf}
+\nontermdef{try-block}\br
+    \keyword{try} 复合语句 处理程序序列
+\end{bnf}
+
+\indextext{\idxcode{try}}%
+%
+\begin{bnf}
+\nontermdef{function-try-block}\br
+    \keyword{try} \opt{构造函数初始化器} 复合语句 处理程序序列
+\end{bnf}
+
+\begin{bnf}
+\nontermdef{handler-seq}\br
+    处理程序 \opt{处理程序序列}
+\end{bnf}
+
+\indextext{\idxcode{catch}}%
+%
+\begin{bnf}
+\nontermdef{handler}\br
+    \keyword{catch} \terminal{(} 异常声明 \terminal{)} 复合语句
+\end{bnf}
+
+\begin{bnf}
+\nontermdef{exception-declaration}\br
+    \opt{属性说明符序列} 类型说明符序列 声明符\br
+    \opt{属性说明符序列} 类型说明符序列 \opt{抽象声明符}\br
+    \terminal{...}
+\end{bnf}
+
+在 \grammarterm{异常声明} 中可选的 \grammarterm{属性说明符序列} 归属于该 \tcode{catch} 子句的参数\iref{except.handle}。
+
+\pnum
+\indextext{exception handling!try block}%
+\indextext{exception handling!handler}%
+\indextext{try block|see{exception handling, try block}}%
+\indextext{handler|see{exception handling, handler}}%
+\grammarterm{try-block} 是一种 \grammarterm{语句}\iref{stmt.pre}。
+\begin{note}
+在本条中，“try 块”同时指 \grammarterm{try-block} 和 \grammarterm{function-try-block}。
+\end{note}
+
+\pnum
+\indextext{exception handling!\idxcode{goto}}%
+\indextext{exception handling!\idxcode{switch}}%
+\indextext{\idxcode{goto}!and try block}%
+\indextext{\idxcode{switch}!and try block}%
+\indextext{\idxcode{goto}!and handler}%
+\indextext{\idxcode{switch}!and handler}%
+try 块或处理程序的 \grammarterm{复合语句} 是受控流限制的语句\iref{stmt.label}。
+\begin{example}
+\begin{codeblock}
+void f() {
+  goto l1;          // 错误
+  goto l2;          // 错误
+  try {
+    goto l1;        // OK
+    goto l2;        // 错误
+    l1: ;
+  } catch (...) {
+    l2: ;
+    goto l1;        // 错误
+    goto l2;        // OK
+  }
+}
+\end{codeblock}
+\end{example}
+\indextext{\idxcode{goto}!and try block}%
+\indextext{\idxcode{switch}!and try block}%
+\indextext{\idxcode{return}!and try block}%
+\indextext{\idxcode{continue}!and try block}%
+\indextext{\idxcode{goto}!and handler}%
+\indextext{\idxcode{switch}!and handler}%
+\indextext{\idxcode{return}!and handler}%
+\indextext{\idxcode{continue}!and handler}%
+可使用
+\keyword{goto}、
+\keyword{break}、
+\keyword{return}
+或
+\keyword{continue}
+语句将控制转移出 try 块或处理程序。当发生这种情况时，在 try 块中声明的每个变量将在直接包含其声明的上下文中被销毁。
+\begin{example}
+\begin{codeblock}
+lab:  try {
+  T1 t1;
+  try {
+    T2 t2;
+    if (@\grammarterm{condition}@)
+      goto lab;
+  } catch(...) { @\tcode{/* 处理程序 2 */}@ }
+} catch(...) { @\tcode{/* 处理程序 1 */}@ }
+\end{codeblock}
+
+这里，执行
+\tcode{goto lab;}
+将首先销毁
+\tcode{t2}，
+然后销毁
+\tcode{t1}，
+假设
+\grammarterm{condition}
+不声明变量。销毁
+\tcode{t2}
+期间抛出的任何异常将导致执行
+\tcode{处理程序 2}；
+销毁
+\tcode{t1}
+期间抛出的任何异常将导致执行
+\tcode{处理程序 1}。
+\end{example}
+
+\pnum
+\indextext{function try block|see{exception handling, function try block}}%
+\indextext{exception handling!function try block}%
+\grammarterm{function-try-block}
+将
+\grammarterm{处理程序序列}
+与
+\grammarterm{构造函数初始化器}（若存在）及
+\grammarterm{复合语句}
+关联。
+在
+\grammarterm{复合语句}
+执行期间，或对于构造函数和析构函数，在类子对象的初始化或销毁期间分别抛出的异常，都会将控制转移到
+\grammarterm{function-try-block}
+中的处理程序，其方式与在
+\grammarterm{try-block}
+执行期间抛出的异常将控制转移到其他处理程序相同。
+\begin{example}
+\begin{codeblock}
+int f(int);
+class C {
+  int i;
+  double d;
+public:
+  C(int, double);
+};
+
+C::C(int ii, double id)
+try : i(f(ii)), d(id) {
+    // 构造函数语句
+} catch (...) {
+    // 处理由构造函数初始化器和构造函数语句抛出的异常
+}
+\end{codeblock}
+\end{example}
+
+\pnum
+在本条中，“之前”和“之后”指“按序早于”关系\iref{intro.execution}。
+
+\rSec1[except.throw]{抛出异常}%
+\indextext{异常处理！抛出}%
+\indextext{抛出|参见{异常处理，抛出}}
+
+\pnum
+抛出异常将控制转移给一个处理程序。
+\begin{note}
+异常可从下列上下文之一抛出：
+\grammarterm{throw表达式}{s}\iref{expr.throw}、
+分配函数\iref{basic.stc.dynamic.allocation}、
+\keyword{dynamic_cast}\iref{expr.dynamic.cast}、
+\keyword{typeid}\iref{expr.typeid}、
+\grammarterm{new表达式}{s}\iref{expr.new}，以及标准库函数\iref{structure.specifications}。
+\end{note}
+传递一个对象，且该对象的类型决定哪些处理程序能捕获它。
+\begin{example}
+\begin{codeblock}
+throw "Help!";
+\end{codeblock}
+可被
+\keyword{const}
+\tcode{\keyword{char}*}
+类型的
+\grammarterm{处理程序}
+捕获：
+\begin{codeblock}
+try {
+    // ...
+} catch(const char* p) {
+    // 在此处理字符串异常
+}
+\end{codeblock}
+以及
+\begin{codeblock}
+class Overflow {
+public:
+    Overflow(char,double,double);
+};
+
+void f(double x) {
+    throw Overflow('+',x,3.45e107);
+}
+\end{codeblock}
+可被类型为
+\tcode{Overflow}
+的异常处理程序捕获：
+\begin{codeblock}
+try {
+    f(1.2);
+} catch(Overflow& oo) {
+    // 在此处理 \tcode{Overflow} 类型的异常
+}
+\end{codeblock}
+\end{example}
+
+\pnum
+\indextext{异常处理！抛出}%
+\indextext{异常处理！处理程序}%
+\indextext{异常处理！最近处理程序}%
+当异常被抛出时，控制被转移给具有匹配类型\iref{except.handle}的最近处理程序；“最近”指控制线程最近进入且尚未退出其后的
+\keyword{try}
+关键词的
+\grammarterm{复合语句}或
+\grammarterm{构造函数初始值设定项}
+的处理程序。
+
+\pnum
+抛出异常会初始化一个具有动态存储期的对象，称为
+\defnx{异常对象}{异常处理！异常对象}。
+若异常对象的类型会是
+不完整类型\iref{basic.types.general}、
+抽象类类型\iref{class.abstract}、
+或指向除
+\cv{}~\keyword{void}\iref{basic.compound}外的不完整类型的指针，
+则程序非良构。
+
+\pnum
+\indextext{异常处理！内存}%
+\indextext{异常处理！重新抛出}%
+\indextext{异常处理！异常对象}%
+异常对象的内存以未指定的方式分配，除非在~\ref{basic.stc.dynamic.allocation}中另有说明。
+若处理程序通过重新抛出退出，控制被传递给同一异常对象的另一处理程序。
+异常对象的潜在销毁点包括：
+\begin{itemize}
+\item
+当异常的活跃处理程序以除重新抛出外的任何方式退出时，
+在处理程序中声明的 \grammarterm{异常声明} 对象（若有）销毁之后立即进行；
+
+\item
+当引用该异常对象的 \tcode{std::exception_ptr} 类型对象\iref{propagation}被销毁时，
+在 \tcode{std::exception_ptr} 的析构函数返回之前进行。
+\end{itemize}
+
+在所有异常对象的潜在销毁点中，有一个未指定的最后点，异常对象在该点被销毁。
+所有其他点先发生于那个最后点\iref{intro.races}。
+\begin{note}
+异常处理中不隐含其他线程同步。
+\end{note}
+随后实现可能释放异常对象的内存；任何此类释放均以未指定的方式进行。
+\begin{note}
+除非使用适当的库函数捕获、存储并重新抛出，否则被抛出的异常不会传播到其他线程；见~\ref{propagation}和~\ref{futures}。
+\end{note}
+
+\pnum
+\indextext{异常处理！异常对象！构造函数}%
+\indextext{异常处理！异常对象！析构函数}%
+令 \tcode{T} 表示异常对象的类型。
+在无关于 \tcode{T} 的上下文中，从类型为 \tcode{const T} 的左值复制初始化类型为 \tcode{T} 的对象，应是良构的。
+若 \tcode{T} 是类类型，
+则所选构造函数被odr使用\iref{basic.def.odr}，且可能调用 \tcode{T} 的析构函数\iref{class.dtor}。
+
+\pnum
+\indextext{异常处理！未捕获}%
+自异常对象初始化完成，直至该异常的处理程序激活完成\iref{except.handle}期间，该异常被视为 \defnx{未捕获}{未捕获异常}。
+\begin{note}
+因此，在因其抛出而导致的任何栈展开期间，异常均被视为未捕获。
+\end{note}
+
+\pnum
+\indexlibraryglobal{uncaught_exceptions}%
+若异常被重新抛出\iref{expr.throw,propagation}，
+则自重新抛出点直至重新抛出的异常被捕获期间，它被视为未捕获。
+\begin{note}
+函数 \tcode{std::uncaught_exceptions}\iref{uncaught.exceptions} 返回当前线程中未捕获异常的数量。
+\end{note}
+
+\pnum
+\indextext{异常处理！重新抛出}%
+\indextext{重新抛出|参见{异常处理，重新抛出}}%
+当异常的处理程序变为活跃\iref{except.handle}时，该异常被视为已被捕获。
+\begin{note}
+若异常被重新抛出，则即使其拥有活跃处理程序，仍可能被视为未捕获。
+\end{note}
+
+\pnum
+\indextext{异常处理！调用 \tcode{terminate}}%
+\indextext{\idxcode{terminate}!被调用}%
+若处理未捕获异常的异常处理机制直接调用了一个通过异常退出的函数，则调用函数 \tcode{std::terminate}\iref{except.terminate}。
+\begin{example}
+\begin{codeblock}
+struct C {
+  C() { }
+  C(const C&) {
+    if (std::uncaught_exceptions()) {
+      throw 0;      // 在复制到处理程序的 \grammarterm{异常声明} 对象期间抛出\iref{except.handle}
+    }
+  }
+};
+
+int main() {
+  try {
+    throw C();      // 若处理程序的 \grammarterm{异常声明} 对象构造未被省略\iref{class.copy.elision}，则调用 \tcode{std::terminate}
+  } catch(C) { }
+}
+\end{codeblock}
+\end{example}
+\begin{note}
+若栈展开直接调用的析构函数通过异常退出，则调用 \tcode{std::terminate}。
+\end{note}
+
+\rSec1[except.ctor]{栈解旋}%
+\indextext{异常处理!构造函数与析构函数}%
+\indextext{构造函数!异常处理|see{异常处理，构造函数与析构函数}}%
+\indextext{析构函数!异常处理|see{异常处理，构造函数与析构函数}}
+
+\pnum
+\indextext{解旋!栈}%
+当控制从抛出异常的点传递到处理器时，
+对象会通过一个过程被销毁，
+该过程在本条中规定，称为\defn{栈解旋}。
+
+\pnum
+具有自动存储期的每个对象，如果自进入 try 块以来已构造但尚未销毁，则会被销毁。
+如果在为 \keyword{return} 语句\iref{stmt.return} 销毁临时对象或局部变量期间抛出异常，
+则也会调用返回对象（如果有）的析构函数。
+这些对象以其构造完成的相反顺序被销毁。
+\begin{example}
+\begin{codeblock}
+struct A { };
+
+struct Y { ~Y() noexcept(false) { throw 0; } };
+
+A f() {
+  try {
+    A a;
+    Y y;
+    A b;
+    return {};      // \#1
+  } catch (...) {
+  }
+  return {};        // \#2
+}
+\end{codeblock}
+在 \#1 处，构造了类型为 \tcode{A} 的返回对象。
+随后，局部变量 \tcode{b} 被销毁\iref{stmt.jump}。
+接着，局部变量 \tcode{y} 被销毁，
+这导致栈解旋，
+从而销毁了返回对象，
+随后销毁局部变量 \tcode{a}。
+最后，在 \#2 处再次构造返回对象。
+\end{example}
+
+\pnum
+如果通过除委托构造函数之外的方式初始化对象被异常终止，
+则会为该对象已知已初始化的且其初始化已完成\iref{dcl.init} 的每个子对象调用析构函数。
+\begin{note}
+如果这样的对象有一个延长临时对象生命期的引用成员，
+这会结束该引用成员的生命期，
+因此临时对象的生命期实际上并未被延长。
+\end{note}
+\indextext{子对象!已知已初始化}%
+如果一个子对象不是匿名联合成员，并且其初始化在以下条款中被规定，
+则该子对象是\defn{已知已初始化}的：
+\begin{itemize}
+\item 对于由构造函数进行的初始化，在 \ref{class.base.init} 中；
+\item 对于由默认化的复制/移动构造函数进行的初始化，在 \ref{class.copy.ctor} 中；
+\item 对于由继承构造函数进行的初始化，在 \ref{class.inhctor.init} 中；
+\item 对于聚合初始化，在 \ref{dcl.init.aggr} 中；
+\item 对于在求值 \grammarterm{lambda-表达式} 时初始化闭包对象，在 \ref{expr.prim.lambda.capture} 中；
+\item 对于数组的默认初始化、值初始化或直接初始化，在 \ref{dcl.init.general} 中。
+\end{itemize}
+\begin{note}
+如果初始化是针对完整对象，则这包括虚基类子对象，
+并且可以包括由 \grammarterm{mem-initializer} 或 \grammarterm{designated-initializer-clause} 显式指定的成员，
+或具有默认成员初始化器的变体成员。
+\end{note}
+如果对象的析构函数被异常终止，
+则执行在析构函数体\iref{class.dtor}之后本应执行且尚未开始执行的每个析构函数调用。
+\begin{note}
+如果析构函数是针对完整对象被调用的，则这包括虚基类子对象。
+\end{note}
+这些子对象以其构造完成的相反顺序被销毁。
+此类销毁在进入构造函数或析构函数的 \grammarterm{function-try-block} 的处理器（如果有）之前被定序。
+
+\pnum
+如果对象的委托构造函数的 \grammarterm{function-body} 的 \grammarterm{compound-statement} 因异常而退出，
+则调用该对象的析构函数。
+此类销毁在进入该对象的委托构造函数的 \grammarterm{function-try-block} 的处理器（如果有）之前被定序。
+
+\pnum
+\begin{note}
+如果对象是由 \grammarterm{new-表达式}\iref{expr.new} 分配的，
+则会调用匹配的释放函数\iref{basic.stc.dynamic.deallocation}（如果有）以释放对象所占用的存储空间。
+\end{note}
+
+\rSec1[except.handle]{异常处理}
+\indextext{exception handling!handler|(}%
+
+\pnum
+\grammarterm{handler} 中的
+\grammarterm{exception-declaration}
+描述了能够导致进入该
+\grammarterm{handler}
+的异常的类型。
+\indextext{exception handling!handler!incomplete type in}%
+\indextext{exception handling!handler!rvalue reference in}%
+\indextext{exception handling!handler!array in}%
+\indextext{exception handling!handler!pointer to function in}%
+\grammarterm{exception-declaration}
+不应表示不完整类型、抽象类类型或右值引用类型。
+\grammarterm{exception-declaration}
+不应表示指向不完整类型的指针或引用，但“指向 \cv{}~\keyword{void} 的指针”除外。
+
+\pnum
+类型为
+\indextext{array!handler of type}%
+“\tcode{T} 的数组”或
+\indextext{function!handler of type}%
+函数类型 \tcode{T}
+的 handler 被调整为类型“指向 \tcode{T} 的指针”。
+
+\pnum
+\indextext{exception handling!handler!match|(}%
+当满足以下条件时，
+\grammarterm{handler}
+与类型为
+\tcode{E}
+的异常对象
+匹配：
+\begin{itemize}
+\item%
+该 \grammarterm{handler} 的类型为 \cv{}~\tcode{T} 或
+\cv{}~\tcode{T\&}，且
+\tcode{E} 与 \tcode{T}
+为同一类型（忽略顶层 \grammarterm{cv-qualifier}{s}），或
+\item%
+该 \grammarterm{handler} 的类型为 \cv{}~\tcode{T} 或
+\cv{}~\tcode{T\&}，且
+\tcode{T} 是 \tcode{E} 的一个无歧义的公开基类，或
+\item%
+该 \grammarterm{handler} 的类型为 \cv{}~\tcode{T} 或 \tcode{const T\&}，
+其中 \tcode{T} 为指针或指向成员的指针类型，且
+\tcode{E} 亦为指针或指向成员的指针类型，
+并可通过以下一种或多种转换将 \tcode{E} 转换为 \tcode{T}：
+\begin{itemize}
+
+\item%
+不涉及转换为指向私有、保护或无歧义类的指针的标准指针转换\iref{conv.ptr}
+\item%
+函数指针转换\iref{conv.fctptr}
+\item%
+限定转换\iref{conv.qual}，或
+
+\end{itemize}
+
+\item
+该 \grammarterm{handler} 的类型为 \cv{}~\tcode{T} 或 \tcode{const T\&}，其中 \tcode{T} 为指针或指向成员的指针类型，且 \tcode{E} 为 \tcode{std::nullptr_t}。
+
+\end{itemize}
+
+\begin{note}
+操作数为整数字面量且值为零的
+\grammarterm{throw-expression}
+不匹配指针或指向成员的指针类型的 handler。
+引用到数组或函数类型的 handler 绝不会与任何异常对象匹配\iref{expr.throw}。
+\end{note}
+
+\begin{example}
+\begin{codeblock}
+class Matherr { @\commentellip@ virtual void vf(); };
+class Overflow: public Matherr { @\commentellip@ };
+class Underflow: public Matherr { @\commentellip@ };
+class Zerodivide: public Matherr { @\commentellip@ };
+
+void f() {
+  try {
+    g();
+  } catch (Overflow oo) {
+    // ...
+  } catch (Matherr mm) {
+    // ...
+  }
+}
+\end{codeblock}
+此处，
+\tcode{Overflow}
+handler 将捕获类型为
+\tcode{Overflow}
+的异常，而
+\tcode{Matherr}
+handler 将捕获类型为
+\tcode{Matherr}
+以及所有公开派生自
+\tcode{Matherr}
+的类型（包括
+\tcode{Underflow}
+和
+\tcode{Zerodivide}）的异常。
+\end{example}
+
+\pnum
+try 块的 handler 按出现顺序依次尝试。
+\begin{note}
+因此可以写出永远得不到执行的 handler，例如把最终派生类的 handler 放在对应无歧义公开基类的 handler 之后。
+\end{note}
+
+\pnum
+在 handler 的
+\grammarterm{exception-declaration}
+中出现
+\tcode{...}
+表示匹配任意异常。
+若存在，则
+\tcode{...}
+handler 必须是其 try 块的最后一个 handler。
+
+\pnum
+若在 try 块的 handler 中未找到匹配，
+则继续在同一线程的动态外层 try 块中搜索匹配的 handler。
+
+\pnum
+\indextext{exception handling!terminate called@\tcode{terminate} 被调用}%
+\indextext{\idxcode{terminate}!被调用}%
+若搜索 handler 时退出带有非抛出异常说明的函数体，
+则调用函数 \tcode{std::terminate}\iref{except.terminate}。
+\begin{note}
+实现不得仅因表达式在执行时可能或确实从带非抛出异常说明的函数抛出异常而拒绝该表达式。
+\end{note}
+\begin{example}
+\begin{codeblock}
+extern void f();                // 可能抛出
+
+void g() noexcept {
+  f();                          // 合法，即使 \tcode{f} 抛出
+  throw 42;                     // 合法，效果上等价于调用 \tcode{std::terminate}
+}
+\end{codeblock}
+尽管 \tcode{f} 可能抛出异常，对
+\tcode{f}
+的调用仍是良构的。
+\end{example}
+
+\pnum
+若仍未找到匹配 handler，
+则调用函数 \tcode{std::terminate}；
+此次调用 \tcode{std::terminate} 之前是否进行栈展开由实现定义\impldef{在调用 \tcode{std::terminate} 之前的栈展开}\iref{except.terminate}。
+
+\pnum
+当 catch 子句的参数（若有）初始化完成时，该 handler 被视为
+\defnx{活跃}{exception handling!handler!active}。
+\begin{note}
+此时栈已展开。
+\end{note}
+此外，若因抛出异常而进入函数 \tcode{std::terminate}，则隐式 handler 也被视为活跃。
+当 catch 子句退出时，handler 不再被视为活跃。
+
+\pnum
+\indextext{currently handled exception|see{exception handling, currently handled exception}}%
+最近激活且仍处活跃状态的 handler 所对应的异常称为
+\defnx{当前处理异常}{exception handling!currently handled exception}。
+
+\pnum
+在对象的构造函数或析构函数的
+\grammarterm{function-try-block}
+handler 中，若引用该对象的任何非静态成员或基类，将产生未定义行为。
+
+\pnum
+在具有静态存储期的对象的析构函数中，或在关联于具有静态存储期的非块变量的对象的构造函数中抛出的异常，不会被
+\tcode{main} 函数\iref{basic.start.main} 上的
+\grammarterm{function-try-block}
+捕获。
+在具有线程存储期的对象的析构函数中，或在关联于具有线程存储期的非块变量的对象的构造函数中抛出的异常，不会被
+线程起始函数上的
+\grammarterm{function-try-block}
+捕获。
+
+\pnum
+若在构造函数
+\grammarterm{function-try-block}
+的 handler 中出现
+\keyword{return} 语句\iref{stmt.return}，则程序非良构。
+
+\pnum
+若控制流到达构造函数或析构函数的
+\grammarterm{function-try-block}
+handler 末尾，则重新抛出当前处理异常。
+否则，从
+\grammarterm{function-try-block} 的 \grammarterm{handler} 的 \grammarterm{compound-statement}
+末尾流出等价于从该函数的 \grammarterm{compound-statement} 末尾流出（见 \ref{stmt.return}）。
+
+\pnum
+由 \grammarterm{exception-declaration} 声明的类型为
+\cv{}~\tcode{T} 或 \cv{}~\tcode{T\&} 的变量，按以下方式从类型为 \tcode{E} 的异常对象初始化：
+\begin{itemize}
+\item
+若 \tcode{T} 是 \tcode{E} 的基类，
+则该变量从异常对象中对应的基类子对象（类型为 \tcode{T} 的左值）复制初始化\iref{dcl.init}；
+\item 否则，该变量从异常对象（类型为 \tcode{E} 的左值）复制初始化\iref{dcl.init}。
+\end{itemize}
+
+该变量的生存期
+在 handler 退出时结束，且位于 handler 内初始化的所有具有自动存储期的对象被销毁之后。
+
+\pnum
+\begin{note}
+若 handler 声明了一个对象，
+则对该对象的任何修改都不会影响异常对象。
+若 handler 声明了对某对象的引用，
+则对引用对象的任何修改即是对异常对象的修改。
+\end{note}
+%
+\indextext{exception handling!handler!match|)}%
+\indextext{exception handling!handler|)}
+
+\rSec1[except.spec]{异常规范}%
+\indextext{exception specification|(}
+
+\pnum
+指示函数是否不能通过异常退出的谓词称为函数的\defn{异常规范}。
+若此谓词为假，
+则该函数具有\indextext{exception specification!potentially-throwing}%
+\defnx{潜在抛出异常规范}{potentially-throwing!exception specification}，
+否则它具有\indextext{exception specification!non-throwing}%
+\defn{不抛出异常规范}。
+异常规范可以隐式定义，
+也可以通过使用 \grammarterm{noexcept-specifier}
+作为函数声明符的后缀\iref{dcl.fct}显式定义。
+
+\begin{bnf}
+\nontermdef{noexcept-specifier}\br
+    \keyword{noexcept} \terminal{(} constant-expression \terminal{)}\br
+    \keyword{noexcept}
+\end{bnf}
+
+\pnum
+\indextext{exception specification!noexcept!constant expression and}%
+在 \grammarterm{noexcept-specifier} 中，若提供 \grammarterm{constant-expression}，
+则它应是一个上下文转换为 \keyword{bool} 类型的常量表达式\iref{expr.const}；
+该常量表达式是 \grammarterm{noexcept-specifier} 所在函数类型的异常规范。
+跟在 \keyword{noexcept} 之后的 \tcode{(} 记号是
+\grammarterm{noexcept-specifier} 的一部分，
+并不开始一个初始化器\iref{dcl.init}。
+不带 \grammarterm{constant-expression} 的 \grammarterm{noexcept-specifier} \keyword{noexcept}
+等价于 \grammarterm{noexcept-specifier}
+\tcode{\keyword{noexcept}(\keyword{true})}。
+\begin{example}
+\begin{codeblock}
+void f() noexcept(sizeof(char[2])); // 错误：将值 2 窄化转换到类型 \keyword{bool}
+void g() noexcept(sizeof(char));    // OK，将值 1 转换到类型 \keyword{bool} 不是窄化转换
+\end{codeblock}
+\end{example}
+
+\pnum
+若函数声明不含有 \grammarterm{noexcept-specifier}，
+则声明具有潜在抛出异常规范，
+除非它是析构函数或释放函数
+或在首次声明时被默认置入，
+这些情况下异常规范如下指定，
+且该函数的其他声明不得有 \grammarterm{noexcept-specifier}。
+在显式实例化\iref{temp.explicit}中，
+可以但不要求指定 \grammarterm{noexcept-specifier}。
+若在显式实例化中指定 \grammarterm{noexcept-specifier}，
+则该异常规范应与该函数所有其他声明的异常规范相同。
+仅当在单个翻译单元内异常规范不相同时才要求诊断。
+
+\pnum
+\indextext{exception specification!virtual function and}%
+若虚函数具有不抛出异常规范，
+则任何在派生类中覆盖该虚函数的函数的所有声明，包括定义，都应具有不抛出异常规范，
+除非覆盖函数被定义为删除。
+\begin{example}
+\begin{codeblock}
+struct B {
+  virtual void f() noexcept;
+  virtual void g();
+  virtual void h() noexcept = delete;
+};
+
+struct D: B {
+  void f();                     // 错误
+  void g() noexcept;            // OK
+  void h() = delete;            // OK
+};
+\end{codeblock}
+
+\tcode{D::f} 的声明是非良构的，因为它具有潜在抛出异常规范，
+而 \tcode{B::f} 具有不抛出异常规范。
+\end{example}
+
+\pnum
+表达式 $E$ \defnx{潜在抛出}{potentially-throwing!expression}，若
+\begin{itemize}
+\item
+$E$ 是函数调用\iref{expr.call}
+其 \grammarterm{postfix-expression} 具有函数类型，
+或指向函数类型的指针，
+且其异常规范为潜在抛出，或
+\item
+$E$ 隐式调用函数
+（如重载运算符、
+\grammarterm{new-expression} 中的分配函数、
+函数参数的构造函数，或析构函数）
+该函数具有潜在抛出异常规范，或
+\item
+$E$ 是 \grammarterm{throw-expression}\iref{expr.throw}，或
+\item
+$E$ 是转换到引用类型且需要运行时检查的 \keyword{dynamic_cast} 表达式\iref{expr.dynamic.cast}，或
+\item
+$E$ 是 \keyword{typeid} 表达式应用于
+（可能带括号的）内置一元 \tcode{*} 运算符应用于指向多态类类型的指针\iref{expr.typeid}，或
+\item
+$E$ 的任何立即子表达式\iref{intro.execution} 潜在抛出。
+\end{itemize}
+
+\pnum
+类 \tcode{X} 的隐式声明构造函数，
+或在首次声明时被默认置入的无 \grammarterm{noexcept-specifier} 的构造函数，
+具有潜在抛出异常规范当且仅当
+以下任何构造潜在抛出：
+\begin{itemize}
+\item
+在类 \tcode{X} 构造函数的隐式定义中，
+为重载决议所选的用于初始化潜在构造子对象的构造函数的调用，或
+\item
+此类初始化的子表达式，
+如默认实参表达式，或，
+\item
+对于默认构造函数，默认成员初始化器。
+\end{itemize}
+\begin{note}
+尽管在构造函数执行期间抛出异常时会调用已完全构造子对象的析构函数\iref{except.ctor}，
+但它们的异常规范不贡献给构造函数的异常规范，
+因为从这种析构函数抛出的异常
+会调用函数 \tcode{std::terminate}
+而不是逃逸出构造函数\iref{except.throw,except.terminate}。
+\end{note}
+
+\pnum
+隐式声明的析构函数，
+或无 \grammarterm{noexcept-specifier} 的析构函数，
+其异常规范是潜在抛出的当且仅当
+其任何潜在构造子对象的析构函数
+具有潜在抛出异常规范或
+析构函数为虚且任何虚基类的析构函数具有潜在抛出异常规范。
+
+\pnum
+隐式声明的赋值运算符，
+或在首次声明时被默认置入的无 \grammarterm{noexcept-specifier} 的赋值运算符，
+其异常规范是潜在抛出的当且仅当
+隐式定义中任何赋值运算符的调用潜在抛出。
+
+\pnum
+无显式 \grammarterm{noexcept-specifier} 的释放函数\iref{basic.stc.dynamic.deallocation}
+具有不抛出异常规范。
+
+\pnum
+比较运算符函数\iref{over.binary}
+无 \grammarterm{noexcept-specifier}
+且在首次声明时被默认置入者，
+其异常规范是潜在抛出的当且仅当
+隐式定义中的任何表达式潜在抛出。
+
+\pnum
+\begin{example}
+\begin{codeblock}
+struct A {
+  A(int = (A(5), 0)) noexcept;
+  A(const A&) noexcept;
+  A(A&&) noexcept;
+  ~A();
+};
+struct B {
+  B() noexcept;
+  B(const B&) = default;        // 隐式异常规范为 \tcode{\keyword{noexcept}(\keyword{true})}
+  B(B&&, int = (throw 42, 0)) noexcept;
+  ~B() noexcept(false);
+};
+int n = 7;
+struct D : public A, public B {
+    int * p = new int[n];
+    // \tcode{D::D()} 潜在抛出，因为 \keyword{new} 运算符可能抛出 \tcode{bad_alloc} 或 \tcode{bad_array_new_length}
+    // \tcode{D::D(const D\&)} 不抛出
+    // \tcode{D::D(D\&\&)} 潜在抛出，因为 \tcode{B} 构造函数的默认实参可能抛出
+    // \tcode{D::\~D()} 潜在抛出
+};
+\end{codeblock}
+此外，若
+\tcode{A::\~{}A()}
+为虚，
+则程序非良构，因为覆盖基类虚函数的函数
+不得在基类函数具有不抛出异常规范时具有潜在抛出异常规范。
+\end{example}
+
+\pnum
+异常规范在以下情况下被视为 \defnx{需要}{needed!exception specification}：
+\begin{itemize}
+\item
+在表达式中，函数由重载决议\iref{over.match,over.over} 选定；
+
+\item
+函数被 ODR 使用\iref{term.odr.use}；
+
+\item
+异常规范与另一声明（如，显式特化或覆盖的虚函数）的异常规范比较；
+
+\item
+函数被定义；或
+
+\item
+默认置入函数调用该函数需要其异常规范。
+\begin{note}
+默认置入声明不要求对基类成员函数的异常规范求值
+直到需要派生函数的隐式异常规范时，但显式 \grammarterm{noexcept-specifier} 需要隐式异常规范以进行比较。
+\end{note}
+\end{itemize}
+默认置入函数的异常规范仅在需要时按上述方式求值；类似地，模板化函数特化的
+\grammarterm{noexcept-specifier} 仅在需要时实例化。
+%
+\indextext{exception specification|)}
+
+\rSec1[except.special]{特殊函数}
+
+\rSec2[except.special.general]{概述}
+
+\pnum
+函数\tcode{std::terminate}\iref{except.terminate}被异常处理机制用于处理与异常处理机制本身相关的错误。函数\tcode{std::uncaught_exceptions}\iref{uncaught.exceptions}报告当前线程中未被捕获的异常数量。函数\tcode{std::current_exception}\iref{propagation}与类\tcode{std::nested_exception}\iref{except.nested}可供程序用于捕获当前正被处理的异常。
+
+\rSec2[except.terminate]{函数 \tcode{std::terminate}}
+
+\pnum
+\indextext{\idxcode{terminate}}%
+程序中的某些错误无法恢复，例如异常未被处理，或 \tcode{std::thread} 对象在线程函数仍在执行时被销毁。在这些情况下，将调用函数 \tcode{std::terminate}\iref{exception.terminate}。
+\begin{note}
+这些情况包括：
+\indextext{\idxcode{terminate}!被调用}%
+\begin{itemize}
+\item%
+异常处理机制在完成异常对象初始化之后、但在激活该异常的处理程序之前\iref{except.throw}，调用了通过异常退出的函数，或
+
+\item%
+异常处理机制找不到被抛出异常的处理程序\iref{except.handle}，或
+
+\item%
+搜索处理程序\iref{except.handle}时，退出了带有非抛出异常规范\iref{except.spec}的函数体，包括从对该函数关联的函数契约断言\iref{basic.contract.eval}求值中所调用的契约违规处理程序通过异常退出时，或
+
+\item%
+栈展开\iref{except.ctor}期间对象析构通过抛出异常而终止，或
+
+\item%
+具有静态或线程存储期\iref{basic.start.dynamic}的非块变量初始化通过异常退出，或
+
+\item%
+具有静态或线程存储期的对象析构通过异常退出\iref{basic.start.term}，或
+
+\item%
+注册到 \tcode{std::atexit} 或 \tcode{std::at_quick_exit} 的函数执行通过异常退出\iref{support.start.term}，或
+
+\item%
+无操作数的 \grammarterm{throw-expression}\iref{expr.throw} 尝试重新抛出异常但没有异常正在被处理\iref{except.throw}，或
+
+\item%
+对未捕获任何异常的对象调用 \tcode{std::nested_exception::rethrow_nested}\iref{except.nested}，或
+
+\item%
+线程初始函数执行通过异常退出\iref{thread.thread.constr}，或
+
+\item%
+对于其 \tcode{ExecutionPolicy} 指定此类行为的并行算法\iref{execpol.seq,execpol.par,execpol.parunseq}，当该并行算法的元素访问函数\iref{algorithms.parallel.defns}执行通过异常退出时\iref{algorithms.parallel.exceptions}，或
+
+\item%
+在引用可联接线程的 \tcode{std::thread} 类型对象上调用析构函数或移动赋值运算符时\iref{thread.thread.destr,thread.thread.assign}，或
+
+\item%
+对条件变量\iref{thread.condition.condvar,thread.condition.condvarany}调用 \tcode{wait()}、\tcode{wait_until()} 或 \tcode{wait_for()} 函数未能满足后置条件，或
+
+\item%
+在 \tcode{std::stop_source} 或 \tcode{std::in\-place_stop_source}\iref{stopsource.mem,stopsource.inplace.mem} 上请求停止时回调调用通过异常退出，或在 \tcode{std::stop_callback} 或 \tcode{std::inplace_stop_callback}\iref{stopcallback.cons,stopcallback.inplace.cons} 构造函数中回调调用通过异常退出，或
+
+\item%
+仍在 \tcode{running} 状态的 \tcode{run_loop} 对象被销毁\iref{exec.run.loop}，或
+
+\item%
+在 \tcode{with_awaitable_senders<T>} 对象\iref{exec.with.awaitable.senders}上调用 \tcode{unhandled_stopped} 且其继续并非指向协程的句柄，且该协程的 promise 类型没有 \tcode{unhandled_stopped} 成员函数，或
+
+\item%
+类型为 \tcode{std::execution::simple_counting_scope} 或 \tcode{std::execution::counting_scope} 的对象 \tcode{scope} 被销毁且 \tcode{scope.\exposid{state}} 不等于 \exposid{joined}、\exposid{unused} 或 \exposid{unused-and-closed}\iref{exec.simple.counting.ctor}，或
+
+\item%
+调用 \tcode{std::execution::get_parallel_scheduler} 且 \tcode{std::execution::system_context_replace\-ability::query_parallel_scheduler_backend()} 返回空指针值\iref{exec.par.scheduler}，或
+
+\item%
+从不支持 \tcode{std::execution::set_error_t(std::exception_ptr)} 完成的协程 \tcode{std::execution::task}\iref{exec.task} 抛出异常。
+\end{itemize}
+\end{note}
+
+\pnum
+\indextext{\idxcode{terminate}}%
+未找到匹配处理程序时，在调用 \tcode{std::terminate} 之前是否进行栈展开由实现定义\impldef{在调用 \tcode{std::terminate} 之前的栈展开}。
+搜索处理程序\iref{except.handle}退出带有非抛出异常规范\iref{except.spec}的函数体时，在调用 \tcode{std::terminate} 之前栈是完全展开、部分展开还是根本不展开由实现定义\impldef{违反 \tcode{noexcept} 规范时，在调用 \tcode{std::terminate} 之前栈是否展开}。
+在所有其他情况下，在调用 \tcode{std::terminate} 之前不得进行栈展开。
+实现不得基于断定展开过程终将导致调用 \tcode{std::terminate} 而提前结束栈展开。
+\indextext{exception handling|)}
+

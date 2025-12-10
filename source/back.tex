@@ -1,0 +1,162 @@
+%!TEX root = std.tex
+
+\renewcommand{\leftmark}{\bibname}
+
+\begin{thebibliography}{99}
+% ISO 文档按数字顺序排列。
+\bibitem{iso4217}
+  ISO 4217:2015,
+  \doccite{表示货币的代码}
+\bibitem{iso10967-1}
+  ISO/IEC 10967-1:2012,
+  \doccite{信息技术 --- 语言独立算术 ---
+    第 1 部分：整数和浮点数算术}
+\bibitem{iso14882:2023}
+  ISO/IEC 14882:2023,
+  \doccite{编程语言 --- \Cpp{}}
+\bibitem{iso14882:2020}
+  ISO/IEC 14882:2020,
+  \doccite{编程语言 --- \Cpp{}}
+\bibitem{iso14882:2017}
+  ISO/IEC 14882:2017,
+  \doccite{编程语言 --- \Cpp{}}
+\bibitem{iso14882:2014}
+  ISO/IEC 14882:2014,
+  \doccite{信息技术 --- 编程语言 --- \Cpp{}}
+\bibitem{iso14882:2011}
+  ISO/IEC 14882:2011,
+  \doccite{信息技术 --- 编程语言 --- \Cpp{}}
+\bibitem{iso14882:2003}
+  ISO/IEC 14882:2003,
+  \doccite{编程语言 --- \Cpp{}}
+\bibitem{iso18661-3}
+  ISO/IEC TS 18661-3:2015,
+  \doccite{信息技术 ---
+    编程语言、其环境和系统软件接口 ---
+    C 的浮点数扩展 --- 第 3 部分：交换和扩展类型}
+% 其他国际标准。
+\bibitem{iana-charset}
+  IANA 字符集数据库。
+  可访问于:\newline
+  \url{https://www.iana.org/assignments/character-sets/}, 2021-04-01
+\bibitem{iana-tz}
+  IANA 时区数据库。
+  可访问于: \url{https://www.iana.org/time-zones}
+\bibitem{unicode-charmap}
+  Unicode 字符映射标记语言 [在线]。
+  由 Mark Davis 和 Markus Scherer 编辑。修订版 5.0.1；2017-05-31
+  可访问于: \url{https://www.unicode.org/reports/tr22/tr22-8.html}
+% 文献引用。
+\bibitem{cpp-r}
+  Bjarne Stroustrup,
+  \doccite{The \Cpp{} Programming Language, 第二版}, 第 R 章。
+  Addison-Wesley Publishing Company, ISBN 0-201-53992-6, 版权 \copyright 1991 AT\&T
+\bibitem{kr}
+  Brian W.\ Kernighan 和 Dennis M.\ Ritchie,
+  \doccite{The C Programming Language}, 附录 A。
+  Prentice-Hall, 1978, ISBN 0-13-110163-3, 版权 \copyright 1978 AT\&T
+\bibitem{cpp-lib}
+  P.\,J.\ Plauger,
+  \doccite{The Draft Standard \Cpp{} Library}。
+  Prentice-Hall, ISBN 0-13-117003-1, 版权 \copyright 1995 P.\,J.\ Plauger
+\bibitem{linalg-stable}
+  J.\ Demmel, I.\ Dumitriu, 和 O.\ Holtz,
+  \doccite{快速线性代数是稳定的},
+  Numerische Mathematik 108 (59--91), 2007。
+\bibitem{blas1}
+  C.\,L.\ Lawson, R.\,J.\ Hanson, D.\ Kincaid, 和 F.\,T.\ Krogh,
+  \doccite{用于 Fortran 的基本线性代数子程序}。
+  ACM 数学软件汇刊, 卷 5, 页 308--323, 1979。
+\bibitem{blas2}
+  Jack J.\ Dongarra, Jeremy Du Croz, Sven Hammarling, 和 Richard J.\ Hanson,
+  \doccite{一组扩展的 FORTRAN 基本线性代数子程序}。
+  ACM 数学软件汇刊, 卷 14, 第 1 期, 页 1--17, 三月 1988。
+\bibitem{blas3}
+  Jack J.\ Dongarra, Jeremy Du Croz, Sven Hammarling, 和 Iain Duff,
+  \doccite{一组 3 级基本线性代数子程序}。
+  ACM 数学软件汇刊, 卷 16, 第 1 期, 页 1--17, 三月 1990。
+\bibitem{lapack}
+  E.\ Anderson, Z.\ Bai, C.\ Bischof, S.\ Blackford, J.\ Demmel, J.\ Dongarra,
+  J.\ Du Croz, A.\ Greenbaum, S.\ Hammarling, A.\ McKenney, 和 D.\ Sorensen,
+  \doccite{LAPACK 用户指南, 第三版}。
+  SIAM, Philadelphia, PA, USA, 1999。
+\bibitem{blas-std}
+  L.\ Susan Blackford, James Demmel, Jack Dongarra, Iain Duff, Sven Hammarling,
+  Greg Henry, Michael Heroux, Linda Kaufman, Andrew Lumsdaine, Antoine Petitet,
+  Roldan Pozo, Karin Remington, 和 R.\ Clint Whaley,
+  \doccite{一组更新的基本线性代数子程序 (BLAS)}。
+  ACM 数学软件汇刊, 卷 28, 第 2 期, 页 135--151, 2002。
+\bibitem{flynn-taxonomy}
+  Michael J.\ Flynn,
+  \doccite{超高速计算系统}。
+  IEEE 会刊, 卷 54, 第 12 期, 页 1901--1909, 1966。
+\end{thebibliography}
+
+% FIXME: 由于未知原因，在我们的术语表中，悬挂段落默认不缩进。
+\let\realglossitem\glossitem
+\renewcommand{\glossitem}[4]{\hangpara{4em}{1}\realglossitem{#1}{#2}{#3}{#4}}
+
+\clearpage
+\renewcommand{\glossaryname}{交叉引用}
+\renewcommand{\preglossaryhook}{下面按标签字母顺序列出了每个条款和子条款的标签，以及相应的条款或子条款编号和页码。\\}
+\twocolglossary
+\renewcommand{\leftmark}{\glossaryname}
+{
+\raggedright
+\printglossary[xrefindex]
+}
+
+\clearpage
+\input{xrefdelta}
+\renewcommand{\glossaryname}{来自 ISO \CppXVII{} 的交叉引用}
+\renewcommand{\preglossaryhook}{本文件包含了 ISO \CppXVII{} (ISO/IEC 14882:2017, \doccite{编程语言 --- \Cpp{}}) 的所有条款和子条款标签，但以下描述的例外情况除外。\\}
+\renewcommand{\leftmark}{\glossaryname}
+{
+\raggedright
+\printglossary[xrefdelta]
+}
+
+\clearpage
+\renewcommand{\leftmark}{\indexname}
+\renewcommand{\preindexhook}{名称以 \exposid{等宽斜体} 出现的结构仅用于说明。\\}
+{
+\raggedright
+\printindex[generalindex]
+}
+
+\clearpage
+\renewcommand{\preindexhook}{每个条目的第一个粗体页码是定义文法产生式的一般文本中的页码。第二个粗体页码是语法摘要\iref{gram}中对应的页码。其他页码指的是在一般文本中提到该文法产生式的页码。\\}
+{
+\raggedright
+\printindex[grammarindex]
+}
+
+\clearpage
+\renewcommand{\preindexhook}{每个条目的粗体页码指的是显示该头文件概要的页码。\\}
+{
+\raggedright
+\printindex[headerindex]
+}
+
+\clearpage
+\renewcommand{\preindexhook}{名称以 \exposid{斜体} 出现的结构仅用于说明。\\}
+{
+\raggedright
+\printindex[libraryindex]
+}
+
+\clearpage
+\renewcommand{\preindexhook}{每个条目的粗体页码是定义该概念的页码。
+其他页码指的是在一般文本中提到该概念的页码。
+名称以 \exposid{斜体} 出现的概念仅用于说明。\\}
+{
+\raggedright
+\printindex[conceptindex]
+}
+
+\clearpage
+\renewcommand{\preindexhook}{本索引中的条目是粗略描述；精确规范请参见一般文本中指示的页码。\\}
+{
+\raggedright
+\printindex[impldefindex]
+}

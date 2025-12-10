@@ -1,0 +1,119 @@
+%!TEX root = std.tex
+\infannex{implimits}{实现限制}
+
+\pnum
+实现可对各种数量施加限制；
+以下列出若干可能的限制。
+每项数量后方括号内的数字为其潜在最小值。
+\begin{itemize}
+\item%
+复合语句\iref{stmt.block}、
+迭代控制结构\iref{stmt.iter}和
+选择控制结构\iref{stmt.select}
+的嵌套层数 [256]。
+\item%
+条件包含\iref{cpp.cond} 的嵌套层数 [256]。
+\item%
+在单个声明中修饰同一类型的
+指针\iref{dcl.ptr}、
+指向成员的指针\iref{dcl.mptr}、
+数组\iref{dcl.array}和
+函数\iref{dcl.fct}
+声明符（任意组合） [256]。
+\item%
+完整表达式内括号化表达式\iref{expr.prim.paren} 的嵌套层数 [256]。
+\item%
+内部标识符\iref{lex.name}或宏名\iref{cpp.replace}
+的字符数 [1\,024]。
+\item%
+外部标识符\iref{lex.name,basic.link} 的字符数 [1\,024]。
+\item%
+一个翻译单元中的外部标识符\iref{basic.link} [65\,536]。
+\item%
+一个块内声明的块作用域标识符\iref{basic.scope.block} [1\,024]。
+\item%
+单个声明引入的结构化绑定\iref{dcl.struct.bind} [256]。
+\item%
+一个翻译单元内同时定义的
+宏标识符\iref{cpp.replace} [65\,536]。
+\item%
+单个函数定义\iref{dcl.fct.def.general} 中的形参 [256]。
+\item%
+单次函数调用\iref{expr.call} 中的实参 [256]。
+\item%
+单个宏定义\iref{cpp.replace} 中的参数 [256]。
+\item%
+单次宏调用\iref{cpp.replace} 中的实参 [256]。
+\item%
+单条逻辑源行\iref{lex.phases} 的字符数 [65\,536]。
+\item%
+一个 \grammarterm{string-literal}\iref{lex.string}（拼接后\iref{lex.phases}）
+的字符数 [65\,536]。
+\item%
+对象\iref{intro.object} 的大小 [262\,144]。
+\item%
+\tcode{\#include} 文件的嵌套层数\iref{cpp.include} [256]。
+\item%
+单个 \keyword{switch} 语句\iref{stmt.switch} 的 case 标签
+（不包括嵌套 \keyword{switch} 语句的 case 标签）
+[16\,384]。
+\item%
+单个类\iref{class.mem} 中的非静态数据成员（包括继承的） [16\,384]。
+\item%
+单个 \grammarterm{lambda-expression}\iref{expr.prim.lambda.capture} 中的
+lambda 捕获 [256]。
+\item%
+单个枚举\iref{dcl.enum} 中的枚举常量 [4\,096]。
+\item%
+单个 \grammarterm{member-specification} 内嵌套类定义\iref{class.nest}
+的层数 [256]。
+\item%
+\tcode{atexit()} 注册的函数\iref{support.start.term} [32]。
+\item%
+\tcode{at_quick_exit()} 注册的函数\iref{support.start.term} [32]。
+\item%
+直接和间接基类\iref{class.derived} 数量 [16\,384]。
+\item%
+单个类的直接基类\iref{class.derived} 数量 [1\,024]。
+\item%
+单个 \grammarterm{member-specification} 中声明的类成员
+（含成员函数）\iref{class.mem} [4\,096]。
+\item%
+类中最终覆盖的虚函数数量，无论是否可访问\iref{class.virtual}
+[16\,384]。
+\item%
+类的直接和间接虚基类\iref{class.mi} 数量 [1\,024]。
+\item%
+类的静态数据成员\iref{class.static.data} 数量 [1\,024]。
+\item%
+类中的友元声明\iref{class.friend} 数量 [4\,096]。
+\item%
+类中的访问控制声明\iref{class.access.spec} 数量 [4\,096]。
+\item%
+构造函数定义\iref{class.base.init} 中的成员初始化式数量 [6\,144]。
+\item%
+单个 \grammarterm{braced-init-list}\iref{dcl.init} 中的
+\grammarterm{initializer-clause} 数量 [16\,384]。
+\item%
+单个标识符\iref{expr.prim.id.qual} 的作用域限定数量 [256]。
+\item%
+嵌套 \grammarterm{linkage-specification} 数量\iref{dcl.link} [1\,024]。
+\item%
+递归 constexpr 函数调用\iref{dcl.constexpr} 数量 [512]。
+\item%
+核心常量表达式\iref{expr.const} 内求值的完整表达式数量
+[1\,048\,576]。
+\item%
+模板声明\iref{temp.param} 中的模板参数数量 [1\,024]。
+\item%
+递归嵌套模板实例化数量\iref{temp.inst}，包括模板实参推导\iref{temp.deduct}
+过程中的替换 [1\,024]。
+\item%
+单个 try 块的处理函数\iref{except.handle} 数量 [256]。
+\item%
+占位符\iref{func.bind.place} 数量 [10]。
+\item%
+可受危险保护且可能被回收的对象数量\iref{saferecl.hp.general} [256]。
+
+\end{itemize}
+

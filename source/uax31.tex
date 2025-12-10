@@ -1,0 +1,96 @@
+%!TEX root = std.tex
+\infannex{uaxid}{与\UAX{31}的符合性}
+
+\rSec1[uaxid.general]{概述}
+
+\pnum
+本附录描述了在将\UAX{31}（“Unicode标识符与模式语法”）应用于\Cpp{}时所做的选择，依据\UAX{31}的要求以及这些要求对本文件的适用情况。就\UAX{31}而言，本文件通过满足\UAX{31}中的要求R1“默认标识符”与R4“等价归一化标识符”来实现符合性。\UAX{31}中的其他要求（也列于下文）要么是未被采纳的替代方案，要么不适用于本文件。
+
+\rSec1[uaxid.def]{R1 默认标识符}
+
+\rSec2[uaxid.def.general]{概述}
+\indextext{XID_Start}%
+\indextext{XID_Continue}%
+
+\pnum
+\UAX{31} 基于 Unicode 字符数据库（\UAX{44}）的属性，为标识符指定了默认语法。其通用语法为：
+\begin{outputblock}
+<Identifier> := <Start> <Continue>* (<Medial> <Continue>+)*
+\end{outputblock}
+其中，\tcode{<Start>} 具有 XID_Start 属性，
+\tcode{<Continue>} 具有 XID_Continue 属性，而
+\tcode{<Medial>} 是一个允许出现在继续字符之间的字符列表。
+对于 \Cpp{}，我们将字符 \unicode{005f}{下划线} 或 \tcode{_} 添加到允许的 \tcode{<Start>} 字符集中，
+\tcode{<Medial>} 集合为空，且
+\tcode{<Continue>} 字符保持不变。
+在 \UAX{31} 使用的语法中，即为：
+\begin{outputblock}
+<Identifier> := <Start> <Continue>*
+<Start> := XID_Start + @\textrm{\ucode{005f}}@
+<Continue> := <Start> + XID_Continue
+\end{outputblock}
+
+\pnum
+这已经在 \ref{lex.name} 中的 \Cpp{} 语法里进行描述，其中 \grammarterm{identifier} 由 \grammarterm{identifier-start} 或者紧跟着 \grammarterm{identifier-continue} 的 \grammarterm{identifier} 构成。
+
+\rSec2[uaxid.def.stable]{R1b 稳定标识符}
+
+\pnum
+\UAX{31} 的实现可以选择保证标识符在 Unicode 标准的不同版本间保持稳定。一旦某个字符串符合标识符的条件，它将在所有未来版本中继续保持这一资格。
+
+\pnum
+\Cpp{} 不提供此项保证，除非 \UAX{31} 本身确保 XID_Start 与 XID_Continue 属性的稳定性。
+
+\rSec1[uaxid.immutable]{R2 不可变标识符}
+
+\pnum
+实现可以选择通过永久固定标识符中允许的码点集，来保证标识符集合永不更改。
+
+\pnum
+\Cpp{}未选择提供此保证。
+随着文字被添加到Unicode，这些文字中的额外字符可能变得可用于标识符。
+
+\rSec1[uaxid.pattern]{R3 模式空白字符与模式语法字符}
+
+\pnum
+\UAX{31} 描述了形式语言（如计算机语言）在词法和语法分析过程中应如何描述和实现对空白字符及语法上有特殊含义字符的使用。
+
+\pnum
+本文件不声称符合 \UAX{31} 的此项要求。
+
+\rSec1[uaxid.eqn]{R4 等价的规范化标识符}
+
+\pnum
+\UAX{31} 要求实现描述
+如何比较标识符以及认为其等价的条件。
+
+\pnum
+本文档要求标识符采用规范化形式C，
+因此，在NFC下比较相同的标识符被视为等价。
+这在 \ref{lex.name} 中描述。
+
+\rSec1[uaxid.eqci]{R5 等价的大小写不敏感标识符}
+
+\pnum
+本文档在标识符比较中视大小写为有意义的，且不进行任何大小写折叠。
+来自 \UAX{31} 的这一要求不适用于本文档。
+
+\rSec1[uaxid.filter]{R6 过滤后的规范化标识符}
+
+\pnum
+若有字符被排除在规范化之外，
+\UAX{31} 要求对这些排除项作出精确的规定。
+
+\pnum
+本文档不作任何此类排除。
+
+\rSec1[uaxid.filterci]{R7 过滤后不区分大小写的标识符}
+
+\pnum
+\Cpp{} 标识符区分大小写，因此来自\UAX{31}的这项要求不适用。
+
+\rSec1[uaxid.hashtag]{R8 话题标签标识符}
+
+\pnum
+\Cpp{} 中没有话题标签，因此来自\UAX{31}的这项要求不适用。
+

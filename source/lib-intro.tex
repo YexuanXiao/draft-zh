@@ -1,0 +1,3280 @@
+%!TEX root = std.tex
+\rSec0[library]{库简介}
+
+\rSec1[library.general]{总览}
+
+\pnum
+本条款描述了
+\defnx{\Cpp{} 标准库}{library!\Cpp{} standard}的内容、
+良构的 \Cpp{} 程序如何利用该库，以及符合标准的实现如何提供库中的实体。
+
+\pnum
+以下子条款描述了库的
+描述方法\iref{description}与组织方式\iref{organization}。
+\ref{requirements}、\ref{\firstlibchapter}至\ref{\lastlibchapter}以及\ref{depr}规定了库的内容，
+以及对良构 \Cpp{} 程序与符合标准实现两者的库要求与约束。
+
+\pnum
+库中各组件的详细规范位于\ref{\firstlibchapter}--\ref{\lastlibchapter}，
+如\tref{library.categories}所示。
+
+\begin{floattable}{库类别}{library.categories}
+{ll}
+\topline
+\hdstyle{条款}        & \hdstyle{类别}              \\ \capsep
+\ref{support}           & 语言支持库    \\
+\ref{concepts}          & 概念库            \\
+\ref{diagnostics}       & 诊断库         \\
+\ref{mem}               & 内存管理库   \\
+\ref{meta}              & 元编程库     \\
+\ref{utilities}         & 通用工具库   \\
+\ref{containers}        & 容器库          \\
+\ref{iterators}         & 迭代器库           \\
+\ref{ranges}            & 范围库              \\
+\ref{algorithms}        & 算法库          \\
+\ref{strings}           & 字符串库             \\
+\ref{text}              & 文本处理库     \\
+\ref{numerics}          & 数值库            \\
+\ref{time}              & 时间库                \\
+\ref{input.output}      & 输入/输出库        \\
+\ref{thread}            & 并发支持库 \\
+\ref{exec}              & 执行控制库   \\
+\end{floattable}
+
+\pnum
+\IsoPosix{} 所描述的操作系统接口以下简称为 \defn{POSIX}。
+
+\pnum
+语言支持库\iref{support}提供 \Cpp{} 语言某些部分所需的组件，
+例如内存分配\iref{expr.new,expr.delete}和异常处理\iref{except}。
+
+\pnum
+概念库\iref{concepts}描述了 \Cpp{} 程序可用于对模板实参进行编译时验证
+以及基于类型属性进行函数分派的库组件。
+
+\pnum
+诊断库\iref{diagnostics}为 \Cpp{} 程序中的错误报告提供了统一的框架，
+包括预定义的异常类。
+
+\pnum
+内存管理库\iref{mem}提供内存管理相关的组件，包括智能指针和作用域分配器。
+
+\pnum
+元编程库\iref{meta}描述了用于模板和常量求值的工具，
+包括类型特性、整数序列和有理数算术。
+
+\pnum
+通用工具库\iref{utilities}包含被其他库元素使用的组件，
+例如用于动态存储管理的预定义存储分配器\iref{basic.stc.dynamic}，
+以及作为 \Cpp{} 程序基础设施使用的组件，
+例如元组和函数包装器。
+
+\pnum
+容器\iref{containers}、迭代器\iref{iterators}、范围\iref{ranges}
+和算法\iref{algorithms}库为 \Cpp{} 程序提供了对最广泛使用的算法和数据结构子集的访问。
+
+\pnum
+字符串库\iref{strings}提供了对操作
+\tcode{char}类型的序列、
+\keyword{char8_t}类型的序列、
+\keyword{char16_t}类型的序列、
+\keyword{char32_t}类型的序列、
+\keyword{wchar_t}类型的序列以及任何其他类似字符类型的序列的支持。
+
+\pnum
+文本处理库\iref{text}提供文本处理支持，
+包括格式化、国际化支持以及正则表达式匹配与搜索。
+
+\pnum
+数值库\iref{numerics}提供数值算法与复数组件，扩展了对数值处理的支持。
+\tcode{valarray}组件提供了对“一次性处理”的支持，
+有可能在支持此类处理的平台上实现为并行操作。
+随机数组件提供了生成伪随机数的工具。
+
+\pnum
+时间库\iref{time}提供通用的时间工具。
+
+\pnum
+输入/输出库\iref{input.output}提供
+\tcode{iostream}组件，这是 \Cpp{} 程序输入和输出的主要机制。
+它们可与库中的其他元素（特别是字符串、本地化环境和迭代器）结合使用。
+
+\pnum
+并发支持库\iref{thread}提供创建和管理线程的组件，
+包括原子操作、互斥以及线程间通信。
+
+\pnum
+执行控制库\iref{exec}提供支持函数对象执行的组件。
+
+\rSec1[library.c]{C 标准库}
+
+\pnum
+\Cpp{} 标准库也提供了 C 标准库中的设施，
+\indextext{库！C 标准}%
+并经过适当调整以保证静态类型安全。
+
+\pnum
+对许多库函数行为的描述依赖于 C 标准库中对应函数的语义。
+在一些情况下，
+本文档中指定的函数签名可能与 C 标准库中的签名不同，
+并且本文档可能声明额外的重载，
+但除非另有说明，其行为和前提条件
+（包括通过使用 C \tcode{restrict} 限定符所隐含的任何前提条件）
+均保持一致。
+
+\pnum
+对 C 标准库函数的调用
+是一个非常量库调用\iref{defns.nonconst.libcall}，
+如果它抛出了除 \tcode{FE_INEXACT} 之外的浮点数异常。
+在核心常量表达式中求值的对 C 标准库函数的调用
+其语义遵循 \IsoC{} 附录 F 中的规定
+\begin{footnote}
+另见 \IsoC{}，7.6。
+\end{footnote}
+其适用范围仅限于被调用函数的参数类型所属的浮点数类型\iref{basic.fundamental}。
+\begin{note}
+\IsoC{} 附录 F 规定了
+何时会抛出浮点数异常，
+以及当 NaN 和/或无穷大作为参数传递时的行为。
+\end{note}
+\begin{note}
+同样地，当 \tcode{math_errhandling \& MATH_ERRNO} 为 \tcode{true} 时，
+如果 \tcode{errno} 被设置，
+则对 C 标准库函数的调用是一个非常量库调用。
+\end{note}
+
+\rSec1[description]{描述方法}
+
+\rSec2[description.general]{概述}
+
+\pnum
+子节\ref{description}描述了用于指定\Cpp{}标准库的约定。\ref{structure}描述了
+\ref{\firstlibchapter}至\ref{\lastlibchapter}以及
+\ref{depr}的结构。\ref{conventions}描述了其他编辑约定。
+
+\rSec2[structure]{各条款的结构}
+
+\rSec3[structure.elements]{元素}
+
+\pnum
+每个库条款均包含以下适用元素：
+\begin{footnote}
+为
+节省空间，不适用于某条款的条目会被省略。
+例如，若某条款未规定任何要求，
+则将没有“要求”子条款。
+\end{footnote}
+
+\begin{itemize}
+\item 概述
+\item 要求
+\item 详细规范
+\item 对C标准库的引用
+\end{itemize}
+
+\rSec3[structure.summary]{概述}
+
+\pnum
+“概述”部分提供该分类的概要，并介绍一级子条款。
+每个子条款也提供一个概要，列出该
+子条款中指定的头文件以及每个头文件提供的库实体。
+
+\pnum
+概述和详细规范的内容包括：
+
+\begin{itemize}
+\item 宏
+\item 值
+\item 类型与别名模板
+\item 类与类模板
+\item 函数与函数模板
+\item 对象与变量模板
+\item 概念
+\end{itemize}
+
+\rSec3[structure.requirements]{需求}
+
+\pnum
+\indextext{requirements}%
+需求描述了扩展标准库的 \Cpp{} 程序必须满足的约束。
+此类扩展通常是以下之一：
+
+\begin{itemize}
+\item 模板实参
+\item 派生类
+\item 满足接口约定或属于某个概念的容器、迭代器和算法
+\end{itemize}
+
+\pnum
+字符串和 iostream 组件使用了对模板实参所需操作的显式表示。它们使用类模板 \tcode{char_traits} 来定义这些约束。
+
+\pnum
+接口约定需求的表述尽可能通用。
+接口要求“对于类 \tcode{X} 的任何对象 \tcode{x}，\tcode{++x} 有定义”，而不是陈述“类 \tcode{X} 必须定义成员函数 \tcode{operator++()}”。
+也就是说，运算符是否为成员是未指明的。
+
+\pnum
+需求以良构的表达式来陈述，这些表达式定义了满足需求的类型的合法项。
+对于每一组良构的表达式需求，都有一个具名概念或一个表格，规定了有效表达式及其语义的初始集合。
+任何使用良构表达式需求的泛型算法\iref{algorithms}，均通过其模板类型参数的合法表达式来描述。
+
+\pnum
+库规范使用排版约定来命名需求。
+以 \textit{斜体} 显示且以 \oldconcept{} 为前缀的名称，指的是通常以表格形式呈现的良构表达式需求集合，可能附带额外的描述性语义需求。
+例如，\oldconcept{Destructible}~(\tref{cpp17.destructible}) 就是这样一个具名需求。
+以 \tcode{等宽字体} 显示的名称指的是库概念，这些概念以概念定义\iref{temp}的形式呈现，可能附带额外的描述性语义需求。
+例如，
+\libconcept{destructible}\iref{concept.destructible}
+就是这样一个具名需求。
+
+\pnum
+模板实参需求有时通过名称引用。
+参见 \ref{type.descriptions}。
+
+\pnum
+在某些情况下，语义需求以 \Cpp{} 代码呈现。
+此类代码旨在说明一种构造等价于另一种构造，而不一定是该构造必须的实现方式。
+\begin{footnote}
+尽管在某些情况下，所给出的代码明确是最优实现。
+\end{footnote}
+
+\pnum
+本文档中定义的任何概念所要求的操作不必是完整函数；即，对某个要求的操作的一些实参可能导致不满足所要求的语义。
+\begin{example}
+\libconcept{totally_ordered}
+概念\iref{concept.totallyordered} 所要求的 \tcode{<} 运算符，在操作 NaN 时不满足该概念的语义需求。
+\end{example}
+这并不影响一个类型是否属于该概念。
+
+\pnum
+声明可以通过其关联约束\iref{temp.constr.decl}明确地施加要求。
+当关联约束引用某个概念\iref{temp.concept}时，为该概念指定的语义约束会额外施加于该声明的使用上。
+
+\rSec3[structure.specifications]{详细规范}
+
+\pnum
+每条详细规范包含以下元素：%
+
+\begin{itemize}
+\item 名称与简要描述
+\item 概要（类定义或函数声明，视情况而定）
+\item 模板参数限制（如有）
+\item 类不变量的描述
+\item 函数语义的描述
+\end{itemize}
+
+\pnum
+类成员函数的描述遵循以下顺序（视情况而定）：
+\begin{footnote}
+为节省篇幅，不适用于类的项目被省略。
+例如，若某个类未规定任何比较运算符函数，则不会有“比较运算符函数”子条款。
+\end{footnote}
+
+\begin{itemize}
+\item 构造函数与析构函数
+\item 复制、移动及赋值函数
+\item 比较运算符函数
+\item 修改器函数
+\item 观察器函数
+\item 运算符及其他非成员函数
+\end{itemize}
+
+\pnum
+函数语义的描述包含以下元素（视情况而定）：
+\begin{footnote}
+为节省篇幅，不适用于函数的元素被省略。
+例如，若某个函数未规定
+先决条件，则不会有\expects 元素。
+\end{footnote}
+
+\begin{itemize}
+\item
+\constraints
+该函数参与重载决议的条件（参见\iref{over.match}）。
+\begin{note}
+未能满足该条件将导致该函数被静默地排除在候选函数集之外。
+\end{note}
+\begin{example}
+实现可以通过\grammarterm{约束表达式}（参见\iref{temp.constr.decl}）来表达该条件。
+\end{example}
+
+\item
+\mandates
+这些条件若不被满足，将导致程序非良构。
+\begin{example}
+实现可以通过\grammarterm{静态断言声明}中的\grammarterm{常量表达式}（参见\iref{dcl.pre}）来表达该条件。
+如果诊断信息仅需在该函数被重载决议选中后才发出，则实现可以通过\grammarterm{约束表达式}（参见\iref{temp.constr.decl}）来表达该条件，同时将该函数定义为删除的。
+\end{example}
+
+\item
+\constantwhen
+要求该函数的调用是一个常量子表达式（参见\iref{defns.const.subexpr}）所需满足的条件。
+
+\item
+\expects
+该函数每次被调用时假定成立的条件；违反任何先验条件将导致未定义行为。
+\begin{example}
+实现可以通过使用契约断言来表达其中某些条件，例如先验条件断言（参见\iref{dcl.contract.func}）。
+\end{example}
+
+\item
+\hardexpects
+该函数每次被调用时假定成立的条件。
+\begin{itemize}
+\item
+在硬化的实现中调用该函数时，在该函数任何其他可观察的副作用发生之前，将使用检查语义（参见\iref{basic.contract.eval}）求值一个或多个谓词如该硬化先验条件所描述的契约断言。如果其中任何断言以非终止语义求值，并且契约违反处理器返回，则程序具有未定义行为。
+\item
+在非硬化的实现中调用该函数时，如果任何硬化先验条件被违反，则程序具有未定义行为。
+\end{itemize}
+
+\item
+\effects
+该函数执行的操作。
+
+\item
+\sync
+适用于该函数的同步操作（参见\iref{intro.multithread}）。
+
+\item
+\ensures
+该函数建立的条件（有时称为可观察结果）。
+\begin{example}
+实现可以通过使用契约断言来表达其中某些条件，例如后验条件断言（参见\iref{dcl.contract.func}）。
+\end{example}
+
+\item
+\result
+对于\grammarterm{类型名说明符}，描述具名类型；对于\grammarterm{表达式}，描述该表达式的类型和值类别；如果类型是左值引用类型，则表达式是左值；如果类型是右值引用类型，则表达式是亡值；否则为纯右值。
+
+\item
+\returns
+对该函数返回的值的描述。
+
+\item
+\throws
+该函数抛出的任何异常，以及会导致该异常的条件。
+
+\item
+\complexity
+该函数的时间复杂度和/或空间复杂度。
+
+\item
+\remarks
+对该函数的额外语义约束。
+
+\item
+\errors
+该函数报告的错误代码所对应的错误条件。
+\end{itemize}
+
+\pnum
+只要\Fundescx{效果}元素指明某个函数 \tcode{F} 的语义 \term{等价于} 某代码序列，则应按以下方式解释各元素。如果 \tcode{F} 的语义指定了任何\Fundescx{约束}或\Fundescx{强制}元素，则这些要求在逻辑上在\term{等价于}语义之前施加。然后，代码序列的语义由其中包含的函数调用所指定的\Fundescx{约束}、\Fundescx{强制}、\Fundescx{常量时机}、\Fundescx{先验条件}、\Fundescx{硬化先验条件}、\Fundescx{效果}、\Fundescx{同步}、\Fundescx{后验条件}、\Fundescx{返回}、\Fundescx{抛出}、\Fundescx{复杂度}、\Fundescx{备注}和\Fundescx{错误条件}共同决定。从 \tcode{F} 返回的值由 \tcode{F} 的\Fundescx{返回}元素指定，或者，如果 \tcode{F} 没有\Fundescx{返回}元素，则由代码序列中的 \tcode{return} 语句（参见\iref{stmt.return}）指定非 \keyword{void} 返回。如果 \tcode{F} 的语义包含\Fundescx{抛出}、\Fundescx{后验条件}或\Fundescx{复杂度}元素，则该元素将取代代码序列中出现的同种元素。
+
+\pnum
+对于非保留的替换函数和处理函数，\ref{support} 为所讨论的函数指定了两种行为：其必需行为和默认行为。\defnx{默认行为}{behavior!default} 描述了实现提供的函数定义。\defnx{必需行为}{behavior!required} 描述了由实现或 \Cpp{} 程序提供的函数定义的语义。在描述中未明确做出区分时，所描述的行为是必需行为。
+
+\pnum
+若复杂度的规定需要执行负次数的操作，则实际要求是零次操作。
+\begin{footnote}
+这在某些情况下简化了复杂度的描述。
+\end{footnote}
+
+\pnum
+库条款中指定的复杂度要求是上界，能提供更优复杂度保证的实现满足该要求。
+
+\pnum
+错误条件指定了函数可能失败的条件。这些条件将与适当的解释一起列为 \tcode{enum class errc} 常量（参见\iref{syserr}）。
+
+\rSec3[structure.see.also]{C 库}
+
+\pnum
+标有“\textsc{参见}”的段落包含指向其他标准相关部分的交叉引用\iref{intro.refs}。
+
+\rSec2[conventions]{其他约定}
+
+\rSec3[conventions.general]{概述}
+\indextext{约定}%
+
+\pnum
+子条款 \ref{conventions} 描述了用于描述 \Cpp{} 标准库内容的若干编辑约定。
+这些约定用于描述
+实现定义的类型\iref{type.descriptions}，
+以及成员函数\iref{functions.within.classes}。
+
+\rSec3[expos.only.entity]{仅供说明的实体等}
+
+\pnum
+在 \ref{\firstlibchapter} 至 \ref{\lastlibchapter} 及 \ref{depr} 中定义的若干实体
+仅为说明目的而定义。
+此类实体的声明后附有以 \expos 结尾的注释。
+
+\pnum
+以下定义仅供说明，
+以辅助库的规范：
+\indexlibrary{decay-copy@\exposid{decay-copy}}%
+\begin{codeblock}
+名字空间 std {
+  模板<类 T>
+    要求 @\libconcept{convertible_to}@<T, decay_t<T>>
+      常量表达式 decay_t<T> @\exposidnc{decay-copy}@(T&& v)       // \expos
+        不抛出(is_nothrow_convertible_v<T, decay_t<T>>)
+      { return std::forward<T>(v); }
+
+  常量表达式 auto @\exposidnc{synth-three-way}@ =                 // \expos
+    []<类 T, 类 U>(常量 T& t, 常量 U& u)
+      要求 要求 {
+        { t < u } -> @\exposconcept{boolean-testable}@;
+        { u < t } -> @\exposconcept{boolean-testable}@;
+      }
+    {
+      若 常量表达式 (@\libconcept{three_way_comparable_with}@<T, U>) {
+        return t <=> u;
+      } 否则 {
+        若 (t < u) return weak_ordering::less;
+        若 (u < t) return weak_ordering::greater;
+        return weak_ordering::equivalent;
+      }
+    };
+
+  模板<类 T, 类 U = T>
+  使用 @\exposidnc{synth-three-way-result}@ =                  // \expos
+    推导类型(@\exposidnc{synth-three-way}@(推导值<T&>(), 推导值<U&>()));
+}
+\end{codeblock}
+
+\pnum
+若对象 \tcode{dst} 的类型为
+\begin{codeblock}
+decay_t<推导类型((src))>
+\end{codeblock} 且 \tcode{dst} 从 \tcode{src} 复制初始化，则称其被 \defn{退化复制自} 子表达式 \tcode{src}。
+
+\rSec3[type.descriptions]{类型描述}
+
+\rSec4[type.descriptions.general]{概述}
+
+\pnum
+要求子条款可能描述一些名称，这些名称用于指定对模板参数的约束。
+\begin{footnote}
+来自~\ref{utility.requirements} 的示例包括：
+\oldconcept{EqualityComparable}、
+\oldconcept{LessThanComparable}、
+\oldconcept{CopyConstructible}。
+来自~\ref{iterator.requirements} 的示例包括：
+\oldconcept{InputIterator}、
+\oldconcept{ForwardIterator}。
+\end{footnote}
+这些名称在库条款中用于描述当从库中实例化模板组件时，\Cpp{} 程序可能作为参数提供的类型。
+
+\pnum
+在 \ref{input.output} 中定义的某些类型用于描述实现定义的类型。
+\indextext{types!implementation-defined}%
+它们基于其他类型，但带有额外的约束。
+
+\rSec4[enumerated.types]{枚举类型}
+
+\pnum
+在 \ref{input.output} 中定义的几种类型是 \defnadjx{enumerated}{types}{type}{枚举类型}。
+每个枚举类型可以实现为一个枚举类型或某个枚举类型的同义词。
+\begin{footnote}
+例如，整数类型，具有整数常量值\iref{basic.fundamental}。
+\end{footnote}
+
+\pnum
+枚举类型 \tcode{\placeholder{enumerated}} 可以写作：
+
+\begin{codeblock}
+enum @\placeholder{enumerated}@ { @$\tcode{\placeholder{V}}_{0}$@, @$\tcode{\placeholder{V}}_{1}$@, @$\tcode{\placeholder{V}}_{2}$@, @$\tcode{\placeholder{V}}_{3}$@, @$\ldots$@ };
+
+inline const @$\tcode{\placeholder{enumerated C}}_{0}$@(@$\tcode{\placeholder{V}}_{0}$@);
+inline const @$\tcode{\placeholder{enumerated C}}_{1}$@(@$\tcode{\placeholder{V}}_{1}$@);
+inline const @$\tcode{\placeholder{enumerated C}}_{2}$@(@$\tcode{\placeholder{V}}_{2}$@);
+inline const @$\tcode{\placeholder{enumerated C}}_{3}$@(@$\tcode{\placeholder{V}}_{3}$@);
+  @\vdots@
+\end{codeblock}
+
+\pnum
+在此，名称 $\tcode{\placeholder{C}}_0$、$\tcode{\placeholder{C}}_1$ 等代表此特定枚举类型的 \defnx{枚举元素}{enumerated element}。
+\indextext{type!enumerated}%
+所有这样的元素都具有不同的值。
+
+\rSec4[bitmask.types]{位掩码类型}
+
+\pnum
+在 \ref{\firstlibchapter} 至 \ref{\lastlibchapter} 以及 \ref{depr} 中定义的若干类型是\defnx{位掩码类型}{type!bitmask}。每个位掩码类型可以实现为一个重载特定运算符的枚举类型、一个整数类型，或是一个\tcode{bitset}\iref{template.bitset}。
+\indextext{type!enumerated}%
+
+\pnum
+位掩码类型 \tcode{\placeholder{bitmask}} 可写作：
+
+\begin{codeblock}
+// 仅用于说明。
+// \tcode{int_type} 是一种能够表示位掩码类型所有值的整数类型。
+enum @\placeholder{bitmask}@ : int_type {
+  @$\tcode{\placeholder{V}}_{0}$@ = 1 << 0, @$\tcode{\placeholder{V}}_{1}$@ = 1 << 1, @$\tcode{\placeholder{V}}_{2}$@ = 1 << 2, @$\tcode{\placeholder{V}}_{3}$@ = 1 << 3, @$\ldots$@
+};
+
+inline constexpr @$\tcode{\placeholder{bitmask C}}_{0}$@(@$\tcode{\placeholder{V}}_{0}{}$@);
+inline constexpr @$\tcode{\placeholder{bitmask C}}_{1}$@(@$\tcode{\placeholder{V}}_{1}{}$@);
+inline constexpr @$\tcode{\placeholder{bitmask C}}_{2}$@(@$\tcode{\placeholder{V}}_{2}{}$@);
+inline constexpr @$\tcode{\placeholder{bitmask C}}_{3}$@(@$\tcode{\placeholder{V}}_{3}{}$@);
+  @\vdots@
+
+constexpr @\placeholder{bitmask}{}@ operator&(@\placeholder{bitmask}{}@ X, @\placeholder{bitmask}{}@ Y) {
+  return static_cast<@\placeholder{bitmask}{}@>(
+    static_cast<int_type>(X) & static_cast<int_type>(Y));
+}
+constexpr @\placeholder{bitmask}{}@ operator|(@\placeholder{bitmask}{}@ X, @\placeholder{bitmask}{}@ Y) {
+  return static_cast<@\placeholder{bitmask}{}@>(
+    static_cast<int_type>(X) | static_cast<int_type>(Y));
+}
+constexpr @\placeholder{bitmask}{}@ operator^(@\placeholder{bitmask}{}@ X, @\placeholder{bitmask}{}@ Y) {
+  return static_cast<@\placeholder{bitmask}{}@>(
+    static_cast<int_type>(X) ^ static_cast<int_type>(Y));
+}
+constexpr @\placeholder{bitmask}{}@ operator~(@\placeholder{bitmask}{}@ X) {
+  return static_cast<@\placeholder{bitmask}{}@>(~static_cast<int_type>(X));
+}
+@\placeholder{bitmask}{}@& operator&=(@\placeholder{bitmask}{}@& X, @\placeholder{bitmask}{}@ Y) {
+  X = X & Y; return X;
+}
+@\placeholder{bitmask}{}@& operator|=(@\placeholder{bitmask}{}@& X, @\placeholder{bitmask}{}@ Y) {
+  X = X | Y; return X;
+}
+@\placeholder{bitmask}{}@& operator^=(@\placeholder{bitmask}{}@& X, @\placeholder{bitmask}{}@ Y) {
+  X = X ^ Y; return X;
+}
+\end{codeblock}
+
+\pnum
+这里，名称 $\tcode{\placeholder{C}}_0$、$\tcode{\placeholder{C}}_1$ 等表示该特定位掩码类型的\defnx{位掩码元素}{bitmask!element}。
+\indextext{type!bitmask}%
+所有此类元素都具有互不相同的非零值，使得对于任意一对 $i \neq j$ 的 $\tcode{\placeholder{C}}_i$ 和 $\tcode{\placeholder{C}}_j$，\tcode{$\placeholder{C}_i$ \& $\placeholder{C}_i$} 非零且 \tcode{$\placeholder{C}_i$ \& $\placeholder{C}_j$} 为零。
+此外，值 \tcode{0} 用于表示一个\defnx{空位掩码}{bitmask!empty}，其中没有设置任何位掩码元素。
+
+\pnum
+以下术语适用于位掩码类型的对象和值：
+\begin{itemize}
+\item
+在对象 \textit{X} 中\defnx{设置}{bitmask!value!set}值 \textit{Y} 是指求值表达式 \textit{X} \tcode{|=} \textit{Y}。
+\item
+在对象 \textit{X} 中\defnx{清除}{bitmask!value!clear}值 \textit{Y} 是指求值表达式 \textit{X} \tcode{\&= \~}\textit{Y}。
+\item
+如果表达式 \textit{X} \tcode{\&} \textit{Y} 非零，则值 \textit{Y} 在对象 \textit{X} 中\defnx{被设置}{bitmask!value!is set}。
+\end{itemize}
+
+\rSec4[character.seq]{字符序列}
+
+\rSec5[character.seq.general]{概述}
+
+\pnum
+C 标准库
+\indextext{库!C 标准}%
+广泛使用了遵循若干统一约定的字符与字符序列：
+
+\begin{itemize}
+\item
+被指定为\defn{区域特定的}的性质可能在程序执行期间，通过调用 \tcode{setlocale(int, const char*)}\iref{clocale.syn}，或者通过修改 \tcode{locale} 对象而发生变化，如 \ref{locales} 与 \ref{input.output} 所描述。
+\item
+\defnadj{执行}{字符集}与
+\defnadj{执行}{宽字符集}
+是基本字面字符集的超集\iref{lex.charset}。
+执行字符集与额外元素集合（如果有）的编码是区域特定的。
+执行宽字符集的每个元素编码为可由 \keyword{wchar_t} 类型的值表示的单个码单元。
+\begin{note}
+执行字符集的编码可以与任何字面编码无关。
+\end{note}
+\item
+\defn{字母}是基本字符集中的 26 个小写或 26 个大写字母。
+\indextext{小写}%
+\indextext{大写}%
+\item
+\defnx{小数点字符}{字符!小数点}
+是由用于在（单字节）字符序列与浮点数类型之一的值之间进行转换的函数所使用的区域特定的（单字节）字符。
+它在字符序列中用于表示小数部分的起始。
+它在本标准 \ref{\firstlibchapter} 至 \ref{\lastlibchapter} 与 \ref{depr} 中由句点表示，
+\indextext{句点}%
+\tcode{'.'}，
+这也是它在 \tcode{"C"} 区域中的值。
+\item
+一个
+\defn{字符序列}
+是可以声明为
+\tcode{\placeholdernc{T\;A}[\placeholder{N}]}
+的数组对象\iref{dcl.array} \tcode{\placeholdernc{A}}，
+其中 \tcode{\placeholder{T}} 是
+\tcode{char}、
+\tcode{unsigned char} 或
+\tcode{signed char}\iref{basic.fundamental} 中的任一类型，可选择由
+\keyword{const} 或
+\tcode{volatile} 的任意组合限定。
+该数组的初始元素具有定义的内容，直到且包括由某个谓词确定的元素。
+字符序列可由指向其首元素的指针值 \tcode{\placeholder{S}} 指定。
+\item
+\indextext{STATICALLY-WIDEN@\exposid{STATICALLY-WIDEN}}%
+令 \exposid{STATICALLY-WIDEN}\tcode{<charT>("...")} 为
+若 \tcode{charT} 是 \tcode{char} 则为 \tcode{"..."}，且
+若 \tcode{charT} 是 \keyword{wchar_t} 则为 \tcode{L"..."}。
+\end{itemize}
+
+\rSec5[byte.strings]{字节字符串}
+
+\indextext{字符串!空终止字节|见{\ntbs{}}}%
+\pnum
+一个\defnx{空终止字节字符串}{NTBS@\ntbs{}}，
+或 \ntbs{}，
+是一个字符序列，其具有定义内容的最高地址元素的值为零
+（\defnx{终止空字符}{字符!终止空}）；
+该序列中没有其他元素的值为零。
+\begin{footnote}
+许多由
+\libheaderref{cstring} 声明的函数签名所操作的对象是字符序列或 \ntbs{}。
+这些字符序列中的某些的大小受长度值限制，该长度值与字符序列分开维护。
+\end{footnote}
+
+\pnum
+\defnx{一个 \ntbs{} 的长度}{NTBS@\ntbs{}!长度}
+是终止空字符之前的元素数目。
+一个\defnx{空的 \ntbs{}}{NTBS@\ntbs{}!空}
+其长度为零。
+
+\pnum
+\defnx{一个 \ntbs{} 的值}{NTBS@\ntbs{}!值}
+是直至并包括终止空字符的元素的值的序列。
+
+\pnum
+一个\defnx{静态 \ntbs{}}{NTBS@\ntbs{}!静态}
+是具有静态存储期
+的 \ntbs{}。
+\begin{footnote}
+一个\grammarterm{字符串字面量}，如
+\tcode{"abc"}，
+是静态 \ntbs{}。
+\end{footnote}
+
+\rSec5[multibyte.strings]{多字节字符串}
+
+\pnum
+一个\defnx{多字节字符}{字符!多字节}
+是一个或多个字节的序列，表示执行字符集中一个已编码字符的码单元序列。
+
+\indextext{字符串!空终止多字节|见{\ntmbs{}}}%
+\pnum
+一个\defnx{空终止多字节字符串}{NTMBS@\ntmbs{}}，
+或 \ntmbs{}，
+是一个构成有效多字节字符序列的 \ntbs{}，
+以初始移位状态开始和结束。
+\begin{footnote}
+一个仅包含来自基本字面字符集字符的 \ntbs{} 也是 \ntmbs{}。
+此时每个多字节字符由单个字节构成。
+\end{footnote}
+
+\pnum
+一个\defnx{静态 \ntmbs{}}{NTMBS@\ntmbs{}!静态}
+是具有静态存储期
+的 \ntmbs{}。
+
+\rSec4[customization.point.object]{定制点对象类型}
+
+\pnum
+一个\defnadj{定制点}{对象}是一个函数对象\iref{function.objects}，
+其具有字面类类型，在与程序定义类型交互时强制执行该交互的语义要求。
+
+\pnum
+定制点对象的类型，忽略 cv 限定符，应满足
+\libconcept{semiregular}\iref{concepts.object} 概念。
+
+\pnum
+特定定制点对象类型的所有实例应
+相等\iref{concepts.equality}。
+在同一实参上调用特定定制点对象类型的不同实例的效果是等价的。
+
+\pnum
+定制点对象的类型 \tcode{T}，
+忽略 \grammarterm{cv 限定符}，当 \tcode{Args...} 中的类型满足该定制点对象定义中指定的要求时，应满足
+\tcode{\libconcept{invocable}<T\&, Args...>}、
+\tcode{\libconcept{invocable}<const T\&, Args...>}、
+\tcode{\libconcept{invocable}<T, Args...>} 和
+\tcode{\libconcept{invocable}<const T, Args...>}\iref{concept.invocable}。
+当 \tcode{Args...} 的类型不满足定制点对象的要求时，\tcode{T} 不应有参与重载决议的函数调用运算符。
+
+\pnum
+对于给定的定制点对象 \tcode{o}，
+令 \tcode{p} 为如同通过 \tcode{auto p = o;} 初始化的变量。
+则对于任意实参序列 \tcode{args...}，
+以下表达式具有与 \tcode{o(args...)} 等价的效果：
+\begin{itemize}
+\item \tcode{p(args...)}
+\item \tcode{as_const(p)(args...)}
+\item \tcode{std::move(p)(args...)}
+\item \tcode{std::move(as_const(p))(args...)}
+\end{itemize}
+
+\rSec3[alg.func.obj]{算法函数对象}
+
+\pnum
+一个\defn{算法函数对象}是一个定制点对象\iref{customization.point.object}，它被指定为一个或多个重载函数模板。这些函数模板的名称指代相应的算法函数对象。
+
+\pnum
+对于一个算法函数对象 \tcode{o}，令 $S$ 为对应的函数模板集合。那么对于任意参数序列 $\tcode{args} \dotsc$，$\tcode{o(args} \dotsc \tcode{)}$ 是表达式等价的于 $\tcode{s(args} \dotsc \tcode{)}$，其中名称查找 \tcode{s} 的结果是重载集 $S$。
+\begin{note}
+算法函数对象不能通过实参依赖查找\iref{basic.lookup.argdep}找到。当通过非限定名称查找\iref{basic.lookup.unqual}在函数调用\iref{expr.call}的\grammarterm{后缀表达式}中找到它们时，它们会抑制实参依赖查找。
+\begin{example}
+\begin{codeblock}
+void foo() {
+  using namespace std::ranges;
+  std::vector<int> vec{1,2,3};
+  find(begin(vec), end(vec), 2);        // \#1
+}
+\end{codeblock}
+\#1 处的函数调用表达式调用的是 \tcode{std::ranges::find}，而非 \tcode{std::find}。
+\end{example}
+\end{note}
+
+\rSec3[functions.within.classes]{类内函数}
+
+\pnum
+为阐述之便，\ref{\firstlibchapter}至\ref{\lastlibchapter}及\ref{depr}章节中，并未描述那些语义与默认生成版本相同的复制/移动构造函数、赋值运算符或（非虚）析构函数\iref{class.copy.ctor,class.copy.assign,class.dtor}。
+\indextext{constructor!copy}%
+\indextext{operator!assignment}%
+\indextext{destructor}%
+实现是否为此类成员函数签名、或为可默认生成的虚析构函数提供显式定义，并未加以规定。
+
+\rSec3[objects.within.classes]{私有成员}
+
+\pnum
+\ref{\firstlibchapter}至\ref{\lastlibchapter}及\ref{depr}章节中未规定类的具体表示方式，并有意省略类成员的详细规范\iref{class.mem}。
+为实现\ref{\firstlibchapter}至\ref{\lastlibchapter}及\ref{depr}章节中指定的成员函数的语义，实现可定义静态或非静态的类成员，或两者兼有。
+
+\pnum
+为阐述之便，部分子条款为满足类外部规范的类的私有成员提供了具有代表性的声明及语义要求。
+此类成员的声明后以以\expos 结尾的注释作结，例如：
+
+\begin{codeblock}
+streambuf* sb;      // \expos
+\end{codeblock}
+
+\pnum
+实现可采用任何能提供等效可观测行为的技术手段。
+
+\rSec3[freestanding.item]{独立实现项}
+
+\pnum
+\indextext{item!freestanding|see{freestanding item}}%
+\defn{独立实现项}是指声明、实体或宏，它在独立实现和托管实现中都必须存在。
+
+\pnum
+除非另有规定，
+独立实现中关于独立实现项的要求与
+托管实现中的相应要求相同，
+但并非所有这些项的成员都必须存在。
+
+\pnum
+后跟包含 \textit{freestanding-deleted} 注释的
+函数声明和函数模板声明是 \defnadjx{独立实现已删除}{函数}{函数}。
+在独立实现中，
+\impldef{独立实现已删除函数是否为已删除函数}
+每个由独立实现已删除函数引入的实体是已删除函数\iref{dcl.fct.def.delete} 还是
+要求与托管实现中的相应要求相同。
+\begin{note}
+已删除定义减少了在从独立实现迁移到托管实现时
+重载解析静默更改的可能性。
+\end{note}
+\begin{example}
+\begin{codeblock}
+double abs(double j);           // freestanding-deleted
+\end{codeblock}
+\end{example}
+
+\pnum
+\indextext{declaration!freestanding item}%
+如果一个声明在概要中满足以下条件，则为独立实现项：
+\begin{itemize}
+\item 它后跟包含 \textit{freestanding} 的注释，
+\item 它后跟包含 \textit{freestanding-deleted} 的注释，或
+\item 该头文件概要以包含 \textit{freestanding} 的注释开头，并且
+该声明后没有跟包含 \textit{hosted} 的注释。
+\begin{note}
+在独立实现头文件中后跟 \textit{hosted} 的声明不是独立实现项。
+因此，查找这些函数名称的结果在托管实现和独立实现之间可能不同。
+\end{note}
+\end{itemize}
+\begin{example}
+\begin{codeblock}
+// all freestanding
+namespace std {
+\end{codeblock}
+\end{example}
+
+\pnum
+\indextext{entity!freestanding item}%
+\indextext{deduction guide!freestanding item}%
+如果一个实体或推导指引的引入声明后没有跟包含 \textit{hosted} 的注释，并且满足以下条件之一，则它是独立实现项：
+\begin{itemize}
+\item 由一个作为独立实现项的声明引入，
+\item 是独立实现项（非名字空间）的成员，
+\item 是独立实现项的一个枚举项，
+\item 是独立实现项的推导指引，
+\item 是独立实现项的包围名字空间，
+\item 是独立实现项的一个友元，
+\item 由一个作为独立实现项的类型别名指示，或
+\item 由一个作为独立实现项的别名模板指示。
+\end{itemize}
+
+\pnum
+\indextext{macro!freestanding item}%
+如果一个宏在头文件概要中定义，并且满足以下条件之一，则为独立实现项：
+\begin{itemize}
+\item 其定义后跟包含 \textit{freestanding} 的注释，或
+\item 该头文件概要以包含 \textit{freestanding} 的注释开头，并且
+其定义后没有跟包含 \textit{hosted} 的注释。
+\end{itemize}
+\begin{example}
+\begin{codeblock}
+#define NULL @\seebelow@      // freestanding
+\end{codeblock}
+\end{example}
+
+\pnum
+\begin{note}
+独立实现标注遵循一些额外的规约惯例，
+这些惯例不施加任何额外的规范性要求。
+以包含“all freestanding”的注释开头的头文件概要不包含任何托管项，
+也不包含任何独立实现已删除函数。
+以包含“mostly freestanding”的注释开头的头文件概要
+至少包含一个托管项或独立实现已删除函数。
+后跟包含“partially freestanding”注释的
+类和类模板至少包含一个托管项或独立实现已删除函数。
+\end{note}
+\begin{example}
+\begin{codeblock}
+template<class T, size_t N> struct array;               // partially freestanding
+template<class T, size_t N>
+struct array {
+  constexpr reference       operator[](size_type n);
+  constexpr const_reference operator[](size_type n) const;
+  constexpr reference       at(size_type n);            // freestanding-deleted
+  constexpr const_reference at(size_type n) const;      // freestanding-deleted
+};
+\end{codeblock}
+\end{example}
+
+\rSec1[requirements]{库范围要求}
+
+\rSec2[requirements.general]{总述}
+
+\pnum
+子条款 \ref{requirements} 规定了适用于整个 \Cpp{} 标准库的要求。
+\ref{\firstlibchapter} 至 \ref{\lastlibchapter} 以及 \ref{depr}
+规定了库中各个实体的要求。
+
+\pnum
+依据线程间交互方式指定的要求不适用于仅具有单个执行线程的程序。
+
+\pnum
+\ref{organization} 描述了库的内容与组织结构，
+\ref{using} 描述了良构的 \Cpp{} 程序如何访问库实体，
+\ref{utility.requirements} 描述了用于 \Cpp{} 标准库的类型与函数的约束条件，
+\ref{constraints} 描述了对良构 \Cpp{} 程序的约束条件，而
+\ref{conforming} 描述了对符合性实现的约束条件。
+
+\rSec2[organization]{库内容与组织}
+
+\rSec3[organization.general]{总述}
+
+\pnum
+\ref{contents} 描述了 \Cpp{} 标准库中定义的实体与宏。
+\ref{headers} 列出了标准库头文件及对这些头文件的一些约束条件。
+\ref{compliance} 列出了 \Cpp{} 标准库独立实现的要求。
+
+\rSec3[contents]{库内容}
+
+\pnum
+\normalfont
+除非另有说明，否则 \Cpp{}标准库提供了在\Cpp{}标准库头文件的概要说明\iref{headers}中描述的实体和宏的定义。
+
+\pnum
+除了 \tcode{operator new} 和 \tcode{operator delete} 之外的所有库实体都在命名空间 \tcode{std} 或嵌套在命名空间 \tcode{std} 中的命名空间中定义。
+\begin{footnote}
+C 标准库头文件\iref{support.c.headers} 同样在全局命名空间中定义名字，而 C 库设施的 \Cpp{} 头文件\iref{headers} 也可能在全局命名空间中定义名字。
+\end{footnote}
+\indextext{namespace}
+未指定在特定命名空间中声明的名字是直接在该命名空间中声明的，还是在该命名空间内的内联命名空间中声明的。
+\begin{footnote}
+这给予了实现者使用内联命名空间来支持库的多种配置的自由。
+\end{footnote}
+
+\pnum
+每当在 \ref{\firstlibchapter} 至 \ref{\lastlibchapter} 或 \ref{depr} 中用于描述声明 \tcode{D} 时使用了除 \tcode{swap}、\tcode{make_error_code}、\tcode{make_error_condition}、\tcode{from_stream} 或 \tcode{submdspan_mapping} 以外的非限定名字，其含义如同在 \tcode{D} 的上下文中执行非限定名字查找\iref{basic.lookup.unqual} 所建立的那样。
+\begin{note}
+此时不会执行实参依赖查找。
+\end{note}
+类似地，\grammarterm{限定标识符}的含义如同在 \tcode{D} 的上下文中执行限定名字查找\iref{basic.lookup.qual} 所建立的那样。
+\begin{example}
+在 \tcode{std::to_array} 的说明\iref{array.creation} 中提到的 \tcode{is_array_v} 指的是 \tcode{::std::is_array_v}。
+\end{example}
+\begin{note}
+表达式中的运算符\iref{over.match.oper}不受此约束；参见 \ref{global.functions}。
+\end{note}
+非限定名字 \tcode{swap} 的含义在可交换值的重载决议上下文\iref{swappable.requirements}中确定。
+非限定名字 \tcode{make_error_code}、\tcode{make_error_condition}、\tcode{from_stream} 和 \tcode{submdspan_mapping} 的含义如同通过执行实参依赖查找\iref{basic.lookup.argdep} 所建立的那样。
+
+\rSec3[headers]{头文件}
+
+\pnum
+C++ 标准库的每个元素都在一个\defn{头文件}中声明或定义（视情况而定）。%
+\begin{footnote}
+头文件不必是源文件，且头文件名中由 \tcode{<} 和 \tcode{>} 界定的序列也未必是有效的源文件名\iref{cpp.include}。
+\end{footnote}
+
+\pnum
+C++ 标准库提供\defnx{C++ 库头文件}{头文件!C++ 库}，如\tref{headers.cpp}所示。
+
+\begin{multicolfloattable}{C++ 库头文件}{headers.cpp}
+{llll}
+\tcode{<algorithm>} \\
+\tcode{<any>} \\
+\tcode{<array>} \\
+\tcode{<atomic>} \\
+\tcode{<barrier>} \\
+\tcode{<bit>} \\
+\tcode{<bitset>} \\
+\tcode{<charconv>} \\
+\tcode{<chrono>} \\
+\tcode{<compare>} \\
+\tcode{<complex>} \\
+\tcode{<concepts>} \\
+\tcode{<condition_variable>} \\
+\tcode{<contracts>} \\
+\tcode{<coroutine>} \\
+\tcode{<debugging>} \\
+\tcode{<deque>} \\
+\tcode{<exception>} \\
+\tcode{<execution>} \\
+\tcode{<expected>} \\
+\tcode{<filesystem>} \\
+\tcode{<flat_map>} \\
+\tcode{<flat_set>} \\
+\tcode{<format>} \\
+\columnbreak
+\tcode{<forward_list>} \\
+\tcode{<fstream>} \\
+\tcode{<functional>} \\
+\tcode{<future>} \\
+\tcode{<generator>} \\
+\tcode{<hazard_pointer>} \\
+\tcode{<hive>} \\
+\tcode{<initializer_list>} \\
+\tcode{<inplace_vector>} \\
+\tcode{<iomanip>} \\
+\tcode{<ios>} \\
+\tcode{<iosfwd>} \\
+\tcode{<iostream>} \\
+\tcode{<istream>} \\
+\tcode{<iterator>} \\
+\tcode{<latch>} \\
+\tcode{<limits>} \\
+\tcode{<linalg>} \\
+\tcode{<list>} \\
+\tcode{<locale>} \\
+\tcode{<map>} \\
+\tcode{<mdspan>} \\
+\tcode{<memory>} \\
+\tcode{<memory_resource>} \\
+\columnbreak
+\tcode{<meta>} \\
+\tcode{<mutex>} \\
+\tcode{<new>} \\
+\tcode{<numbers>} \\
+\tcode{<numeric>} \\
+\tcode{<optional>} \\
+\tcode{<ostream>} \\
+\tcode{<print>} \\
+\tcode{<queue>} \\
+\tcode{<random>} \\
+\tcode{<ranges>} \\
+\tcode{<ratio>} \\
+\tcode{<rcu>} \\
+\tcode{<regex>} \\
+\tcode{<scoped_allocator>} \\
+\tcode{<semaphore>} \\
+\tcode{<set>} \\
+\tcode{<shared_mutex>} \\
+\tcode{<simd>} \\
+\tcode{<source_location>} \\
+\tcode{<span>} \\
+\tcode{<spanstream>} \\
+\tcode{<sstream>} \\
+\columnbreak
+\tcode{<stack>} \\
+\tcode{<stacktrace>} \\
+\tcode{<stdexcept>} \\
+\tcode{<stdfloat>} \\
+\tcode{<stop_token>} \\
+\tcode{<streambuf>} \\
+\tcode{<string>} \\
+\tcode{<string_view>} \\
+\tcode{<syncstream>} \\
+\tcode{<system_error>} \\
+\tcode{<text_encoding>} \\
+\tcode{<thread>} \\
+\tcode{<tuple>} \\
+\tcode{<type_traits>} \\
+\tcode{<typeindex>} \\
+\tcode{<typeinfo>} \\
+\tcode{<unordered_map>} \\
+\tcode{<unordered_set>} \\
+\tcode{<utility>} \\
+\tcode{<valarray>} \\
+\tcode{<variant>} \\
+\tcode{<vector>} \\
+\tcode{<version>} \\
+\end{multicolfloattable}
+
+\pnum
+C 标准库的设施在\tref{headers.cpp.c}所示的其他头文件中提供。%
+\indextext{library!C standard}%
+\begin{footnote}
+特意地，不存在以下任何 C 头文件的 C++ 头文件：
+\libnoheader{stdnoreturn.h}、
+\libnoheader{threads.h}。
+\end{footnote}
+
+\begin{multicolfloattable}{用于C库设施的\Cpp{}头文件}{headers.cpp.c}
+{lllllll}
+\tcode{<cassert>} \\
+\tcode{<cctype>} \\
+\tcode{<cerrno>} \\
+\columnbreak
+\tcode{<cfenv>} \\
+\tcode{<cfloat>} \\
+\tcode{<cinttypes>} \\
+\columnbreak
+\tcode{<climits>} \\
+\tcode{<clocale>} \\
+\tcode{<cmath>} \\
+\columnbreak
+\tcode{<csetjmp>} \\
+\tcode{<csignal>} \\
+\tcode{<cstdarg>} \\
+\columnbreak
+\tcode{<cstddef>} \\
+\tcode{<cstdint>} \\
+\tcode{<cstdio>} \\
+\columnbreak
+\tcode{<cstdlib>} \\
+\tcode{<cstring>} \\
+\tcode{<ctime>} \\
+\columnbreak
+\tcode{<cuchar>} \\
+\tcode{<cwchar>} \\
+\tcode{<cwctype>} \\
+\end{multicolfloattable}
+
+\pnum
+在\tref{headers.cpp}中列出的头文件，或者对于独立实现，是由该实现提供的这些头文件的子集，统称为\defnadj{可导入}{\Cpp{}库头文件}。
+\begin{note}
+可导入的\Cpp{}库头文件可以被导入\iref{module.import}。
+\end{note}
+\begin{example}
+\begin{codeblock}
+import <vector>;                // 导入头单元\tcode{<vector>}
+std::vector<int> vi;            // OK
+\end{codeblock}
+\end{example}
+
+\pnum
+除非在\ref{library}到\ref{\lastlibchapter}和\ref{depr}中另有说明，否则每个头文件\tcode{c\placeholder{name}}的内容与C标准库\iref{intro.refs}中规定的相应头文件\tcode{\placeholder{name}.h}相同。然而，在\Cpp{}标准库中，声明（除了在C中定义为宏的名称）位于名字空间\tcode{std}的名字空间作用域\iref{basic.scope.namespace}内。这些名称（包括在\ref{\firstlibchapter}到\ref{\lastlibchapter}和\ref{depr}中添加的任何重载）是否首先在全局名字空间作用域内声明，然后通过显式的\grammarterm{using声明}{s}\iref{namespace.udecl}注入到名字空间\tcode{std}中，是未指明的。
+
+\pnum
+在C中定义为宏的名称应在\Cpp{}标准库中定义为宏，即使C允许作为函数实现。
+\begin{note}
+在C中定义为宏的名称包括以下：
+\tcode{assert}、\tcode{offsetof}、\tcode{setjmp}、\tcode{va_arg}、
+\tcode{va_end}和\tcode{va_start}。
+\end{note}
+
+\pnum
+在C中定义为函数的名称应在\Cpp{}标准库中定义为函数。
+\begin{footnote}
+这禁止了C中允许的做法，即除了函数原型外还提供一个屏蔽宏。在\Cpp{}中实现等效内联行为的唯一方法是提供作为extern inline函数的定义。
+\end{footnote}
+
+\pnum
+在\Cpp{}中是关键词或操作符的标识符不应在\Cpp{}标准库头文件中定义为宏。
+\begin{footnote}
+特别是，包含标准头文件\libheader{iso646.h}没有任何效果。
+\end{footnote}
+
+\pnum
+\ref{support.c.headers}子条款描述了在\Cpp{}程序中使用\tcode{\placeholder{name}.h}（C头文件）形式的效果。
+\begin{footnote}
+\tcode{".h"}头文件将其所有名称全部放入全局名字空间，而较新的形式将其名称保留在名字空间\tcode{std}中。因此，除了旨在严格兼容C的\Cpp{}程序外，较新的形式是所有用途的首选形式。
+\end{footnote}
+
+\pnum
+\IsoC{}附录K描述了大量函数及其相关类型和宏，这些函数“比许多传统的C库函数更能促进更安全、更可靠的编程”。这些函数的名称带有后缀\tcode{_s}；其中大多数提供了与不带后缀名称的C库函数相同的服务，但通常接受一个额外参数，其值是结果数组的大小。如果包含了任何\Cpp{}头文件，则是否在全局名字空间中声明了这些名称中的任何一个是\impldef{当包含\Cpp{}头文件时是否声明C标准库附录K中的函数}。
+（它们中没有在名字空间\tcode{std}中声明的。）
+
+\pnum
+\tref{c.annex.k.names}列出了可能在某些头文件中声明的附录K名称。
+这些名称也受~\ref{macro.names}的限制约束。
+
+\begin{multicolfloattable}{来自\IsoC{} 附件 K 的名称}{c.annex.k.names}
+{llll}
+\tcode{abort_handler_s} \\
+\tcode{asctime_s} \\
+\tcode{bsearch_s} \\
+\tcode{constraint_handler_t} \\
+\tcode{ctime_s} \\
+\tcode{errno_t} \\
+\tcode{fopen_s} \\
+\tcode{fprintf_s} \\
+\tcode{freopen_s} \\
+\tcode{fscanf_s} \\
+\tcode{fwprintf_s} \\
+\tcode{fwscanf_s} \\
+\tcode{getenv_s} \\
+\tcode{gets_s} \\
+\tcode{gmtime_s} \\
+\tcode{ignore_handler_s} \\
+\tcode{localtime_s} \\
+\tcode{L_tmpnam_s} \\
+\tcode{mbsrtowcs_s} \\
+\columnbreak
+\tcode{mbstowcs_s} \\
+\tcode{memcpy_s} \\
+\tcode{memmove_s} \\
+\tcode{memset_s} \\
+\tcode{printf_s} \\
+\tcode{qsort_s} \\
+\tcode{RSIZE_MAX} \\
+\tcode{rsize_t} \\
+\tcode{scanf_s} \\
+\tcode{set_constraint_handler_s} \\
+\tcode{snprintf_s} \\
+\tcode{snwprintf_s} \\
+\tcode{sprintf_s} \\
+\tcode{sscanf_s} \\
+\tcode{strcat_s} \\
+\tcode{strcpy_s} \\
+\tcode{strerrorlen_s} \\
+\tcode{strerror_s} \\
+\tcode{strlen_s} \\
+\columnbreak
+\tcode{strncat_s} \\
+\tcode{strncpy_s} \\
+\tcode{strtok_s} \\
+\tcode{swprintf_s} \\
+\tcode{swscanf_s} \\
+\tcode{tmpfile_s} \\
+\tcode{TMP_MAX_S} \\
+\tcode{tmpnam_s} \\
+\tcode{vfprintf_s} \\
+\tcode{vfscanf_s} \\
+\tcode{vfwprintf_s} \\
+\tcode{vfwscanf_s} \\
+\tcode{vprintf_s} \\
+\tcode{vscanf_s} \\
+\tcode{vsnprintf_s} \\
+\tcode{vsnwprintf_s} \\
+\tcode{vsprintf_s} \\
+\tcode{vsscanf_s} \\
+\tcode{vswprintf_s} \\
+\columnbreak
+\tcode{vswscanf_s} \\
+\tcode{vwprintf_s} \\
+\tcode{vwscanf_s} \\
+\tcode{wcrtomb_s} \\
+\tcode{wcscat_s} \\
+\tcode{wcscpy_s} \\
+\tcode{wcsncat_s} \\
+\tcode{wcsncpy_s} \\
+\tcode{wcsnlen_s} \\
+\tcode{wcsrtombs_s} \\
+\tcode{wcstok_s} \\
+\tcode{wcstombs_s} \\
+\tcode{wctomb_s} \\
+\tcode{wmemcpy_s} \\
+\tcode{wmemmove_s} \\
+\tcode{wprintf_s} \\
+\tcode{wscanf_s} \\
+\end{multicolfloattable}
+
+\rSec3[std.modules]{模块}
+
+\pnum
+\Cpp{}标准库提供以下\defn{\Cpp{}库模块}。
+
+\pnum
+命名模块\tcode{std}导出名字空间\tcode{std}中的声明，这些声明由可导入的\Cpp{}库头文件（\tref{headers.cpp}或独立实现所提供子集）以及用于C库设施的\Cpp{}头文件（\tref{headers.cpp.c}）提供。此外，它还导出全局名字空间中由\libheaderref{new}提供的存储分配和释放函数的声明。
+
+\pnum
+命名模块\tcode{std.compat}导出与命名模块\tcode{std}相同的声明，并额外导出：
+\begin{itemize}
+\item
+对应于由用于C库设施的\Cpp{}头文件（\tref{headers.cpp.c}）提供的名字空间\tcode{std}中的声明的全局名字空间中的声明，但排除\ref{support.c.headers.other}中描述的被明确排除的声明；以及
+\item
+由头文件\libheaderref{stdbit.h}和\libheaderref{stdckdint.h}提供的声明。
+\end{itemize}
+
+\pnum
+标准库中的声明归属于哪个模块是未指明的。
+\begin{note}
+符合性实现应确保混合使用\tcode{\#include}和\tcode{import}不会导致冲突的归属\iref{basic.link}。
+\end{note}
+\recommended
+实现应确保此类归属不妨碍标准库模块的进一步演进或分解。
+
+\pnum
+标准库中的声明不论是通过包含头文件、导入头单元还是导入\Cpp{}库模块使其可达，都表示相同的实体。
+
+\pnum
+\recommended
+实现应避免从\Cpp{}库模块导出任何其他声明。
+
+\begin{note}
+与所有命名模块一样，\Cpp{}库模块不会使宏可见\iref{module.import}，例如\tcode{assert}\iref{cassert.syn}、\tcode{errno}\iref{cerrno.syn}、\tcode{offsetof}\iref{cstddef.syn}和\tcode{va_arg}\iref{cstdarg.syn}。
+\end{note}
+
+\rSec3[compliance]{独立实现}
+\indextext{implementation!freestanding|(}%
+
+\pnum
+定义了两类实现：
+\indextext{implementation!hosted}%
+宿主式和独立式\iref{intro.compliance}；
+实现的类别由
+\impldef{实现是宿主式还是独立式}
+规定。对于宿主式实现，本文档描述了可用的头文件的集合。
+
+\pnum
+独立式实现具有由
+\impldef{独立式实现的头文件}
+规定的一组头文件。该集合应至少包含 \tref{headers.cpp.fs} 中所示的头文件。
+
+\begin{libsumtab}{\Cpp{} 独立实现的头文件}{headers.cpp.fs}
+\ref{support.types}      & 通用定义                & \tcode{<cstddef>}          \\ \rowsep
+\ref{cstdlib.syn}        & C 标准库                & \tcode{<cstdlib>}          \\ \rowsep
+\ref{support.limits}     & 实现属性                &
+  \tcode{<cfloat>}, \tcode{<climits>}, \tcode{<limits>}, \\
+                         &                         & \tcode{<version>}          \\ \rowsep
+\ref{cstdint.syn}        & 整数类型                & \tcode{<cstdint>}          \\ \rowsep
+\ref{support.dynamic}    & 动态内存管理            & \tcode{<new>}              \\ \rowsep
+\ref{support.rtti}       & 类型标识                & \tcode{<typeinfo>}         \\ \rowsep
+\ref{support.srcloc}     & 源代码位置              & \tcode{<source_location>}  \\ \rowsep
+\ref{support.exception}  & 异常处理                & \tcode{<exception>}        \\ \rowsep
+\ref{support.initlist}   & 初始化器列表            & \tcode{<initializer_list>} \\ \rowsep
+\ref{cmp}                & 比较操作                & \tcode{<compare>}          \\ \rowsep
+\ref{support.contract}   & 契约违反处理            & \tcode{<contracts>}        \\ \rowsep
+\ref{support.coroutine}  & 协程支持                & \tcode{<coroutine>}        \\ \rowsep
+\ref{support.runtime}    & 其他运行时支持          & \tcode{<cstdarg>}          \\ \rowsep
+\ref{concepts}           & 概念库                  & \tcode{<concepts>}         \\ \rowsep
+\ref{errno}              & 错误码                  & \tcode{<cerrno>}           \\ \rowsep
+\ref{syserr}             & 系统错误支持            & \tcode{<system_error>}     \\ \rowsep
+\ref{debugging}          & 调试支持                & \tcode{<debugging>}        \\ \rowsep
+\ref{memory}             & 内存管理                & \tcode{<memory>}           \\ \rowsep
+\ref{type.traits}        & 类型特征                & \tcode{<type_traits>}      \\ \rowsep
+\ref{ratio}              & 编译时有理数算术        & \tcode{<ratio>}            \\ \rowsep
+\ref{utility}            & 实用组件                & \tcode{<utility>}          \\ \rowsep
+\ref{tuple}              & 元组                    & \tcode{<tuple>}            \\ \rowsep
+\ref{optional}           & 可选对象                & \tcode{<optional>}         \\ \rowsep
+\ref{variant}            & 变体类型                & \tcode{<variant>}          \\ \rowsep
+\ref{expected}           & 期望对象                & \tcode{<expected>}         \\ \rowsep
+\ref{function.objects}   & 函数对象                & \tcode{<functional>}       \\ \rowsep
+\ref{bit}                & 位操作                  & \tcode{<bit>}              \\ \rowsep
+\ref{stdbit.h.syn}       & C 兼容位操作            & \tcode{<stdbit.h>}         \\ \rowsep
+\ref{array}              & 类模板 \tcode{array}    & \tcode{<array>}            \\ \rowsep
+\ref{inplace.vector}     & 类模板 \tcode{inplace_vector} & \tcode{<inplace_vector>} \\ \rowsep
+\ref{views.contiguous}   & 连续访问                & \tcode{<span>}             \\ \rowsep
+\ref{views.multidim}     & 多维访问                & \tcode{<mdspan>}           \\ \rowsep
+\ref{iterators}          & 迭代器库                & \tcode{<iterator>}         \\ \rowsep
+\ref{ranges}             & 范围库                  & \tcode{<ranges>}           \\ \rowsep
+\ref{algorithms}         & 算法库                  & \tcode{<algorithm>}, \tcode{<numeric>} \\ \rowsep
+\ref{execpol}            & 执行策略                & \tcode{<execution>}        \\ \rowsep
+\ref{string.view}        & 字符串视图类            & \tcode{<string_view>}      \\ \rowsep
+\ref{string.classes}     & 字符串类                & \tcode{<string>}           \\ \rowsep
+\ref{c.strings}          & 以空字符结尾的序列工具  & \tcode{<cstring>}, \tcode{<cwchar>} \\ \rowsep
+\ref{charconv}           & 基本数值转换            & \tcode{<charconv>}         \\ \rowsep
+\ref{rand}               & 随机数生成              & \tcode{<random>}           \\ \rowsep
+\ref{c.math}             & 浮点数类型的数学函数    & \tcode{<cmath>}            \\ \rowsep
+\ref{atomics}            & 原子操作                & \tcode{<atomic>}           \\ \rowsep
+\end{libsumtab}
+
+\pnum
+对于 \tref{headers.cpp.fs} 中列出的每个头文件，独立式实现至少提供该头文件中声明的独立项\iref{freestanding.item}。
+
+\pnum
+\defnadj{宿主式}{库设施}
+指的是本文档描述的一组宿主式实现所需但独立式实现不需要的设施。独立式实现提供宿主式库设施的一个（可能为空的）实现定义子集。除非另有规定，以这种方式提供的每个声明、实体和宏的要求与对应的宿主式实现的要求相同，但并非要求名字空间的所有成员都存在。
+
+\pnum
+独立式为来自宿主式库设施的名字空间作用域函数和函数模板的一个（可能为空的）实现定义子集提供被删除的定义\iref{dcl.fct.def.delete}。
+\begin{note}
+  实现可以提供被删除的定义，以便在将程序从独立式实现迁移到宿主式实现时，重载决议的结果不会无声地改变。
+\end{note}
+\indextext{implementation!freestanding|)}%
+
+\rSec2[using]{使用库}
+
+\rSec3[using.overview]{概述}
+
+\pnum
+子条款\ref{using}描述了一个\Cpp{}程序如何访问\Cpp{}标准库的设施。\ref{using.headers}描述了翻译阶段4中的效果，而~\ref{using.linkage}描述了阶段8中的效果\iref{lex.phases}。
+
+\rSec3[using.headers]{头文件}
+
+\pnum
+\Cpp{}标准库中的实体定义于头文件中，当翻译单元包含适当的
+\indextext{unit!translation}%
+\indextext{\idxcode{\#include}}%
+\tcode{\#include}
+预处理指令\iref{cpp.include}
+或适当的
+\indextext{\idxcode{import}}%
+\tcode{import}声明\iref{module.import}时，其内容即可被该翻译单元使用。
+\indextext{source file}
+
+\pnum
+翻译单元可以以任意顺序包含库头文件\iref{lex.separate}。
+\indextext{unit!translation}%
+每个头文件可以被包含多次，其效果与仅包含一次无异，但包含\libheaderref{cassert}或\libheaderrefx{assert.h}{support.c.headers}的效果每次取决于\indextext{\idxcode{NDEBUG}}%\indexlibraryglobal{NDEBUG}%\tcode{NDEBUG}的当前词法定义。
+\begin{footnote}
+与C标准库相同。
+\end{footnote}
+
+\pnum
+翻译单元包含头文件应仅在任何声明或定义之外，并且在模块单元的情况下，仅应在其\grammarterm{global-module-fragment}中包含，并且应在该翻译单元中首次引用该头文件中声明的任何实体之前，词法上包含该头文件或导入对应的头文件单元。不要求诊断。
+
+\rSec3[using.linkage]{连接性}
+
+\pnum
+\Cpp{} 标准库中的实体拥有外部连接\iref{basic.link}。
+除非另有指定，对象和函数具有默认的
+\tcode{extern "C++"}
+连接\iref{dcl.link}。
+
+\pnum
+\indextext{library!C standard}%
+来自 C 标准库且以外部连接声明的名称是否具有
+\indextext{linkage!external}%
+\indextext{header!C library}%
+\indextext{\idxcode{extern ""C""}}%
+\tcode{extern "C"}
+或
+\indextext{\idxcode{extern ""C++""}}%
+\tcode{extern "C++"}
+连接是由实现定义的\impldef{linkage of names from C standard library}。建议在此目的中实现使用
+\tcode{extern "C++"}
+连接。
+\begin{footnote}
+声明 C 标准库中对象或函数签名的唯一可靠方法是通过包含声明它的头文件，尽管 \IsoC{}, 7.1.4 给予了自由度。
+\end{footnote}
+
+\pnum
+在库中定义并由 \Cpp{} 程序所需的对象和函数包含在程序启动之前。
+
+\indextext{startup!program}%
+\pnum
+另见
+替换函数\iref{replacement.functions}，
+运行时变更\iref{handler.functions}。
+
+\rSec2[utility.requirements]{类型与表达式的要求}
+
+\rSec3[utility.requirements.general]{概述}
+
+\pnum
+\ref{utility.arg.requirements}
+描述了用于实例化 \Cpp{} 标准库中所定义模板的类型与表达式的要求。
+\ref{swappable.requirements} 描述了可交换（swappable）类型及可交换表达式的要求。
+\ref{nullablepointer.requirements} 描述了支持空值的类指针类型的要求。
+\ref{hash.requirements} 描述了散列函数对象的要求。
+\ref{allocator.requirements} 描述了存储分配器的要求。
+
+\rSec3[utility.arg.requirements]{模板参数要求}
+
+\pnum
+\Cpp{} 标准库中的模板定义涉及若干具名要求，其详细规定见于
+表~\ref{tab:cpp17.equalitycomparable}—\ref{tab:cpp17.destructible}。
+在这些表中，
+\begin{itemize}
+\item
+\tcode{T} 表示由实例化模板的 \Cpp{} 程序所提供的对象或引用类型，
+\item
+\tcode{a}、\tcode{b} 与 \tcode{c} 表示（可能为 const 的）类型 \tcode{T} 的值，
+\item
+\tcode{s} 与 \tcode{t} 表示类型 \tcode{T} 的可修改左值，
+\item
+\tcode{u} 表示一个标识符，
+\item
+\tcode{rv} 表示类型 \tcode{T} 的右值，且
+\item
+\tcode{v} 表示（可能为 const 的）类型 \tcode{T} 的左值或类型 \tcode{const T} 的右值。
+\end{itemize}
+
+\pnum
+一般而言，并不要求默认构造函数。某些容器类成员函数的签名将 \tcode{T()} 指定为默认实参。若通过这些签名之一调用时使用了该默认实参\iref{dcl.fct.default}，则 \tcode{T()} 应为良构的表达式\iref{dcl.init}。
+
+\begin{oldconcepttable}{EqualityComparable}{}{cpp17.equalitycomparable}
+{x{1in}x{1in}p{3in}}
+\topline
+\hdstyle{表达式}  &   \hdstyle{返回类型} &   \rhdr{要求} \\ \capsep
+\tcode{a == b}  &
+\tcode{decltype(a == b)} 属于 \exposconceptx{boolean-testa\-ble}{可布尔测试} &
+\tcode{==} 是一种等价关系，即具有以下性质：
+\begin{itemize}
+\item
+对于所有 \tcode{a}，有 \tcode{a == a}。
+\item
+若 \tcode{a == b}，则有 \tcode{b == a}。
+\item
+若 \tcode{a == b} 且 \tcode{b == c}，则有 \tcode{a == c}。
+\end{itemize} \\
+\end{oldconcepttable}
+
+\begin{oldconcepttable}{LessThanComparable}{}{cpp17.lessthancomparable}
+{x{1in}x{1in}p{3in}}
+\topline
+\hdstyle{表达式}  &   \hdstyle{返回类型} &   \hdstyle{要求} \\ \capsep
+\tcode{a < b}   &
+\tcode{decltype(a < b)} 属于 \exposconceptx{boolean-testa\-ble}{可布尔测试} &
+\tcode{<} 是一种严格弱序关系\iref{alg.sorting}    \\
+\end{oldconcepttable}
+
+\enlargethispage{-3\baselineskip}
+\begin{oldconcepttable}{DefaultConstructible}{}{cpp17.defaultconstructible}
+{x{2.15in}p{3in}}
+\topline
+\hdstyle{表达式}        &     \hdstyle{后置条件}  \\ \capsep
+\tcode{T t;}      &     对象 \tcode{t} 是默认初始化的   \\ \rowsep
+\tcode{T u\{\};}    &     对象 \tcode{u} 是值初始化或聚合初始化的 \\ \rowsep
+\tcode{T()}\br\tcode{T\{\}}  &  一个 \tcode{T} 类型的对象被值初始化
+                                或聚合初始化 \\
+\end{oldconcepttable}
+
+\begin{oldconcepttable}{可移动构造}{}{cpp17.moveconstructible}
+{p{1in}p{4.15in}}
+\topline
+\hdstyle{表达式}          &   \hdstyle{后条件}  \\ \capsep
+\tcode{T u = rv;}    &   \tcode{u} 等价于构造前 \tcode{rv} 的值\\ \rowsep
+\tcode{T(rv)}       &
+  \tcode{T(rv)} 等价于构造前 \tcode{rv} 的值 \\ \rowsep
+\multicolumn{2}{|p{5.3in}|}{
+  \tcode{rv} 的状态未指定
+  \begin{tailnote}
+  \tcode{rv} 仍必须满足使用它的库组件所要求的要求。这些要求中列出的操作必须在规定方式下工作，无论 \tcode{rv} 是否已被移动。
+\end{tailnote}
+}\\
+\end{oldconcepttable}
+
+\begin{oldconcepttable}{可复制构造}{（除了 \oldconcept{可移动构造} 外）}{cpp17.copyconstructible}
+{p{1in}p{4.15in}}
+\topline
+\hdstyle{表达式}          &   \hdstyle{后条件}  \\ \capsep
+\tcode{T u = v;}     &   \tcode{v} 的值不变且等价于 \tcode{u}\\ \rowsep
+\tcode{T(v)}        &
+  \tcode{v} 的值不变且等价于 \tcode{T(v)} \\
+\end{oldconcepttable}
+
+\begin{oldconcepttable}{移动可赋值}{}{cpp17.moveassignable}
+{p{1in}p{1in}p{1in}p{1.9in}}
+\topline
+\hdstyle{表达式} & \hdstyle{返回类型} & \hdstyle{返回值} & \hdstyle{后置条件} \\ \capsep
+\tcode{t = rv}  &   \tcode{T\&} &   \tcode{t}       &
+  若 \tcode{t} 与 \tcode{rv} 不引用同一对象，
+  则 \tcode{t} 等价于赋值前 \tcode{rv} 的值。\\ \rowsep
+\multicolumn{4}{|p{5.3in}|}{
+  \tcode{rv} 的状态未指明。
+  \begin{tailnote}
+  \tcode{rv} 必须仍然满足使用它的库组件的需求，无论 \tcode{t} 与 \tcode{rv} 是否引用同一对象。
+  这些需求中列出的操作必须如规定般工作，无论 \tcode{rv} 是否已被移动。
+\end{tailnote}
+}\\
+\end{oldconcepttable}
+
+\begin{oldconcepttable}{复制可赋值}{（亦满足 \oldconcept{移动可赋值}）}{cpp17.copyassignable}
+{p{1in}p{1in}p{1in}p{1.9in}}
+\topline
+\hdstyle{表达式} & \hdstyle{返回类型} & \hdstyle{返回值} & \hdstyle{后置条件} \\ \capsep
+\tcode{t = v}   &   \tcode{T\&} &   \tcode{t}   &   \tcode{t} 等价于 \tcode{v}，\tcode{v} 的值不变。\\
+\end{oldconcepttable}
+
+\begin{oldconcepttable}{Destructible}{}{cpp17.destructible}
+{p{1in}p{4.15in}}
+\topline
+\hdstyle{表达式}      &   \hdstyle{后条件}  \\ \capsep
+\tcode{a.\~T()} &   被 \tcode{a} 所拥有的所有资源都被回收，不传播异常。 \\ \rowsep
+\multicolumn{2}{|l|}{
+  \begin{tailnote}
+  数组类型及非对象类型不满足 \oldconcept{Destructible}。
+  \end{tailnote}
+} \\
+\end{oldconcepttable}
+
+\rSec3[swappable.requirements]{可交换（Swappable）要求}
+
+\pnum
+本子条提供可交换类型和可交换表达式的定义。在这些定义中，令 \tcode{t} 表示 \tcode{T} 类型的表达式，并令 \tcode{u} 表示 \tcode{U} 类型的表达式。
+
+\pnum
+对象 \tcode{t} **可交换于（swappable with）** 对象 \tcode{u}，当且仅当
+\begin{itemize}
+\item 在下文所描述的语境中进行求值时，表达式 \tcode{swap(t, u)} 与 \tcode{swap(u, t)} 是合法的，且
+\item 这些表达式具有以下效果：
+
+\begin{itemize}
+\item \tcode{t} 所引用的对象具有 \tcode{u} 原本持有的值，且
+\item \tcode{u} 所引用的对象具有 \tcode{t} 原本持有的值。
+\end{itemize}
+\end{itemize}
+
+\pnum
+对 \tcode{swap(t, u)} 和 \tcode{swap(u, t)} 求值的语境应确保，在候选集上通过重载决议\iref{over.match}选择一个名为 “swap” 的二元非成员函数，该候选集包括：
+\begin{itemize}
+\item 定义于 \libheaderref{utility} 中的两个 \tcode{swap} 函数模板，以及
+\item 由实参依赖查找\iref{basic.lookup.argdep}产生的查找集。
+\end{itemize}
+\begin{note}
+若 \tcode{T} 和 \tcode{U} 均为基本类型或基本类型数组，且头文件 \libheader{utility} 中的声明在作用域内，则上述整体查找集等价于对表达式 \tcode{std::swap(t, u)} 或（酌情）\tcode{std::swap(u, t)} 应用限定名称查找所得到的查找集。
+\end{note}
+\begin{note}
+未指定具有可交换要求的库组件是否包含头文件 \libheader{utility} 以确保适当的求值语境。
+\end{note}
+
+\pnum
+右值或左值 \tcode{t} 是**可交换的（swappable）**，当且仅当 \tcode{t} 分别与 \tcode{T} 类型的任何右值或左值可交换。
+
+\pnum
+若 \tcode{X} 类型的左值是可交换的，则类型 \tcode{X} 满足 \defnoldconcept{Swappable} 要求。
+
+\pnum
+若对于 \tcode{X} 类型的任何可解引用对象 \tcode{x}，\tcode{*x} 是可交换的，则满足任何迭代器要求\iref{iterator.requirements} 的类型 \tcode{X} 满足 \defnoldconcept{ValueSwappable} 要求。
+
+\pnum
+\begin{example}
+在各种条件下，用户代码可按如下方式确保 \tcode{swap} 调用的求值在适当语境中进行：
+\begin{codeblock}
+#include <cassert>
+#include <utility>
+
+// 先决条件：\tcode{std::forward<T>(t)} 可交换于 \tcode{std::forward<U>(u)}。
+template<class T, class U>
+void value_swap(T&& t, U&& u) {
+  using std::swap;
+  swap(std::forward<T>(t), std::forward<U>(u)); // OK，使用右值和左值的 ``可交换于`` 条件
+                                                // 对于基本类型等效的可交换条件
+}
+
+// 先决条件：\tcode{T} 满足 \oldconcept{Swappable} 要求。
+template<class T>
+void lv_swap(T& t1, T& t2) {
+  using std::swap;
+  swap(t1, t2);                                 // OK，使用 \tcode{T} 类型左值的可交换条件
+}
+
+namespace N {
+  struct A { int m; };
+  struct Proxy { A* a; };
+  Proxy proxy(A& a) { return Proxy{ &a }; }
+
+  void swap(A& x, Proxy p) {
+    std::swap(x.m, p.a->m);                     // OK，使用与基本类型可交换条件等效的语境
+  }
+  void swap(Proxy p, A& x) { swap(x, p); }      // 满足对称约束
+}
+
+int main() {
+  int i = 1, j = 2;
+  lv_swap(i, j);
+  assert(i == 2 && j == 1);
+
+  N::A a1 = { 5 }, a2 = { -5 };
+  value_swap(a1, proxy(a2));
+  assert(a1.m == -5 && a2.m == 5);
+}
+\end{codeblock}
+\end{example}
+
+\rSec3[nullablepointer.requirements]{\oldconcept{NullablePointer} 要求}
+
+\pnum
+\oldconcept{NullablePointer} 类型是一种支持空值的指针式类型。
+类型 \tcode{P} 满足 \oldconcept{\-Nullable\-Pointer} 要求，若
+\begin{itemize}
+\item \tcode{P} 满足 \oldconcept{EqualityComparable}、
+\oldconcept{DefaultConstructible}、\oldconcept{CopyConstructible}、\oldconcept{\-Copy\-Assign\-able}、
+\oldconcept{Swappable} 及 \oldconcept{Destructible} 要求，
+
+\item \tref{cpp17.nullablepointer} 中所示的表达式均
+有效且具有所指示的语义，且
+
+\item \tcode{P} 满足本子条款的所有其他要求。
+\end{itemize}
+
+\pnum
+类型 \tcode{P} 的值初始化对象产生该类型的空值。
+该空值应仅与自身等价。类型 \tcode{P} 的默认初始化对象
+可能具有不确定的值或错误的值。
+\begin{note}
+涉及不确定值的操作可能导致未定义行为，而
+涉及错误值的操作可能导致错误行为\iref{basic.indet}。
+\end{note}
+
+\pnum
+类型 \tcode{P} 的对象 \tcode{p} 可被上下文转换到
+\tcode{bool}\iref{conv}。其效果应如同在 \tcode{p} 处
+求值了 \tcode{p != nullptr}。
+
+\pnum
+属于 \oldconcept{NullablePointer} 要求一部分的任何操作均不应
+通过异常退出。
+
+\pnum
+在 \tref{cpp17.nullablepointer} 中，\tcode{u} 表示一个标识符，\tcode{t}
+表示类型 \tcode{P} 的非 \keyword{const} 左值，\tcode{a} 和 \tcode{b}
+表示类型（可能为 const）\tcode{P} 的值，而 \tcode{np} 表示
+类型（可能为 const）\tcode{std::nullptr_t} 的值。
+
+\begin{oldconcepttable}{NullablePointer}{}{cpp17.nullablepointer}
+{lx{2in}l}
+\topline
+\lhdr{表达式} & \chdr{返回类型} & \rhdr{操作语义} \\ \capsep
+\tcode{P u(np);}\br           &
+                              &
+  \ensures \tcode{u == nullptr}  \\
+\tcode{P u = np;}             &
+                              &
+                              \\ \rowsep
+
+\tcode{P(np)}                 &
+                              &
+  \ensures \tcode{P(np) == nullptr}  \\ \rowsep
+
+\tcode{t = np}                &
+  \tcode{P\&}                 &
+  \ensures \tcode{t == nullptr}  \\ \rowsep
+
+\tcode{a != b}                &
+  \tcode{decltype(a != b)} 属于 \exposconcept{可布尔测试} &
+  \tcode{!(a == b)}           \\ \rowsep
+
+\tcode{a == np}               &
+  \tcode{decltype(a == np)} 及 \tcode{decltype(np == a)} 各自属于 \exposconcept{可布尔测试} &
+  \tcode{a == P()}            \\
+\tcode{np == a}               &
+                              &
+                              \\ \rowsep
+\tcode{a != np}               &
+  \tcode{decltype(a != np)} 及 \tcode{decltype(np != a)} 各自属于 \exposconcept{可布尔测试} &
+  \tcode{!(a == np)}          \\
+\tcode{np != a}               &
+                              &
+                              \\
+\end{oldconcepttable}
+
+\rSec3[hash.requirements]{\oldconcept{Hash} 要求}
+
+\pnum
+类型 \tcode{H} 满足 \defnoldconcept{Hash} 要求，若
+\begin{itemize}
+\item 它是函数对象类型\iref{function.objects}，
+\item 它满足 \oldconcept{CopyConstructible}（\tref{cpp17.copyconstructible}）和
+  \oldconcept{Destructible}（\tref{cpp17.destructible}）要求，且
+\item \tref{cpp17.hash} 中所示的表达式均为合法并拥有指定语义。
+\end{itemize}
+
+\pnum
+给定 \tcode{Key} 是类型为 \tcode{H} 的函数对象的参数类型，于
+\tref{cpp17.hash} 中 \tcode{h} 是类型（可能为 const）\tcode{H} 的值，
+\tcode{u} 是类型 \tcode{Key} 的左值，而 \tcode{k} 是可转换到
+（可能为 const）\tcode{Key} 的类型的一个值。
+
+\begin{oldconcepttable}{Hash}{}{cpp17.hash}
+{llp{.55\hsize}}
+\topline
+\lhdr{表达式} & \chdr{返回类型} & \rhdr{要求} \\ \capsep
+\tcode{h(k)}      &
+  \tcode{size_t}  &
+  返回值应在程序执行期间仅依赖于实参 \tcode{k}。
+\begin{note}
+因此，对给定程序的执行，所有具有相同 \tcode{k} 值的表达式 \tcode{h(k)} 的求值都产生相同结果。
+  \end{note}
+  对于两个不同的
+  值 \tcode{t1} 和 \tcode{t2}，\tcode{h(t1)} 和 \tcode{h(t2)} 比较相等的概率应当非常小，趋近于 \tcode{1.0 / numeric_limits<size_t>::max()}。
+\\ \rowsep
+\tcode{h(u)}      &
+  \tcode{size_t}  &
+  不应修改 \tcode{u}。 \\
+\end{oldconcepttable}
+
+\rSec3[allocator.requirements]{\oldconcept{Allocator} 要求}
+
+\rSec4[allocator.requirements.general]{概述}
+
+\indextext{\idxoldconcept{Allocator}}%
+\pnum
+库描述了一组标准要求，用于\term{分配器}，这些分配器是封装了分配模型信息的类类型对象。此信息包括指针类型的知识、它们的差类型、在此分配模型中的对象大小类型，以及内存分配和释放原语。所有字符串类型\iref{strings}、容器\iref{containers}（除了 \tcode{array} 和 \tcode{inplace_vector}）、字符串缓冲区和字符串流\iref{input.output}，以及 \tcode{match_results}\iref{re} 都按分配器进行参数化。
+
+\pnum
+在 \ref{allocator.requirements} 中，
+\begin{itemize}
+\item
+\tcode{T}、\tcode{U}、\tcode{C} 表示任意\cv 非限定对象类型\iref{term.object.type}，
+\item
+\tcode{X} 表示类型 \tcode{T} 的分配器类，
+\item
+\tcode{Y} 表示类型 \tcode{U} 对应的分配器类，
+\item
+\tcode{XX} 表示类型 \tcode{allocator_traits<X>}，
+\item
+\tcode{YY} 表示类型 \tcode{allocator_traits<Y>}，
+\item
+\tcode{a}、\tcode{a1}、\tcode{a2} 表示类型 \tcode{X} 的左值，
+\item
+\tcode{u} 表示一个被声明的变量的名称，
+\item
+\tcode{b} 表示类型 \tcode{Y} 的一个值，
+\item
+\tcode{c} 表示类型 \tcode{C*} 的一个指针，通过该指针的间接访问是有效的，
+\item
+\tcode{p} 表示通过调用 \tcode{a1.allocate} 获得的类型 \tcode{XX::pointer} 的一个值，其中 \tcode{a1 == a}，
+\item
+\tcode{q} 表示从值 \tcode{p} 转换获得的类型 \tcode{XX::const_pointer} 的一个值，
+\item
+\tcode{r} 表示通过表达式 \tcode{*p} 获得的类型 \tcode{T\&} 的一个值，
+\item
+\tcode{w} 表示从值 \tcode{p} 转换获得的类型 \tcode{XX::void_pointer} 的一个值，
+\item
+\tcode{x} 表示从值 \tcode{q} 或值 \tcode{w} 转换获得的类型 \tcode{XX::const_void_pointer} 的一个值，
+\item
+\tcode{y} 表示从 \tcode{YY::allocate} 的结果值转换获得的类型 \tcode{XX::const_void_pointer} 的一个值，否则是一个类型为（可能为 const）\tcode{std::nullptr_t} 的值，
+\item
+\tcode{n} 表示类型 \tcode{XX::size_type} 的一个值，
+\item
+\tcode{Args} 表示一个模板参数包，且
+\item
+\tcode{args} 表示一个函数参数包，其模式为 \tcode{Args\&\&}。
+\end{itemize}
+
+\pnum
+类模板 \tcode{allocator_traits}\iref{allocator.traits} 为所有分配器类型提供统一接口。本子条款描述对分配器类型的要求，从而也描述用于实例化 \tcode{allocator_traits} 的类型的要求。如果为给定类型或表达式指定了默认值，则该要求是可选的。在标准库 \tcode{allocator_traits} 模板内，分配器未提供的可选要求将由指定的默认类型或表达式替代。
+\begin{note}
+不存在程序定义的 \tcode{allocator_traits} 特化。
+\end{note}
+
+\begin{itemdecl}
+typename X::pointer
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\remarks
+默认：\tcode{T*}
+\end{itemdescr}
+
+\begin{itemdecl}
+typename X::const_pointer
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\required
+\tcode{X::pointer} 可转换为 \tcode{X::const_pointer}。
+
+\pnum
+\remarks
+默认：\tcode{pointer_traits<X::pointer>::rebind<const T>}
+\end{itemdescr}
+
+\begin{itemdecl}
+typename X::void_pointer
+typename Y::void_pointer
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\required
+\tcode{X::pointer} 可转换为 \tcode{X::void_pointer}。
+\tcode{X::void_pointer} 与 \tcode{Y::void_pointer} 为相同类型。
+
+\pnum
+\remarks
+默认：
+\tcode{pointer_traits<X::pointer>::rebind<void>}
+\end{itemdescr}
+
+\begin{itemdecl}
+typename X::const_void_pointer
+typename Y::const_void_pointer
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\required
+\tcode{X::pointer}、\tcode{X::const_pointer} 及 \tcode{X::void_pointer}
+可转换为 \tcode{X::const_void_pointer}。
+\tcode{X::const_void_pointer} 与 \tcode{Y::const_void_pointer}
+为相同类型。
+
+\pnum
+\remarks
+默认：
+\tcode{pointer_traits<X::pointer>::rebind<const void>}
+\end{itemdescr}
+
+\begin{itemdecl}
+typename X::value_type
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\result
+与 \tcode{T} 相同。
+\end{itemdescr}
+
+\begin{itemdecl}
+typename X::size_type
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\result
+一种无符号整数类型，
+能够表示分配模型中最大对象的大小。
+
+\pnum
+\remarks
+默认：
+\tcode{make_unsigned_t<XX::difference_type>}
+\end{itemdescr}
+
+\begin{itemdecl}
+typename X::difference_type
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\result
+一种有符号整数类型，
+能够表示分配模型中任意两个指针之间的差。
+
+\pnum
+\remarks
+默认：
+\tcode{pointer_traits<XX::pointer>::difference_type}
+\end{itemdescr}
+
+\begin{itemdecl}
+typename X::rebind<U>::other
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\result
+\tcode{Y}
+
+\pnum
+\ensures
+对所有 \tcode{U}（包括 \tcode{T}），
+\tcode{YY::rebind_alloc<T>} 是 \tcode{X}。
+
+\pnum
+\remarks
+如果 \tcode{Allocator} 是形如
+\tcode{SomeAllocator<T, Args>} 的类模板实例化，
+其中 \tcode{Args} 是零个或多个类型实参，
+并且 \tcode{Allocator} 未提供 \tcode{rebind} 成员模板，
+则标准 \tcode{allocator_traits} 模板会默认使用
+\tcode{SomeAllocator<U, Args>} 来替代 \tcode{Allocator::re\-bind<U>::other}。
+对于不属于上述形式的模板实例化的分配器类型，
+不提供默认值。
+
+\pnum
+\begin{note}
+\tcode{X} 的成员类模板 \tcode{rebind} 本质上是一个 typedef 模板。
+通常，若
+名称 \tcode{Allocator} 绑定到 \tcode{SomeAllocator<T>}，
+则 \tcode{Allocator::rebind<U>::other} 与
+\tcode{SomeAllocator<U>} 是同一类型，
+其中
+\tcode{SomeAllocator<T>::value_type} 是 \tcode{T} 且
+\tcode{SomeAllocator<U>::value_type} 是 \tcode{U}。
+\end{note}
+\end{itemdescr}
+
+\begin{itemdecl}
+*p
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\result
+\tcode{T\&}
+\end{itemdescr}
+
+\begin{itemdecl}
+*q
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\result
+\tcode{const T\&}
+
+\pnum
+\ensures
+\tcode{*q} 引用与 \tcode{*p} 相同的对象。
+\end{itemdescr}
+
+\begin{itemdecl}
+p->m
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\result
+\tcode{T::m} 的类型。
+
+\pnum
+\expects
+\tcode{(*p).m} 是良构的。
+
+\pnum
+\effects
+等价于 \tcode{(*p).m}。
+\end{itemdescr}
+
+\begin{itemdecl}
+q->m
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\result
+\tcode{T::m} 的类型。
+
+\pnum
+\expects
+\tcode{(*q).m} 是良构的。
+
+\pnum
+\effects
+等价于 \tcode{(*q).m}。
+\end{itemdescr}
+
+\begin{itemdecl}
+static_cast<XX::pointer>(w)
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\result
+\tcode{XX::pointer}
+
+\pnum
+\ensures
+\tcode{static_cast<XX::pointer>(w) == p}。
+\end{itemdescr}
+
+\begin{itemdecl}
+static_cast<XX::const_pointer>(x)
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\result
+\tcode{XX::const_pointer}
+
+\pnum
+\ensures
+\tcode{static_cast<XX::const_pointer>(x) == q}。
+\end{itemdescr}
+
+\begin{itemdecl}
+pointer_traits<XX::pointer>::pointer_to(r)
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\result
+\tcode{XX::pointer}
+
+\pnum
+\ensures
+与\tcode{p}相同。
+\end{itemdescr}
+
+\begin{itemdecl}
+a.allocate(n)
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\result
+\tcode{XX::pointer}
+
+\pnum
+\effects
+为一个包含\tcode{n}个\tcode{T}类型对象的数组分配内存，
+并创建该数组对象，
+但数组元素不会被构造。
+\begin{example}
+当要重用某指针值\tcode{p}所指的存储时，
+可以使用\tcode{launder(reinterpret_cast<T*>(new (p) byte[n * sizeof(T)]))}
+来隐式地创建一个适当的数组对象，
+并获取指向它的指针。
+\end{example}
+
+\pnum
+\throws
+\tcode{allocate}可能会抛出适当的异常。
+
+\pnum
+\begin{note}
+意图是使\tcode{a.allocate}成为分配单个\tcode{T}类型对象的高效方式，
+即使\tcode{sizeof(T)}很小。
+也就是说，容器不需要维护自己的空闲列表。
+\end{note}
+
+\pnum
+\remarks
+如果\tcode{n == 0}，返回值是未指定的。
+\end{itemdescr}
+
+\begin{itemdecl}
+a.allocate(n, y)
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\result
+\tcode{XX::pointer}
+
+\pnum
+\effects
+与 \tcode{a.allocate(n)} 相同。
+\tcode{y} 的用途未指明，但其旨在辅助局部性。
+
+\pnum
+\remarks
+默认：\tcode{a.allocate(n)}
+\end{itemdescr}
+
+\begin{itemdecl}
+a.allocate_at_least(n)
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\result
+\tcode{allocation_result<XX::pointer, XX::size_type>}
+
+\pnum
+\returns
+\tcode{allocation_result<XX::pointer, XX::size_type>\{ptr, count\}}，
+其中 \tcode{ptr} 是为 \tcode{count} 个 \tcode{T} 分配的数组内存，且该对象已创建但数组元素未构造，
+使得 $\tcode{count} \geq \tcode{n}$。
+若 \tcode{n == 0}，则返回值未指明。
+
+\pnum
+\throws
+\tcode{allocate_at_least} 可能抛出适当的异常。
+
+\pnum
+\remarks
+默认：\tcode{\{a.allocate(n), n\}}。
+\end{itemdescr}
+
+\begin{itemdecl}
+a.deallocate(p, n)
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\result
+（未使用）
+
+\pnum
+\expects
+\begin{itemize}
+\item
+若 \tcode{p} 是通过调用 \tcode{a.allocate_at_least} 获得的内存，
+设 \tcode{ret} 为该调用返回的值，且 \tcode{req} 为该调用作为首个参数传递的值。
+则 \tcode{p} 等于 \tcode{ret.ptr} 且 \tcode{n} 是满足
+$\tcode{req} \leq \tcode{n} \leq \tcode{ret.count}$ 的值。
+\item
+否则，\tcode{p} 是从 \tcode{allocate} 获得的指针值。
+\tcode{n} 等于传递给返回 \tcode{p} 的 \tcode{allocate} 调用的首个参数的值。
+\end{itemize}
+\tcode{p} 未被随后对 \tcode{deallocate} 的调用所置无效。
+
+\pnum
+\throws
+无。
+\end{itemdescr}
+
+\begin{itemdecl}
+a.max_size()
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\result
+\tcode{XX::size_type}
+
+\pnum
+\returns
+可有意义地传递给 \tcode{a.allocate(n)} 的最大值 \tcode{n}。
+
+\pnum
+\remarks
+默认：
+\tcode{numeric_limits<size_type>::max() / sizeof(value_type)}
+\end{itemdescr}
+
+\begin{itemdecl}
+a1 == a2
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\result
+\tcode{bool}
+
+\pnum
+\returns
+\tcode{true} 仅当从每一个分配的存储能通过另一个释放。
+
+\pnum
+\throws
+无。
+
+\pnum
+\remarks
+\tcode{operator==} 应当具有自反性、对称性和传递性。
+\end{itemdescr}
+
+\begin{itemdecl}
+a1 != a2
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\result
+\tcode{bool}
+
+\pnum
+\returns
+\tcode{!(a1 == a2)}。
+\end{itemdescr}
+
+\begin{itemdecl}
+a == b
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\result
+\tcode{bool}
+
+\pnum
+\returns
+\tcode{a == YY::rebind_alloc<T>(b)}。
+\end{itemdescr}
+
+\begin{itemdecl}
+a != b
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\result
+\tcode{bool}
+
+\pnum
+\returns
+\tcode{!(a == b)}。
+\end{itemdescr}
+
+\begin{itemdecl}
+X u(a);
+X u = a;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\ensures
+\tcode{u == a}
+
+\pnum
+\throws
+无。
+\end{itemdescr}
+
+\begin{itemdecl}
+X u(b);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\ensures
+\tcode{Y(u) == b} 且 \tcode{u == X(b)}。
+
+\pnum
+\throws
+无。
+\end{itemdescr}
+
+\begin{itemdecl}
+X u(std::move(a));
+X u = std::move(a);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\ensures
+\tcode{a} 的值保持不变且等于 \tcode{u}。
+
+\pnum
+\throws
+无。
+\end{itemdescr}
+
+\begin{itemdecl}
+X u(std::move(b));
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\ensures
+\tcode{u} 等于 \tcode{X(b)} 先前的值。
+
+\pnum
+\throws
+无。
+\end{itemdescr}
+
+\begin{itemdecl}
+a.construct(c, args...)
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\result
+（未使用）
+
+\pnum
+\effects
+在 \tcode{c} 处构造一个类型为 \tcode{C} 的对象。
+
+\pnum
+\remarks
+默认：
+\tcode{construct_at(c, std::forward<Args>(args)...)}
+\end{itemdescr}
+
+\begin{itemdecl}
+a.destroy(c)
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\result
+（未使用）
+
+\pnum
+\effects
+销毁位于 \tcode{c} 的对象。
+
+\pnum
+\remarks
+默认：\tcode{destroy_at(c)}
+\end{itemdescr}
+
+\begin{itemdecl}
+a.select_on_container_copy_construction()
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\result
+\tcode{X}
+
+\pnum
+\returns
+通常返回 \tcode{a} 或 \tcode{X()}。
+
+\pnum
+\remarks
+默认：\tcode{return a;}
+\end{itemdescr}
+
+\begin{itemdecl}
+typename X::propagate_on_container_copy_assignment
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\result
+等同于或派生自 \tcode{true_type} 或 \tcode{false_type}。
+
+\pnum
+\returns
+仅当类型为 \tcode{X} 的分配器应当在客户容器被复制赋值时被复制，才返回 \tcode{true_type}；
+如此，则 \tcode{X} 应满足
+\oldconcept{CopyAssignable} 要求（\tref{cpp17.copyassignable}）且
+复制操作不应抛出异常。
+
+\pnum
+\remarks
+默认：\tcode{false_type}
+\end{itemdescr}
+
+\begin{itemdecl}
+typename X::propagate_on_container_move_assignment
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\result
+等同于或派生自 \tcode{true_type} 或 \tcode{false_type}。
+
+\pnum
+\returns
+仅当类型为 \tcode{X} 的分配器应当在客户容器被移动赋值时被移动，才返回 \tcode{true_type}；
+如此，则 \tcode{X} 应满足
+\oldconcept{MoveAssignable} 要求（\tref{cpp17.moveassignable}）且
+移动操作不应抛出异常。
+
+\pnum
+\remarks
+默认：\tcode{false_type}
+\end{itemdescr}
+
+\begin{itemdecl}
+typename X::propagate_on_container_swap
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\result
+等同或派生自 \tcode{true_type} 或 \tcode{false_type}。
+
+\pnum
+\returns
+仅当类型 \tcode{X} 的分配器应在客户端容器交换时被交换则返回 \tcode{true_type}；
+若是如此，
+\tcode{X} 应当满足 \oldconcept{可交换} 要求\iref{swappable.requirements} 且
+\tcode{swap} 操作应当不抛出异常。
+
+\pnum
+\remarks
+默认： \tcode{false_type}
+\end{itemdescr}
+
+\begin{itemdecl}
+typename X::is_always_equal
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\result
+等同或派生自 \tcode{true_type} 或 \tcode{false_type}。
+
+\pnum
+\returns
+仅当表达式 \tcode{a1 == a2} 对类型 \tcode{X} 的任意两个（可能为 const）值
+\tcode{a1}、 \tcode{a2} 均保证为 \tcode{true} 则返回 \tcode{true_type}。
+
+\pnum
+\remarks
+默认： \tcode{is_empty<X>::type}
+\end{itemdescr}
+
+\pnum
+分配器类型 \tcode{X} 应当满足 \oldconcept{可复制构造} 要求（\tref{cpp17.copyconstructible}）。
+\tcode{XX::pointer}、 \tcode{XX::const_pointer}、 \tcode{XX::void_pointer} 和
+\tcode{XX::const_void_pointer} 类型应当满足
+\oldconcept{可置空指针} 要求（\tref{cpp17.nullablepointer}）。
+对这些指针类型的任何构造函数、比较运算符函数、复制操作、移动操作或交换操作均不得通过异常退出。
+\tcode{XX::pointer} 和 \tcode{XX::const_pointer} 还应当满足
+\oldconcept{随机访问迭代器}\iref{random.access.iterators} 的要求，以及额外要求：当对于某整数类型值 \tcode{n} 有
+\tcode{p} 和 \tcode{(p + n)} 是可解引用指针值时，
+\begin{codeblock}
+addressof(*(p + n)) == addressof(*p) + n
+\end{codeblock}
+为 \tcode{true}。
+
+\pnum
+令 \tcode{x1} 和 \tcode{x2} 表示类型为（可能不同）
+\tcode{XX::void_pointer}、 \tcode{XX::const_void_pointer}、 \tcode{XX::pointer} 或
+\tcode{XX::const_pointer} 的对象。那么， \tcode{x1} 和 \tcode{x2} 是
+\defn{等值指针值}，当且仅当 \tcode{x1} 和 \tcode{x2} 均可使用仅涉及此四个类型的一系列 \keyword{static_cast} 
+显式转换为类型 \tcode{XX::const_pointer} 的两个对应对象 \tcode{px1} 和 \tcode{px2}，
+且表达式 \tcode{px1 == px2} 求值为 \tcode{true}。
+
+\pnum
+令 \tcode{w1} 和 \tcode{w2} 表示类型 \tcode{XX::void_pointer} 的对象。
+那么对于表达式
+\begin{codeblock}
+w1 == w2
+w1 != w2
+\end{codeblock}
+任一或两个对象可以用类型 \tcode{XX::const_void_pointer} 的等值对象替换而不改变语义。
+
+\pnum
+令 \tcode{p1} 和 \tcode{p2} 表示类型 \tcode{XX::pointer} 的对象。
+那么对于表达式
+\begin{codeblock}
+p1 == p2
+p1 != p2
+p1 < p2
+p1 <= p2
+p1 >= p2
+p1 > p2
+p1 - p2
+\end{codeblock}
+任一或两个对象可以用类型 \tcode{XX::const_pointer} 的等值对象替换而不改变语义。
+
+\pnum
+分配器可以约束其实例化所基于的类型及其 \tcode{construct} 或 \tcode{destroy} 成员
+所调用时的实参。若某类型不能与特定分配器一同使用，则分配器类或对 \tcode{construct} 或 \tcode{destroy} 的调用
+可以实例化失败。
+
+\pnum
+若分配器不支持与特定超对齐类型关联的对齐方式，对此类型的分配器实例化可以失败。
+分配器也可静默忽略请求的对齐方式。
+\begin{note}
+另外，该类型的成员函数 \tcode{allocate}
+可以通过抛出 \tcode{bad_alloc} 类型的对象而失败。
+\end{note}
+
+\pnum
+\begin{example}
+以下是支持最小接口并满足 \ref{allocator.requirements.general} 要求的分配器类模板：
+
+\begin{codeblock}
+template<class T>
+struct SimpleAllocator {
+  using value_type = T;
+  SimpleAllocator(@\textit{构造函数参数}@);
+
+  template<class U> SimpleAllocator(const SimpleAllocator<U>& other);
+
+  T* allocate(std::size_t n);
+  void deallocate(T* p, std::size_t n);
+
+  template<class U> bool operator==(const SimpleAllocator<U>& rhs) const;
+};
+\end{codeblock}
+\end{example}
+
+\pnum
+以下仅用于阐释的概念定义了分配器类型的最小要求。
+\begin{codeblock}
+namespace std {
+  template<class Alloc>
+  concept @\defexposconcept{simple-allocator}@ =
+    requires(Alloc alloc, size_t n) {
+      { *alloc.allocate(n) } -> @\libconcept{same_as}@<typename Alloc::value_type&>;
+      { alloc.deallocate(alloc.allocate(n), n) };
+    } &&
+    @\libconcept{copy_constructible}@<Alloc> &&
+    @\libconcept{equality_comparable}@<Alloc>;
+}
+\end{codeblock}
+若类型 \tcode{Alloc} 满足 \ref{allocator.requirements.general} 中的要求，则其属于 \exposconcept{simple-allocator}。
+
+\rSec4[allocator.requirements.completeness]{分配器完整性要求}
+
+\pnum
+若 \tcode{X} 是用于类型 \tcode{T} 的分配器类，则不论 \tcode{T} 是否为完整类型，只要满足以下条件，\tcode{X} 就额外满足分配器完整性要求：
+\begin{itemize}
+\item \tcode{X} 是完整类型，并且
+\item \tcode{allocator_traits<X>}\iref{allocator.traits} 中除 \tcode{value_type} 外的所有成员类型均为完整类型。
+\end{itemize}
+
+\rSec2[constraints]{对程序的约束}
+
+\rSec3[constraints.overview]{概述}
+
+\pnum
+子条款 \ref{constraints} 描述了使用\Cpp{}标准库设施的\Cpp{}程序所受的限制。以下子条款规定了程序对名字空间\iref{namespace.std}的使用、对各种保留名称\iref{reserved.names}的使用、对头文件\iref{alt.headers}的使用、将标准库类作为基类\iref{derived.classes}的使用、对替换函数\iref{replacement.functions}的定义，以及在执行期间安装处理函数\iref{handler.functions}的定义。
+
+\rSec3[namespace.constraints]{名字空间的使用}
+
+\rSec4[namespace.std]{名字空间 \tcode{std}}
+
+\pnum
+除非另有说明，若\Cpp{}程序向名字空间 \tcode{std} 或名字空间 \tcode{std} 内的某个名字空间添加声明或定义，则其行为未定义。
+
+\pnum
+除非被明确禁止，程序可以向名字空间 \tcode{std} 为任何标准库类模板添加一个模板特化，只要
+\begin{itemize}
+\item 添加的声明依赖于至少一个程序定义的类型，且
+\item 该特化满足原模板的标准库要求。
+\begin{footnote}
+任何实例化其他库模板的库代码必须准备好与任何满足本文档最低要求的用户提供的特化充分协同工作。
+\end{footnote}
+\end{itemize}
+
+\pnum
+若\Cpp{}程序声明了任何标准库变量模板的显式或部分特化，其行为未定义，除非该变量模板的规范明确允许。
+\begin{note}
+对于显式或部分特化的要求，由每个授予此类权限的变量模板规定。
+\end{note}
+
+\pnum
+若\Cpp{}程序声明了以下内容，其行为未定义：
+\begin{itemize}
+\item 标准库类模板的任何成员函数的显式特化，或
+\item 标准库类或类模板的任何成员函数模板的显式特化，或
+\item 标准库类或类模板的任何成员类模板的显式或部分特化，或
+\item 任何标准库类模板的推导指南。
+\end{itemize}
+
+\pnum
+程序可以显式实例化一个在标准库中定义的类模板，仅当该声明
+\begin{itemize}
+\item 依赖于至少一个程序定义类型的名称，且
+\item 该实例化满足原模板的标准库要求。
+\end{itemize}
+
+\pnum
+令 \tcode{\placeholder{F}} 表示一个标准库函数\iref{global.functions}、标准库静态成员函数，或标准库函数模板的实例。除非 \tcode{\placeholder{F}} 被指定为\defnadj{可取地址}{函数}，若\Cpp{}程序显式或隐式地尝试形成指向 \tcode{\placeholder{F}} 的指针，则其行为未指明（可能为非良构）。
+\begin{note}
+形成此类指针的可能方式包括：应用一元 \tcode{\&} 运算符\iref{expr.unary.op}、\tcode{addressof}\iref{specialized.addressof}，或函数到指针的标准转换\iref{conv.func}。
+\end{note}
+此外，若\Cpp{}程序尝试形成对 \tcode{\placeholder{F}} 的引用，或尝试形成指向标准库非静态成员函数\iref{member.functions}或标准库成员函数模板实例的指向成员的指针，则其行为未指明（可能为非良构）。
+
+\pnum
+令 \tcode{\placeholder{F}} 表示一个标准库函数或函数模板。除非 \tcode{\placeholder{F}} 被指定为可取地址函数，是否能形成指代相关联实体的反射值以及如何形成均未指明。
+\begin{note}
+例如，\tcode{std::meta::members_of} 可能不返回那些实现通过超语言机制处理的标准库函数的反射。
+\end{note}
+
+\pnum
+令 \tcode{\placeholder{C}} 表示一个标准库类或类模板特化。是否能形成反射值指向 \tcode{\placeholder{C}} 的任何私有成员，以及如何形成，这些成员可能的名称是什么，均未指明。
+
+\pnum
+翻译单元不得将名字空间 \tcode{std} 声明为内联名字空间\iref{namespace.def}。
+
+\rSec4[namespace.posix]{名字空间 \tcode{posix}}
+
+\pnum
+如果 \Cpp{} 程序向名字空间
+\tcode{posix}
+或名字空间
+\tcode{posix}
+内的某个名字空间添加声明或定义，其行为是未定义的，除非另有说明。名字空间 \tcode{posix} 保留给
+\IsoPosixUndated{} 及其他 POSIX 标准使用。
+
+\rSec4[namespace.future]{用于未来标准化的名字空间}
+
+\pnum
+顶层名字空间的 \grammarterm{namespace-name} 由 \tcode{std} 后接一个或多个 \grammarterm{digit}{s}\iref{lex.name} 组成者，
+保留用于未来标准化。
+如果 \Cpp{} 程序向此类名字空间添加声明或定义，其行为是未定义的。
+\begin{example}
+顶层名字空间 \tcode{std2} 保留给本国际标准的未来修订版本使用。
+\end{example}
+
+\rSec3[reserved.names]{保留的名称}%
+
+\rSec4[reserved.names.general]{概述}%
+\indextext{name!reserved}
+
+\pnum
+\Cpp{} 标准库保留以下种类的名称：
+\begin{itemize}
+\item 宏
+\item 全局名称
+\item 具有外部链接的名称
+\end{itemize}
+
+\pnum
+如果程序在保留名称的上下文中声明或定义了一个名称，而该操作并非 \ref{library} 明确允许，则其行为是未定义的。%
+\indextext{undefined}
+
+\rSec4[zombie.names]{僵尸名}%
+\indextext{名称！僵尸}%
+\indextext{亡灵！名称}%
+\indextext{大脑！那些想吞噬你的名称}%
+
+\pnum
+在名字空间 \tcode{std} 中，\tref{zombie.names.std} 所示名称被保留用于之前的标准化：
+
+\begin{multicolfloattable}{名字空间 \tcode{std} 中的僵尸名}{zombie.names.std}
+{lll}
+\indexlibraryzombie{auto_ptr} \tcode{auto_ptr} \\
+\indexlibraryzombie{auto_ptr_ref} \tcode{auto_ptr_ref} \\
+\indexlibraryzombie{binary_function} \tcode{binary_function} \\
+\indexlibraryzombie{binary_negate} \tcode{binary_negate} \\
+\indexlibraryzombie{bind1st} \tcode{bind1st} \\
+\indexlibraryzombie{bind2nd} \tcode{bind2nd} \\
+\indexlibraryzombie{binder1st} \tcode{binder1st} \\
+\indexlibraryzombie{binder2nd} \tcode{binder2nd} \\
+\indexlibraryzombie{codecvt_mode} \tcode{codecvt_mode} \\
+\indexlibraryzombie{codecvt_utf16} \tcode{codecvt_utf16} \\
+\indexlibraryzombie{codecvt_utf8} \tcode{codecvt_utf8} \\
+\indexlibraryzombie{codecvt_utf8_utf16} \tcode{codecvt_utf8_utf16} \\
+\indexlibraryzombie{const_mem_fun1_ref_t} \tcode{const_mem_fun1_ref_t} \\
+\indexlibraryzombie{const_mem_fun1_t} \tcode{const_mem_fun1_t} \\
+\indexlibraryzombie{const_mem_fun_ref_t} \tcode{const_mem_fun_ref_t} \\
+\indexlibraryzombie{const_mem_fun_t} \tcode{const_mem_fun_t} \\
+\indexlibraryzombie{consume_header} \tcode{consume_header} \\
+\indexlibraryzombie{declare_no_pointers} \tcode{declare_no_pointers} \\
+\indexlibraryzombie{declare_reachable} \tcode{declare_reachable} \\
+\columnbreak
+\indexlibraryzombie{generate_header} \tcode{generate_header} \\
+\indexlibraryzombie{get_pointer_safety} \tcode{get_pointer_safety} \\
+\indexlibraryzombie{get_temporary_buffer} \tcode{get_temporary_buffer} \\
+\indexlibraryzombie{get_unexpected} \tcode{get_unexpected} \\
+\indexlibraryzombie{gets} \tcode{gets} \\
+\indexlibraryzombie{is_literal_type} \tcode{is_literal_type} \\
+\indexlibraryzombie{is_literal_type_v} \tcode{is_literal_type_v} \\
+\indexlibraryzombie{istrstream} \tcode{istrstream} \\
+\indexlibraryzombie{little_endian} \tcode{little_endian} \\
+\indexlibraryzombie{mem_fun1_ref_t} \tcode{mem_fun1_ref_t} \\
+\indexlibraryzombie{mem_fun1_t} \tcode{mem_fun1_t} \\
+\indexlibraryzombie{mem_fun_ref_t} \tcode{mem_fun_ref_t} \\
+\indexlibraryzombie{mem_fun_ref} \tcode{mem_fun_ref} \\
+\indexlibraryzombie{mem_fun_t} \tcode{mem_fun_t} \\
+\indexlibraryzombie{mem_fun} \tcode{mem_fun} \\
+\indexlibraryzombie{not1} \tcode{not1} \\
+\indexlibraryzombie{not2} \tcode{not2} \\
+\indexlibraryzombie{ostrstream} \tcode{ostrstream} \\
+\indexlibraryzombie{pointer_safety} \tcode{pointer_safety} \\
+\columnbreak
+\indexlibraryzombie{pointer_to_binary_function} \tcode{pointer_to_binary_function} \\
+\indexlibraryzombie{pointer_to_unary_function} \tcode{pointer_to_unary_function} \\
+\indexlibraryzombie{ptr_fun} \tcode{ptr_fun} \\
+\indexlibraryzombie{random_shuffle} \tcode{random_shuffle} \\
+\indexlibraryzombie{raw_storage_iterator} \tcode{raw_storage_iterator} \\
+\indexlibraryzombie{result_of} \tcode{result_of} \\
+\indexlibraryzombie{result_of_t} \tcode{result_of_t} \\
+\indexlibraryzombie{return_temporary_buffer} \tcode{return_temporary_buffer} \\
+\indexlibraryzombie{set_unexpected} \tcode{set_unexpected} \\
+\indexlibraryzombie{strstream} \tcode{strstream} \\
+\indexlibraryzombie{strstreambuf} \tcode{strstreambuf} \\
+\indexlibraryzombie{unary_function} \tcode{unary_function} \\
+\indexlibraryzombie{unary_negate} \tcode{unary_negate} \\
+\indexlibraryzombie{uncaught_exception} \tcode{uncaught_exception} \\
+\indexlibraryzombie{undeclare_no_pointers} \tcode{undeclare_no_pointers} \\
+\indexlibraryzombie{undeclare_reachable} \tcode{undeclare_reachable} \\
+\indexlibraryzombie{unexpected_handler} \tcode{unexpected_handler} \\
+\indexlibraryzombie{wbuffer_convert} \tcode{wbuffer_convert} \\
+\indexlibraryzombie{wstring_convert} \tcode{wstring_convert} \\
+\end{multicolfloattable}
+
+
+\pnum
+\tref{zombie.names.objmacro} 所示名称作为成员被保留用于之前的标准化，且不可在可移植代码中用作对象宏的名称：
+
+\begin{multicolfloattable}{类似对象的僵尸宏}{zombie.names.objmacro}
+{lll}
+\indexlibraryzombie{argument_type} \tcode{argument_type} \\
+\indexlibraryzombie{first_argument_type} \tcode{first_argument_type} \\
+\indexlibraryzombie{io_state} \tcode{io_state} \\
+\columnbreak
+\indexlibraryzombie{op} \tcode{op} \\
+\indexlibraryzombie{open_mode} \tcode{open_mode} \\
+\indexlibraryzombie{preferred} \tcode{preferred} \\
+\columnbreak
+\indexlibraryzombie{second_argument_type} \tcode{second_argument_type} \\
+\indexlibraryzombie{seek_dir} \tcode{seek_dir} \\
+\indexlibraryzombie{strict} \tcode{strict} \\
+\end{multicolfloattable}
+
+\pnum
+在\tref{zombie.names.fnmacro}中显示的名称是为先前的标准化保留的成员函数，并且在可移植的代码中不得用作类似函数的宏的名称：
+
+\begin{multicolfloattable}{类似函数的僵尸宏}{zombie.names.fnmacro}
+{llllll}
+\indexlibraryzombie{converted} \tcode{converted} \\
+\columnbreak
+\indexlibraryzombie{freeze} \tcode{freeze} \\
+\columnbreak
+\indexlibraryzombie{from_bytes} \tcode{from_bytes} \\
+\columnbreak
+\indexlibraryzombie{pcount} \tcode{pcount} \\
+\columnbreak
+\indexlibraryzombie{stossc} \tcode{stossc} \\
+\columnbreak
+\indexlibraryzombie{to_bytes} \tcode{to_bytes} \\
+\end{multicolfloattable}
+
+\pnum
+在\tref{zombie.names.header}中显示的头文件名是为先前的标准化保留的：
+
+\begin{multicolfloattable}{僵尸头文件}{zombie.names.header}
+{lllll}
+\libnoheader{ccomplex} \\
+\libnoheader{ciso646} \\
+\columnbreak
+\libnoheader{codecvt} \\
+\libnoheader{cstdalign} \\
+\columnbreak
+\libnoheader{cstdbool} \\
+\columnbreak
+\libnoheader{ctgmath} \\
+\columnbreak
+\libnoheader{strstream} \\
+\end{multicolfloattable}
+
+\rSec4[macro.names]{宏名称}
+
+\pnum
+\indextext{\idxcode{\#undef}}%
+\indextext{单元！翻译}%
+包含标准库头文件的翻译单元不得
+\tcode{\#define} 或 \tcode{\#undef} 在任何标准
+库头文件中声明的名称。
+
+\rSec4[extern.names]{外部链接}
+
+\pnum
+在头文件中声明为具有外部链接
+\indextext{链接！外部}%
+的对象每个名称，保留给实现以指定该具有
+外部链接的库对象，%
+\indextext{链接！外部}%
+\begin{footnote}
+此类保留名称的列表包括在
+\libheaderref{cerrno} 中声明或定义的 \tcode{errno}。
+\end{footnote}
+既在名字空间 \tcode{std} 中，也在全局名字空间中。
+
+\pnum
+在头文件中声明的每个具有
+\indextext{链接！外部}%
+外部链接的
+\indextext{函数！全局}%
+全局函数签名保留给实现以指定该具有
+\indextext{链接！外部}%
+外部链接的函数签名。%
+\begin{footnote}
+此类具有外部链接的保留函数
+签名列表包括在
+\libheaderref{csetjmp} 中声明或定义的
+\indexlibraryglobal{setjmp}%
+\tcode{setjmp(jmp_buf)}，
+以及在
+\libheaderref{cstdarg} 中声明或定义的
+\indexlibraryglobal{va_end}%
+\indexlibraryglobal{va_list}%
+\tcode{va_end(va_list)}。
+\end{footnote}
+
+\pnum
+来自 C 标准库的每个以外部链接声明的名称
+\indextext{链接！外部}%
+保留给实现，用作具有
+\indextext{头文件！C}%
+\indextext{\idxcode{extern ""C""}}%
+\tcode{extern "C"}
+链接的名称，
+既在名字空间 \tcode{std} 中，也在全局名字空间中。
+
+\pnum
+来自 C 标准库的每个以外部链接声明的
+\indextext{链接！外部}%
+函数签名保留给实现，用作
+具有
+\indextext{\idxcode{extern ""C""}}%
+\tcode{extern "C"}
+和
+\indextext{\idxcode{extern ""C++""}}%
+\tcode{extern "C++"}
+两种链接的函数签名，%
+\begin{footnote}
+在 \libheaderref{cuchar}、\libheaderref{cwchar} 和 \libheaderref{cwctype} 中声明的函数签名始终保留，
+尽管 C 标准修正案 1 的 4.5.1 子条款对这些头文件施加了限制。
+\end{footnote}
+或用作全局名字空间中名字空间作用域的名称。
+
+\rSec4[extern.types]{类型}
+
+\pnum
+对于来自 C 标准库的每个类型 \tcode{T}，
+类型
+\tcode{::T}
+与
+\tcode{std::T}
+均被保留给实现，并且当二者均被定义时，
+\tcode{::T}
+应与
+\tcode{std::T}
+相同。
+
+\rSec4[usrlit.suffix]{用户定义字面量后缀}
+
+\pnum
+不以下划线开头的字面量后缀标识符\iref{over.literal}被保留给未来的标准化。
+包含双下划线
+\tcode{\unun}
+\indextext{character!underscore}%
+的字面量后缀标识符被保留给 \Cpp{} 实现使用。
+
+\rSec3[alt.headers]{头文件}
+
+\pnum
+如果实现未提供名称等价于 \Cpp{} 标准库头文件之一的派生文件名的文件，
+而具有该名称的文件被置于用于被包含的源文件的任何标准位置\iref{cpp.include}，
+则行为未定义。%
+\indextext{source file}%
+\indextext{undefined}
+
+\rSec3[derived.classes]{派生类}
+
+\pnum
+\Cpp{} 标准
+\indextext{library!\Cpp{} standard}%
+库中为基类
+\indextext{class!base}%
+定义的虚成员函数签名
+\indextext{function!virtual member}%
+可以在程序中定义的派生类中被覆盖\iref{class.virtual}。
+
+\rSec3[replacement.functions]{替换函数}
+
+\pnum
+若在
+\ref{\firstlibchapter} 至 \ref{\lastlibchapter} 及 \ref{depr}
+中定义的函数被指定为可替换\iref{term.replaceable.function}，
+则其函数语义描述同时适用于由 \Cpp{} 标准库定义的默认版本以及由程序定义的替换函数。
+
+\rSec3[handler.functions]{处理器函数}
+
+\pnum
+\Cpp{} 标准库提供如下处理器函数的默认版本\iref{support}：
+
+\begin{itemize}
+\item
+\tcode{terminate_handler}
+\indexlibraryglobal{terminate_handler}%
+\end{itemize}
+
+\pnum
+\Cpp{} 程序可以在执行期间安装不同的处理器函数，方式为提供指向程序或库中定义的函数的指针作为（分别对应）以下函数的实参：
+\begin{itemize}
+\item \indexlibraryglobal{set_new_handler}\tcode{set_new_handler}
+\item \indexlibraryglobal{set_terminate}\tcode{set_terminate}
+\end{itemize}
+另见子节~\ref{alloc.errors}（存储分配错误）与~\ref{support.exception}（异常处理）。
+
+\pnum
+\Cpp{} 程序可以通过调用下列函数获取指向当前处理器函数的指针：
+
+\begin{itemize}
+\item
+\indexlibraryglobal{get_new_handler}%
+\tcode{get_new_handler}
+\item
+\indexlibraryglobal{get_terminate}
+\tcode{get_terminate}
+\end{itemize}
+
+\pnum
+调用 \tcode{set_*} 及 \tcode{get_*} 函数不应引起数据竞争\iref{intro.races}。
+对任一 \tcode{set_*} 函数的调用与后续对同一 \tcode{set_*} 函数及对相应的 \tcode{get_*} 函数的调用同步。
+
+\rSec3[res.on.functions]{其他函数}
+
+\pnum
+在某些情况下（替换函数、处理函数、用于实例化标准库模板组件的类型上的操作），\Cpp{} 标准库依赖于由 \Cpp{} 程序提供的组件。
+如果这些组件不满足其要求，本文档对实现不做任何要求。
+
+\pnum
+特别地，以下情况下行为未定义：
+
+\begin{itemize}
+\item
+对于替换函数\iref{replacement.functions}，若安装的替换函数未实现适用的
+\required
+段落所规定的语义。
+
+\item
+对于处理函数\iref{new.handler,terminate.handler}，若安装的处理函数未实现适用的
+\required
+段落所规定的语义。
+
+\item
+对于在实例化模板组件时用作模板实参的类型，若该类型上的操作未实现适用的
+\emph{要求}
+子条款\iref{allocator.requirements,container.requirements,iterator.requirements,
+algorithms.requirements,numeric.requirements} 所规定的语义。
+除非另有说明，对此类类型的操作可以通过抛出异常来报告失败。
+
+\item
+若任何替换函数、处理函数或析构操作通过异常退出，除非在适用的
+\required
+段落中明确允许。
+
+\item
+若在不完整类型\iref{term.incomplete.type} 被用作模板实参以实例化模板组件或求值概念时，除非该组件明确允许。
+\end{itemize}
+
+\rSec3[res.on.arguments]{函数参数}
+
+\pnum
+\indextext{限制}%
+\indextext{参数}%
+以下各项均适用于对 \Cpp{} 标准库中定义的函数的所有参数%
+\indextext{库！\Cpp{} 标准}%
+，除非另有明确说明。
+
+\begin{itemize}
+\item
+若函数的一个参数具有无效值（\indextext{参数}% 例如函数定义域之外的值，或不符合预期用途的指针），则行为未定义。\indextext{未定义}%
+
+\item
+若一个函数参数被描述为数组，\indextext{参数}% 则实际传递给该函数的指针应具有这样的值：使得所有地址计算和对对象的访问（若该指针确实指向此数组的首元素时本应是合法的）实际上均合法。
+
+\item
+若一个函数参数被绑定到一个右值引用形参，则实现可以假定该形参是对此参数的唯一引用，除非传递给移动赋值运算符的参数可能是对 \tcode{*this} 的引用\iref{lib.types.movedfrom}。
+\begin{note}
+若形参的类型是推导为左值引用类型的转发引用\iref{temp.deduct.call}，则该参数不会被绑定到右值引用。
+\end{note}
+\begin{note}
+若程序在将左值传递给库函数时将其转型为亡值（例如，使用实参 \tcode{std::move(x)} 调用函数），则该程序实质上是在要求该函数将此左值视为临时对象。实现可以自由地省略那些在参数为左值时可能需要的别名检查。
+\end{note}
+\end{itemize}
+
+\rSec3[res.on.objects]{库对象访问}
+
+\pnum
+如果从不同线程调用标准库函数可能引入数据竞争，则程序的行为是未定义的。此种情况可能发生的条件在~\ref{res.on.data.races}中规定。
+\begin{note}
+修改一个在线程间共享的标准库类型的对象可能导致未定义行为，除非该类型的对象被显式指定为可在无数据竞争的情况下共享，或用户提供了锁定机制。
+\end{note}
+
+\pnum
+如果访问了一个标准库类型的对象，并且
+对象的生命周期开始\iref{basic.life}
+并不先发生于该访问，或者
+该访问并不先发生于对象生命周期的结束，
+则行为是未定义的，除非另有说明。
+\begin{note}
+此条甚至适用于诸如用于线程同步的互斥锁等对象。
+\end{note}
+
+\rSec3[res.on.requirements]{语义要求}
+
+\pnum
+如果模板实参序列 \tcode{Args} 满足概念 \tcode{C}\iref{temp.constr.decl} 并且满足 \tcode{C} 规范中给出的所有语义要求（如果有），则称该模板实参序列
+\indextext{概念！属于}%
+\defnx{属于}{属于！概念} 概念 \tcode{C}。
+
+\pnum
+如果程序的有效性或含义取决于模板实参序列是否属于某个概念，并且该概念仅被满足而不属于，则程序是非良构的，无需诊断。
+
+\pnum
+如果在使用点，某个声明的约束\iref{structure.requirements}的语义要求未被满足，则程序是非良构的，无需诊断。
+
+\rSec2[conforming]{一致性实现}
+
+\rSec3[conforming.overview]{概述}
+
+\pnum
+\ref{conforming}子条款描述了\Cpp{}标准库实现所受到的限制及其自由度。
+
+\pnum
+以下内容中讨论了实现对这些内容的使用：
+\begin{itemize}
+\item \ref{res.on.headers}中讨论了头文件，
+\item \ref{res.on.macro.definitions}中讨论了宏，
+\item \ref{global.functions}中讨论了非成员函数，
+\item \ref{member.functions}中讨论了成员函数，
+\item \ref{res.on.data.races}中讨论了避免数据竞争，
+\item \ref{protection.within.classes}中讨论了访问说明符，
+\item \ref{derivation}中讨论了类派生，
+\item \ref{res.on.exception.handling}中讨论了异常，以及
+\item \ref{res.contract.assertions}中讨论了契约断言。
+\end{itemize}
+
+\rSec3[res.on.headers]{头文件}
+
+\pnum
+一个\Cpp{}头文件可以包含其他\Cpp{}头文件。
+一个\Cpp{}头文件应提供出现在其概要中的声明和定义。
+在其概要中显示为包含其他\Cpp{}头文件的\Cpp{}头文件，
+应提供出现在这些其他头文件的概要中的声明和定义。
+
+\pnum
+某些类型和宏在多个头文件中都有定义。
+每一个这样的实体在定义时，应当保证：
+任何定义了该实体的头文件，可以在也定义了该实体的任何其他头文件之后被包含 \iref{basic.def.odr}。
+
+\pnum
+C标准库头文件\iref{support.c.headers}
+应仅包含其对应的\Cpp{}标准库头文件， 如\ref{headers}所述。
+
+\rSec3[res.on.macro.definitions]{宏定义的限制}
+\indextext{restriction}%
+
+\pnum
+在~\ref{contents} 中描述的 名称 和 全局函数签名 保留给 实现 使用。
+\indextext{argument}%
+\indextext{header!C}%
+\indextext{function!global}%
+\indextext{inline}%
+\indextext{macro!masking}%
+
+\pnum
+所有 由 C 标准库定义的、并在本章中描述为展开为 整数常量表达式 的类对象宏，同样适用于 \tcode{\#if}\indextext{\idxcode{\#if}} 预处理指令中使用，除非另有明确说明。
+
+\rSec3[global.functions]{非成员函数}
+
+\pnum
+未指定 \Cpp{} 标准库中的任何
+非成员
+函数是否被定义为
+内联的\iref{dcl.inline}。
+
+\pnum
+对在 \ref{\firstlibchapter} 至 \ref{\lastlibchapter} 及
+\ref{depr} 中描述的非成员函数签名的调用，其行为应如同实现未声明任何额外的非成员函数签名一样。
+\begin{footnote}
+一个有效的 \Cpp{} 程序总是
+调用预期的库非成员函数。实现亦可以
+定义额外的非成员函数，而这些函数在一个有效的 \Cpp{} 程序中不会被调用。
+\end{footnote}
+
+\pnum
+实现不应声明带有额外默认参数的非成员函数签名。
+
+\pnum
+除非另有说明，
+标准库中的函数对非运算符、非成员函数的调用
+不会使用通过参数相关查找\iref{basic.lookup.argdep} 所发现的来自其他名字空间的函数。
+\begin{note}
+短语“除非另有说明”适用于诸如
+可交换性要求\iref{swappable.requirements}等情况。
+对于重载运算符的例外允许在像
+\tcode{ostream_iterator::operator=}\iref{ostream.iterator.ops} 这类情况中进行参数相关查找：
+
+\effects
+\begin{codeblock}
+*@\textit{out_stream}@ << value;
+if (@\textit{delim}@ != 0)
+  *@\textit{out_stream}@ << @\textit{delim}@;
+return *this;
+\end{codeblock}
+\end{note}
+
+\rSec3[member.functions]{成员函数}
+
+\pnum
+未指明 \Cpp{} 标准库中的任何成员函数是否被定义为 inline\iref{dcl.inline}。
+
+\pnum
+对于 \Cpp{} 标准库中所描述的非虚成员函数，实现可以声明一组不同的成员函数签名，
+前提是对于任何调用该成员函数的情况，若从本文档所描述的声明集中选择重载，
+其行为应如同选中了该重载一样。
+\begin{note}
+例如，实现可以添加带有默认值的参数，
+或者用两个或多个具有等效行为的成员函数替换带有默认参数的成员函数，
+或者为成员函数名称添加额外的签名。
+\end{note}
+
+\rSec3[hidden.friends]{友元函数}
+
+\pnum
+当本文档在类或类模板定义中指定函数或函数模板的友元声明时，
+该声明应是实现所提供的该函数或函数模板的唯一声明。
+\begin{note}
+特别地，符合标准的实现不在名字空间作用域提供该函数或函数模板的任何额外声明。
+\end{note}
+\begin{note}
+这样的友元函数或函数模板声明被称为隐藏友元，
+因为它对于普通非限定查找\iref{basic.lookup.unqual}和限定查找\iref{basic.lookup.qual}均不可见。
+\end{note}
+
+\rSec3[constexpr.functions]{常量表达式函数和构造函数}
+
+\pnum
+本文档明确要求某些标准库函数为\keyword{constexpr}\iref{dcl.constexpr}。实现不得将任何标准库函数签名声明为\keyword{constexpr}，除非明确要求如此。在任何提供常量表达式函数的非定义声明的头文件中，实现都应提供相应的定义。
+
+\rSec3[algorithm.stable]{稳定算法的要求}
+
+\pnum
+\indextext{algorithm!stable}%
+\indextext{stable algorithm}%
+当对算法的要求仅声明其为“稳定”而未进一步阐述时，这意味着：
+
+\begin{itemize}
+\item 对于排序算法，等价元素的相对顺序被保留。
+
+\item 对于删除和复制算法，未被删除的元素的相对顺序被保留。
+
+\item 对于合并算法，在原始两个范围中的等价元素，来自第一个范围的元素（保持其原始顺序）先于来自第二个范围的元素（保持其原始顺序）。
+\end{itemize}
+
+\rSec3[reentrancy]{重入}
+
+\pnum
+除非本文档中明确指定，否则 \Cpp{} 标准库中的哪些函数可以递归重入是由实现定义的。
+
+\rSec3[res.on.data.races]{数据竞争避免}
+
+\pnum
+本子节规定了实现为预防数据竞争\iref{intro.multithread} 所应满足的要求。
+除非另有说明，每个标准库函数都应满足每项要求。
+实现可以在下述规定之外的情况下预防数据竞争。
+
+\pnum
+\Cpp{} 标准库函数不得直接或间接访问当前线程之外的线程可访问的对象\iref{intro.multithread}，除非这些对象是通过函数的参数（包括 \keyword{this}）直接或间接访问的。
+
+\pnum
+\Cpp{} 标准库函数不得直接或间接修改当前线程之外的线程可访问的对象\iref{intro.multithread}，除非这些对象是通过函数的非 const 参数（包括 \keyword{this}）直接或间接访问的。
+
+\pnum
+\begin{note}
+这意味着，例如，实现不能在没有同步的情况下将具有静态存储期的对象用于内部目的，因为这样做可能导致数据竞争，即使是在线程间未显式共享对象的程序中也是如此。
+\end{note}
+
+\pnum
+\Cpp{} 标准库函数不得访问通过其参数或通过其容器参数的元素间接可访问的对象，除非通过对那些容器元素调用其规范所要求的函数。
+
+\pnum
+通过调用标准库容器或字符串成员函数获得的迭代器上的操作可以访问底层容器，但不得修改它。
+\begin{note}
+特别地，使迭代器失效的容器操作与关联于该容器的迭代器上的操作相冲突。
+\end{note}
+
+\pnum
+如果实现内部的自身对象对用户不可见并且受到防止数据竞争的保护，那么实现可以在线程间共享这些对象。
+
+\pnum
+除非另有说明，否则如果操作具有对用户可见的\iref{intro.multithread}效果，\Cpp{} 标准库函数应仅在当前线程内执行所有操作。
+
+\pnum
+\begin{note}
+这允许在没有可见的\indextext{副作用}%副作用的情况下并行化操作。
+\end{note}
+
+\rSec3[library.class.props]{库类的属性}
+
+\pnum
+除非另有明确说明，否则在 \ref{\firstlibchapter} 到 \ref{\lastlibchapter} 以及 \ref{depr} 中描述的任何类是否是可平凡复制类、标准布局类或隐式生命期类\iref{class.prop} 都是未指明的。
+
+\pnum
+除非另有明确说明，否则如果对某个类进行平凡迁移（即 \tcode{trivially_relocate}\iref{obj.lifetime} 的效果）在语义上等效于先移动构造目标对象再销毁源对象，那么该类是否是可平凡迁移类\iref{class.prop} 是未指明的。
+
+\pnum
+除非另有明确说明，否则如果对于类型为 \tcode{C} 的 xvalue \tcode{a}，将其赋值给类型为 \tcode{C} 的对象 \tcode{b} 在语义上等效于销毁 \tcode{b} 然后在 \tcode{b} 的位置从 \tcode{a} 构造，则类 \tcode{C} 是否为可替换类\iref{class.prop} 是未指明的。
+
+\rSec3[protection.within.classes]{类内的保护}
+
+\pnum
+\indextext{protection}%
+\indextext{specifier!\idxcode{friend}}%
+在 \ref{\firstlibchapter} 到 \ref{\lastlibchapter} 以及 \ref{depr} 中描述的任何函数签名或类是否是 \Cpp{} 标准库中另一个类的友元是未指明的。
+
+\rSec3[derivation]{派生类}
+
+\pnum
+\indextext{class!derived}%
+\indextext{class!base}%
+实现可以从保留给实现使用的名称的类派生 \Cpp{} 标准库中的任何类。
+
+\pnum
+\Cpp{} 标准库中定义的某些类被要求从 \Cpp{} 标准库中的其他类派生。
+\indextext{library!\Cpp{} standard}%
+实现可以直接从所需的基类，或通过基类层次结构（这些基类的名称保留给实现使用）间接派生出此类。
+
+\pnum
+在任何情况下：
+\begin{itemize}
+\item
+被描述为 \keyword{virtual} 的每个基类都应是虚拟的；
+\indextext{class!base}%
+\item
+未被指定为 \keyword{virtual} 的每个基类不应是虚拟的；
+\item
+除非另有明确说明，具有不同名称的类型应是不同的类型。
+\begin{note}
+对于被描述为同义词的类型（例如 \tcode{size_t}\iref{support.types} 和 \tcode{streamoff}\iref{stream.types}），存在一个此规则的隐式例外\iref{dcl.typedef,namespace.udecl}。
+\end{note}
+\end{itemize}
+
+\pnum
+除非另有规定，否则 \Cpp{} 标准库中指定的所有类型均应为非 \tcode{final} 类型。
+
+\rSec3[res.on.exception.handling]{异常处理的限制}%
+\indextext{restriction}%
+\indextext{exception handling!handler}
+
+\pnum
+任何在 \Cpp{} 标准库中定义的函数
+\indextext{library!\Cpp{} standard}%
+都可以通过抛出一个在其 \throws 段落中描述类型的异常来报告失败，
+或者抛出一个派生自该段落中命名的类型的异常，
+该异常将会被一个针对基类型的\grammarterm{handler}\iref{except.handle} 所捕获。
+
+\pnum
+来自 C 标准库的函数不应抛出异常%
+\indextext{specifications!C standard library exception}%
+\begin{footnote}
+也就是说，所有的 C 标准库函数都可以被视为标记为 \keyword{noexcept}。
+这允许实现基于运行时不出现异常来进行性能优化。
+\end{footnote}
+除非这样的函数调用了程序提供的会抛出异常的函数。
+\begin{footnote}
+函数
+\tcode{qsort()}
+和
+\tcode{bsearch()}\iref{alg.c.library} 满足此条件。
+\end{footnote}
+
+\pnum
+在 \Cpp{} 标准库中定义的析构操作不应抛出异常。
+\Cpp{} 标准库中的每个析构函数均应表现得如同它拥有一个
+不抛出的异常规范\iref{except.spec}。
+
+\pnum
+在
+\Cpp{} 标准库中定义的
+\indextext{specifications!\Cpp{}}%
+没有 \throws 段落
+但确实拥有一个潜在抛出的异常规范的函数，
+可以抛出\impldef{拥有潜在抛出的异常规范的标准库函数所抛出的异常}异常。
+\begin{footnote}
+特别是，它们
+可以通过抛出类型为
+\tcode{bad_alloc}
+的异常或其派生类的异常
+来报告分配存储失败\iref{bad.alloc}。
+\end{footnote}
+实现应当通过抛出标准
+异常类\iref{bad.alloc,support.exception,std.exceptions}或其派生类的异常来报告错误。
+
+\pnum
+实现可以通过添加一个不抛出的异常规范来强化
+非虚函数的
+异常规范。
+
+\rSec3[res.contract.assertions]{契约断言}
+
+\pnum
+除非另有规定， 实现可以使用契约断言检查\Cpp{}标准库中函数的指定先决条件与后决条件（\ref{basic.contract,structure.specifications}）。
+
+\rSec3[value.error.codes]{错误码的值}
+
+\pnum
+\Cpp{}标准库中的某些函数通过 \tcode{error_code}（\ref{syserr.errcode.overview}）对象报告错误。该对象的 \tcode{category()} 成员对于源自操作系统的错误应返回 \tcode{system_category()}，对于源自别处的错误应返回引用实现定义的 \tcode{error_category} 对象。实现应为这些错误类别各自定义 \tcode{value()} 的可能值。
+
+\begin{example}
+对于基于 POSIX 的操作系统， 实现应将 \tcode{std::system_category()} 值定义为与 POSIX \tcode{errno} 值相同， 并增加操作系统文档定义的值。对于不基于 POSIX 的操作系统， 实现应定义与操作系统值相同的值。对于不源自操作系统的错误， 实现可以提供关联值的枚举。
+\end{example}
+
+\rSec3[lib.types.movedfrom]{库类型的移出后状态}
+
+\pnum
+定义于 \Cpp{} 标准库中的类型的对象可能被移出\iref{class.copy.ctor}。移动操作可以是显式指定的，也可以是隐式生成的。除非另有说明，否则这种被移出后的对象应被置于有效但未指定的状态\iref{defns.valid}。
+
+\pnum
+定义于 \Cpp{} 标准库中的类型的对象可以被移动赋值\iref{class.copy.assign}给其自身。
+除非另有说明，否则这种赋值将对象置于有效但未指定的状态。
+

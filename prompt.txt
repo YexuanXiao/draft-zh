@@ -1,0 +1,30 @@
+按tex的语法规则
+输出tex格式
+适当添加和删除空格
+禁止使用markdown
+不翻译标识符
+不翻译关键词
+不翻译C++代码的注释
+不翻译章节索引
+除了以上特例以及专有名词，剩下的所有英文都需要翻译
+翻译\begin{bnf}到\end{bnf}中间的内容
+namespace翻译为名字空间
+keyword翻译为关键词
+integer翻译为整数
+integer翻译为type 整数类型
+floating-point翻译为浮点数
+floating-point type翻译为浮点数类型
+contract翻译为契约
+model翻译为属于
+happens-before翻译为先发生于
+boolean-testable翻译为可布尔测试
+ill-formed翻译为非良构
+well-formed翻译为良构
+主语不变
+句子格式不变
+禁止拆分句子
+翻译风格和zh.cppreference.com一致
+禁止修改tex命令名（tex命令格式为反斜线+命令名，如果没有参数则在命令名后有空格）
+禁止增加tex命令
+禁止修改\textbackslash命令
+翻译前后反斜线数量不变和命令名不变

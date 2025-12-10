@@ -1,0 +1,2102 @@
+%!TEX root = std.tex
+\rSec0[cpp]{预处理指令}%
+\indextext{预处理指令|(}
+
+\indextext{编译器控制行|see{preprocessing directive}}%
+\indextext{控制行|see{preprocessing directive}}%
+\indextext{指令, 预处理|see{preprocessing directive}}
+
+\gramSec[gram.cpp]{预处理指令}
+
+\rSec1[cpp.pre]{前言}
+
+\begin{bnf}
+\nontermdef{preprocessing-file}\br
+    \opt{group}\br
+    module-file
+\end{bnf}
+
+\begin{bnf}
+\nontermdef{module-file}\br
+    \opt{pp-global-module-fragment} pp-module \opt{group} \opt{pp-private-module-fragment}
+\end{bnf}
+
+\begin{bnf}
+\nontermdef{pp-global-module-fragment}\br
+    \keyword{module} \terminal{;} new-line \opt{group}
+\end{bnf}
+
+\begin{bnf}
+\nontermdef{pp-private-module-fragment}\br
+    \keyword{module} \terminal{:} \keyword{private} \terminal{;} new-line \opt{group}
+\end{bnf}
+
+\begin{bnf}
+\nontermdef{group}\br
+    group-part\br
+    group group-part
+\end{bnf}
+
+\begin{bnf}
+\nontermdef{group-part}\br
+    control-line\br
+    if-section\br
+    text-line\br
+    \terminal{\#} conditionally-supported-directive
+\end{bnf}
+
+\begin{bnf}
+\nontermdef{control-line}\br
+    \terminal{\# include} pp-tokens new-line\br
+    pp-import\br
+    \terminal{\# embed \ } pp-tokens new-line\br
+    \terminal{\# define } identifier replacement-list new-line\br
+    \terminal{\# define } identifier lparen \opt{identifier-list} \terminal{)} replacement-list new-line\br
+    \terminal{\# define } identifier lparen \terminal{... )} replacement-list new-line\br
+    \terminal{\# define } identifier lparen identifier-list \terminal{, ... )} replacement-list new-line\br
+    \terminal{\# undef \ } identifier new-line\br
+    \terminal{\# line \ \ } pp-tokens new-line\br
+    \terminal{\# error \ } \opt{pp-tokens} new-line\br
+    \terminal{\# warning} \opt{pp-tokens} new-line\br
+    \terminal{\# pragma } \opt{pp-tokens} new-line\br
+    \terminal{\# }new-line
+\end{bnf}
+
+\begin{bnf}
+\nontermdef{if-section}\br
+    if-group \opt{elif-groups} \opt{else-group} endif-line
+\end{bnf}
+
+\begin{bnf}
+\nontermdef{if-group}\br
+    \terminal{\# if \ \ \ \ } constant-expression new-line \opt{group}\br
+    \terminal{\# ifdef \ } identifier new-line \opt{group}\br
+    \terminal{\# ifndef } identifier new-line \opt{group}
+\end{bnf}
+
+\begin{bnf}
+\nontermdef{elif-groups}\br
+    elif-group \opt{elif-groups}
+\end{bnf}
+
+\begin{bnf}
+\nontermdef{elif-group}\br
+    \terminal{\# elif \ \ \ } constant-expression new-line \opt{group}\br
+    \terminal{\# elifdef } identifier new-line \opt{group}\br
+    \terminal{\# elifndef} identifier new-line \opt{group}
+\end{bnf}
+
+\begin{bnf}
+\nontermdef{else-group}\br
+    \terminal{\# else \ \ } new-line \opt{group}
+\end{bnf}
+
+\begin{bnf}
+\nontermdef{endif-line}\br
+    \terminal{\# endif \ } new-line
+\end{bnf}
+
+\begin{bnf}
+\nontermdef{text-line}\br
+    \opt{pp-tokens} new-line
+\end{bnf}
+
+\begin{bnf}
+\nontermdef{conditionally-supported-directive}\br
+    pp-tokens new-line
+\end{bnf}
+
+\begin{bnf}
+\nontermdef{lparen}\br
+    \descr{a \terminal{(} character not immediately preceded by whitespace}
+\end{bnf}
+
+\begin{bnf}
+\nontermdef{identifier-list}\br
+    identifier\br
+    identifier-list \terminal{,} identifier
+\end{bnf}
+
+\begin{bnf}
+\nontermdef{replacement-list}\br
+    \opt{pp-tokens}
+\end{bnf}
+
+\begin{bnf}
+\nontermdef{pp-tokens}\br
+    preprocessing-token \opt{pp-tokens}
+\end{bnf}
+
+\begin{bnf}
+\nontermdef{embed-parameter-seq}\br
+    embed-parameter \opt{embed-parameter-seq}
+\end{bnf}
+
+\begin{bnf}
+\nontermdef{embed-parameter}\br
+    embed-standard-parameter\br
+    embed-prefixed-parameter
+\end{bnf}
+
+\begin{bnf}
+\nontermdef{embed-standard-parameter}\br
+    \terminal{limit} \terminal{(} pp-balanced-token-seq \terminal{)}\br
+    \terminal{prefix} \terminal{(} \opt{pp-balanced-token-seq} \terminal{)}\br
+    \terminal{suffix} \terminal{(} \opt{pp-balanced-token-seq} \terminal{)}\br
+    \terminal{if_empty} \terminal{(} \opt{pp-balanced-token-seq} \terminal{)}
+\end{bnf}
+
+\begin{bnf}
+\nontermdef{embed-prefixed-parameter}\br
+    identifier :: identifier\br
+    identifier :: identifier \terminal{(} \opt{pp-balanced-token-seq} \terminal{)}
+\end{bnf}
+
+\begin{bnf}
+\nontermdef{pp-balanced-token-seq}\br
+    pp-balanced-token \opt{pp-balanced-token-seq}
+\end{bnf}
+
+\begin{bnf}
+\nontermdef{pp-balanced-token}\br
+    \terminal{(} \opt{pp-balanced-token-seq} \terminal{)}\br
+    \terminal{[} \opt{pp-balanced-token-seq} \terminal{]}\br
+    \terminal{\{} \opt{pp-balanced-token-seq} \terminal{\}}\br
+    \textnormal{any} pp-token \textnormal{except:}\br
+    \bnfindent\textnormal{parenthesis (\unicode{0028}{left parenthesis} and \unicode{0029}{right parenthesis}),}\br
+    \bnfindent\textnormal{bracket (\unicode{005b}{left square bracket} and \unicode{005d}{right square bracket}), or}\br
+    \bnfindent\textnormal{brace (\unicode{007b}{left curly bracket} and \unicode{007d}{right curly bracket}).}
+\end{bnf}
+
+\begin{bnf}
+\nontermdef{new-line}\br
+    \descr{the new-line character}
+\end{bnf}
+
+\pnum
+实现能够有条件地处理并跳过源文件的某些部分、包含其他源文件、从头单元导入宏以及替换宏。这些能力称为\defn{预处理}，因为在概念上，它们发生在结果翻译单元的翻译之前。
+
+\pnum
+一条\defn{预处理指令}由满足以下约束的一个预处理记号序列组成：在翻译阶段 4 开始时，该序列中的第一个预处理记号（称为\defnadj{指令引入}{记号}）始于源文件中的第一个字符（可选地，在不含换行字符的空白符之后），或者紧跟在含有至少一个换行字符的空白符之后，并且是
+
+\begin{itemize}
+\item
+一个 \tcode{\#} 预处理记号，或
+
+\item
+一个 \keyword{import} 预处理记号，且在同一逻辑源代码行上紧随其后的是一个 \grammarterm{头名}、\tcode{<}、\grammarterm{标识符}、\grammarterm{字符串字面量} 或 \tcode{:} 预处理记号，或
+
+\item
+一个 \keyword{module} 预处理记号，且在同一逻辑源代码行上紧随其后的是一个 \grammarterm{标识符}、\tcode{:} 或 \tcode{;} 预处理记号，或
+
+\item
+一个 \keyword{export} 预处理记号，且在同一逻辑源代码行上紧随其后的是前述两种形式之一。
+\end{itemize}
+
+该序列中的最后一个预处理记号是该序列中第一个后面紧跟着含有换行字符的空白符的预处理记号。
+\begin{footnote}
+因此，预处理指令通常被称为“行”。这些“行”没有其他语法意义，因为所有空白符都是等价的，除了在预处理期间的某些情况下（例如，参见 \ref{cpp.stringize} 中的 \tcode{\#} 字符串化操作符）。
+\end{footnote}
+\begin{note}
+换行字符结束预处理指令，即使它出现在原本应是类函数宏调用的地方。
+\end{note}
+
+\begin{example}
+\begin{codeblock}
+#                       // 预处理指令
+module ;                // 预处理指令
+export module leftpad;  // 预处理指令
+import <string>;        // 预处理指令
+export import "squee";  // 预处理指令
+import rightpad;        // 预处理指令
+import :part;           // 预处理指令
+
+module                  // 不是预处理指令
+;                       // 不是预处理指令
+
+export                  // 不是预处理指令
+import                  // 不是预处理指令
+foo;                    // 不是预处理指令
+
+export                  // 不是预处理指令
+import foo;             // 预处理指令（在阶段 7 非良构）
+
+import ::               // 不是预处理指令
+import ->               // 不是预处理指令
+\end{codeblock}
+\end{example}
+
+\pnum
+一个预处理记号序列只有在它不以指令引入记号开始时，才是一个\grammarterm{text-line}。
+\begin{example}
+\begin{codeblock}
+using module = int;
+module i;               // 不是 \grammarterm{text-line} 且不是 \grammarterm{control-line}
+int foo() {
+  return i;
+}
+\end{codeblock}
+此例不是一个有效的 \grammarterm{preprocessing-file}。
+\end{example}
+一个预处理记号序列只有在它不是以语法中出现在 \tcode{\#} 之后的任何指令名称开头时，才是一个\grammarterm{conditionally-supported-directive}。一条\grammarterm{conditionally-supported-directive}是条件支持的，具有\impldef{额外支持的预处理指令形式}语义。
+
+\pnum
+如果一条 \tcode{\#embed} 指令的某个 \grammarterm{pp-tokens}（在宏替换之前）是标识符 \tcode{limit}、\tcode{prefix}、\tcode{suffix} 或 \tcode{if_empty}，且该\grammarterm{identifier}被定义为一个宏\iref{cpp.replace.general}，则程序非良构。任何\grammarterm{embed-prefixed-parameter}都是条件支持的，具有\impldef{支持的 \#embed 前缀参数形式}语义。
+
+\pnum
+在翻译阶段 4 开始时，一个\grammarterm{pp-global-module-fragment}的\grammarterm{group}不得包含\grammarterm{text-line}或\grammarterm{pp-import}。
+
+\pnum
+当处于被跳过的组中时\iref{cpp.cond}，指令语法被放宽，允许任何预处理记号序列出现在指令名称和随后的换行字符之间。
+
+\pnum
+在一条预处理指令内，预处理记号之间仅允许出现的空白符是 \unicode{0020}{空格} 和 \unicode{0009}{水平制表符}（包括在翻译阶段 3 中已替换注释或可能其他空白字符的空格）。
+
+\pnum
+除非另有说明，预处理指令内的预处理记号不进行宏展开。
+
+\begin{example}
+在：
+\begin{codeblock}
+#define EMPTY
+EMPTY   #   include <file.h>
+\end{codeblock}
+中，第二行的预处理记号序列\emph{不是}一条预处理指令，因为在翻译阶段 4 开始时，它不是以 \tcode{\#} 开头，即使宏 \tcode{EMPTY} 被替换后会如此。
+\end{example}
+
+\rSec1[cpp.cond]{条件性包含}%
+\indextext{预处理指令！条件性包含}%
+\indextext{包含！条件性|see{预处理指令，条件性包含}}
+
+\indextext{\idxcode{defined}}%
+\begin{bnf}
+\nontermdef{defined-macro-expression}\br
+    \terminal{defined} 标识符\br
+    \terminal{defined (} 标识符 \terminal{)}
+\end{bnf}
+
+\begin{bnf}
+\nontermdef{h-preprocessing-token}\br
+    \textnormal{除 \terminal{>} 外的任意 \grammarterm{preprocessing-token}}
+\end{bnf}
+
+\begin{bnf}
+\nontermdef{h-pp-tokens}\br
+    h-preprocessing-token \opt{h-pp-tokens}
+\end{bnf}
+
+\begin{bnf}
+\nontermdef{header-name-tokens}\br
+    string-literal\br
+    \terminal{<} h-pp-tokens \terminal{>}
+\end{bnf}
+
+\indextext{\idxxname{has_include}}%
+\begin{bnf}
+\nontermdef{has-include-expression}\br
+    \terminal{\xname{has_include}} \terminal{(} 头名 \terminal{)}\br
+    \terminal{\xname{has_include}} \terminal{(} header-name-tokens \terminal{)}
+\end{bnf}
+
+\indextext{\idxxname{has_embed}}%
+\begin{bnf}
+\nontermdef{has-embed-expression}\br
+    \terminal{\xname{has_embed}} \terminal{(} 头名 \opt{pp-balanced-token-seq} \terminal{)}\br
+    \terminal{\xname{has_embed}} \terminal{(} header-name-tokens \opt{pp-balanced-token-seq} \terminal{)}
+\end{bnf}
+
+\indextext{\idxxname{has_cpp_attribute}}%
+\begin{bnf}
+\nontermdef{has-attribute-expression}\br
+    \terminal{\xname{has_cpp_attribute} (} pp-tokens \terminal{)}
+\end{bnf}
+
+\pnum
+控制条件性包含的表达式应为整数常量表达式，但标识符（包括那些在词法上与关键词相同的）按如下所述解释
+\begin{footnote}
+由于控制常量表达式在翻译阶段 4 求值，所有标识符要么是宏名要么不是宏名——这里根本就没有关键词、枚举常量等。
+\end{footnote}，
+并且它可以包含零个或多个
+\grammarterm{defined-macro-expression}、
+\grammarterm{has-include-expression}、
+\grammarterm{has-attribute-expression}
+和/或 \grammarterm{has-embed-expression}
+作为一元运算符表达式。
+\grammarterm{defined-macro-expression} 不应出现在
+\grammarterm{has-include-expression} 或 \grammarterm{has-embed-expression} 内部。
+
+\pnum
+如果标识符当前被定义为一个宏名
+（即，如果它是预定义的
+或者如果它有一个或多个活跃的宏定义\iref{cpp.import}，
+例如因为它曾经是
+\tcode{\#define}
+预处理指令的目标且中间没有相同目标标识符的
+\tcode{\#undef}
+指令），
+则 \grammarterm{defined-macro-expression} 求值为 \tcode{1}；
+如果不是，则求值为 \tcode{0}。
+
+\pnum
+在每个包含的 \grammarterm{has-include-expression} 中，
+由括号内的预处理记符序列标识的头文件或源文件的搜索方式，
+如同该预处理记符序列是 \tcode{\#include} 指令的 \grammarterm{pp-tokens}，
+但不进行进一步的宏展开。
+如果预处理记符序列不仅仅由一个 \grammarterm{header-name} 组成
+或无法组合\iref{cpp.include}成一个单一的
+\grammarterm{header-name} 预处理记符，则程序非良构。
+\grammarterm{has-include-expression} 求值为
+\tcode{1} 如果源文件搜索成功，否则为 \tcode{0}。
+
+\pnum
+每个包含的 \grammarterm{has-embed-expression} 的括号内预处理记符序列的处理方式，
+如同该预处理记符序列是 \tcode{\#embed} 指令\iref{cpp.embed}的 \grammarterm{pp-tokens}，
+但不进行进一步的宏展开。
+\grammarterm{has-embed-expression} 求值为：
+\begin{itemize}
+\item
+\mname{STDC_EMBED_FOUND} 如果资源搜索成功，
+\grammarterm{embed-parameter-seq} 中的所有给定 \grammarterm{embed-parameter} 都被支持，
+且资源非空。
+\item
+否则，\mname{STDC_EMBED_EMPTY} 如果资源搜索成功，
+所有给定 \grammarterm{embed-parameter} 都被支持，
+且资源为空。
+\item
+否则，\mname{STDC_EMBED_NOT_FOUND}。
+\end{itemize}
+\begin{note}
+\grammarterm{has-embed-expression} 中未被识别的 \grammarterm{embed-parameter}
+不是非良构的，而是被视为不被支持。
+\end{note}
+
+\pnum
+每个 \grammarterm{has-attribute-expression} 被替换为一个非零 \grammarterm{pp-number}，
+其形式与 \grammarterm{integer-literal} 匹配，
+如果实现在宏展开后将 \grammarterm{pp-tokens} 作为 \grammarterm{attribute-token} 解释所指定的名称的属性被支持；
+否则替换为 \tcode{0}。
+如果 \grammarterm{pp-tokens} 不匹配 \grammarterm{attribute-token} 的形式，则程序非良构。
+
+\pnum
+对于本文档中指定的属性，
+\grammarterm{has-attribute-expression} 的值是 \tcode{0}
+还是由 \tref{cpp.cond.ha} 给出是实现定义的。
+对于实现识别的其他属性，其值是
+实现定义的。
+\begin{note}
+预期可以通过任何非零结果检测到属性的可用性。
+\end{note}
+
+\begin{floattable}{\xname{has_cpp_attribute} 值}{cpp.cond.ha}
+{ll}
+\topline
+\lhdr{属性} & \rhdr{值} \\ \rowsep
+\tcode{assume}                & \tcode{202207L} \\
+\tcode{deprecated}            & \tcode{201309L} \\
+\tcode{fallthrough}           & \tcode{201603L} \\
+\tcode{indeterminate}         & \tcode{202403L} \\
+\tcode{likely}                & \tcode{201803L} \\
+\tcode{maybe_unused}          & \tcode{201603L} \\
+\tcode{no_unique_address}     & \tcode{201803L} \\
+\tcode{nodiscard}             & \tcode{201907L} \\
+\tcode{noreturn}              & \tcode{200809L} \\
+\tcode{unlikely}              & \tcode{201803L} \\
+\end{floattable}
+
+\pnum
+\tcode{\#ifdef}、\tcode{\#ifndef}、\tcode{\#elifdef} 和 \tcode{\#elifndef}
+指令，以及 \tcode{defined} 条件性包含运算符，
+应像对待已定义宏的名称一样对待 \xname{has_include}、\xname{has_embed} 和 \xname{has_cpp_attribute}。
+标识符 \xname{has_include}、\xname{has_embed} 和 \xname{has_cpp_attribute}
+不应出现在本子条款未提及的任何上下文中。
+
+\pnum
+所有宏替换发生后，
+每个剩余的预处理记符（在将成为控制表达式的预处理记符列表中）
+应具有记符的词法形式\iref{lex.token}。
+
+\pnum
+以下形式的预处理指令
+\begin{ncsimplebnf}
+\indextext{\idxcode{\#if}}%
+\terminal{\# if \ \ \ \ } constant-expression new-line \opt{group}\br
+\indextext{\idxcode{\#elif}}%
+\terminal{\# elif \ \ } constant-expression new-line \opt{group}
+\end{ncsimplebnf}
+检查控制常量表达式是否求值为非零。
+
+\pnum
+在求值之前，
+将成为控制常量表达式的预处理记符列表中的宏调用会被替换
+（除了那些被 \tcode{defined}
+一元运算符修改的宏名），
+就像在普通文本中一样。
+如果在序列
+\tcode{\xname{has_embed} (} 之后且匹配的 \tcode{)}
+之前（可能由宏展开产生）的预处理记符中替换宏时，
+遇到属于 \grammarterm{identifier} 的
+\tcode{limit}、\tcode{prefix}、\tcode{suffix} 或 \tcode{if_empty}
+且该 \grammarterm{identifier} 被定义为宏\iref{cpp.replace.general}，
+则程序非良构。
+如果预处理记符
+\tcode{defined}
+作为此替换过程的结果被生成，
+或者在宏替换之前使用
+\tcode{defined}
+一元运算符不匹配两种指定形式之一，
+则程序非良构，不要求诊断。
+
+\pnum
+所有由宏展开以及
+\grammarterm{defined-macro-expression}、
+\grammarterm{has-include-expression}、
+\grammarterm{has-embed-expression} 和
+\grammarterm{has-attribute-expression}
+的求值所引起的替换都执行完毕后，
+所有剩余的标识符和关键词，除了
+\tcode{true}
+和
+\tcode{false}，
+都被替换为 \grammarterm{pp-number}
+\tcode{0}，
+然后每个预处理记符被转换为记符。
+\begin{note}
+代用记符\iref{lex.digraph}不是标识符，
+即使它的拼写完全由字母和下划线组成。
+因此它不受此替换影响。
+\end{note}
+
+\pnum
+得到的记符组成控制常量表达式，
+该表达式根据 \ref{expr.const} 的规则使用至少具有 \ref{support.limits} 指定范围的算术进行求值。
+在此记符转换和求值过程中，
+所有有符号和无符号整数类型的行为就像它们分别具有与
+\tcode{intmax_t} 或 \tcode{uintmax_t}\iref{cstdint.syn} 相同的表示。
+\begin{note}
+因此，在 \tcode{std::numeric_limits<int>::max()} 为 \tcode{0x7FFF}
+且 \tcode{std::numeric_limits<unsigned int>::max()} 为 \tcode{0xFFFF} 的实现上，
+即使整数字面量 \tcode{0x8000} 在翻译阶段 7\iref{lex.phases} 中是无符号的，
+在 \tcode{\#if} 表达式中它也是有符号且正的。
+\end{note}
+这包括根据 \ref{lex.ccon} 的规则解释 \grammarterm{character-literal}。
+\begin{note}
+字面量的关联字符编码在 \tcode{\#if} 和 \tcode{\#elif} 指令以及任何表达式中是相同的。
+\end{note}
+每个类型为 \tcode{bool} 的子表达式在继续处理之前进行整数提升。
+
+\pnum
+以下形式的预处理指令
+\begin{ncsimplebnf}
+\terminal{\# ifdef \ \ } identifier new-line \opt{group}\br
+\indextext{\idxcode{\#ifdef}}%
+\terminal{\# ifndef \ } identifier new-line \opt{group}\br
+\indextext{\idxcode{\#ifndef}}%
+\terminal{\# elifdef } identifier new-line \opt{group}\br
+\indextext{\idxcode{\#elifdef}}%
+\terminal{\# elifndef} identifier new-line \opt{group}
+\indextext{\idxcode{\#elifndef}}%
+\end{ncsimplebnf}
+检查标识符当前是否被定义为一个宏名。
+它们的条件分别等价于
+\tcode{\#if} \tcode{defined} \grammarterm{identifier}、
+\tcode{\#if} \tcode{!defined} \grammarterm{identifier}、
+\tcode{\#elif} \tcode{defined} \grammarterm{identifier} 和
+\tcode{\#elif} \tcode{!defined} \grammarterm{identifier}。
+
+\pnum
+按顺序检查每个指令的条件。
+如果它求值为假（零），
+则跳过它控制的程序段：
+指令只被处理到确定指令的指令名，以便跟踪嵌套条件指令的层级；
+指令其余的预处理记符被忽略，
+程序段中的其他预处理记符也被忽略。
+只有第一个其控制条件求值为真（非零）的程序段被处理；
+其后的任何程序段被跳过，
+并且它们的控制指令就像在被跳过的程序段中一样被处理。
+如果没有条件求值为真，
+并且存在
+\tcode{\#else}
+指令，
+则由
+\tcode{\#else}
+控制的程序段被处理；
+如果没有
+\tcode{\#else}
+指令，
+则跳过所有直到
+\tcode{\#endif}
+的程序段。%
+\begin{footnote}
+如语法所示，
+在终止换行字符之前，
+预处理记符不能出现在
+\tcode{\#else}
+或
+\tcode{\#endif}
+指令之后。
+然而，
+注释可以出现在源文件中的任何位置，
+包括预处理指令内部。
+\end{footnote}
+
+\pnum
+\begin{example}
+This demonstrates a way to include a library \tcode{optional} facility
+only if it is available:
+
+\begin{codeblock}
+#if __has_include(<optional>)
+#  include <optional>
+#  if __cpp_lib_optional >= 201603
+#    define have_optional 1
+#  endif
+#elif __has_include(<experimental/optional>)
+#  include <experimental/optional>
+#  if __cpp_lib_experimental_optional >= 201411
+#    define have_optional 1
+#    define experimental_optional 1
+#  endif
+#endif
+#ifndef have_optional
+#  define have_optional 0
+#endif
+\end{codeblock}
+\end{example}
+
+\pnum
+\begin{example}
+This demonstrates a way to use the attribute \tcode{[[acme::deprecated]]}
+only if it is available.
+\begin{codeblock}
+#if __has_cpp_attribute(acme::deprecated)
+#  define ATTR_DEPRECATED(msg) [[acme::deprecated(msg)]]
+#else
+#  define ATTR_DEPRECATED(msg) [[deprecated(msg)]]
+#endif
+ATTR_DEPRECATED("This function is deprecated") void anvil();
+\end{codeblock}
+\end{example}
+
+\rSec1[cpp.include]{源文件包含}
+\indextext{预处理指令！头文件包含}
+\indextext{预处理指令！源文件包含}
+\indextext{包含！源文件|see{预处理指令，源文件包含}}%
+\indextext{\idxcode{\#include}}%
+
+\pnum
+针对字符序列的\defnadj{头文件}{搜索}在若干位置中搜索由该字符序列唯一标识的头文件。位置的确定方式或头文件的标识方式是\impldef{头文件搜索过程中位置确定与头文件标识}的。
+
+\pnum
+针对字符序列的\defnadj{源文件}{搜索}尝试标识一个由该字符序列命名的源文件。此命名的源文件以\impldef{源文件搜索过程中搜索源文件的方式}的方式进行搜索。若实现不支持针对该字符序列的源文件搜索，或若搜索失败，源文件搜索的结果是对相同字符序列执行头文件搜索的结果。
+
+\pnum
+形如以下的预处理指令：
+\begin{ncsimplebnf}
+\terminal{\# include} header-name new-line
+\end{ncsimplebnf}
+会导致该指令被\grammarterm{header-name}所标识的头文件或源文件的全部内容替换。
+
+\pnum
+若\grammarterm{header-name}形如：
+\begin{ncsimplebnf}
+\terminal{<} h-char-sequence \terminal{>}
+\end{ncsimplebnf}
+则通过针对\grammarterm{h-char-sequence}的字符序列执行头文件搜索来标识头文件。
+
+\pnum
+若\grammarterm{header-name}形如：
+\begin{ncsimplebnf}
+\terminal{"} q-char-sequence \terminal{"}
+\end{ncsimplebnf}
+则通过针对\grammarterm{q-char-sequence}的字符序列执行源文件搜索来标识源文件或头文件。
+
+\pnum
+若头文件搜索失败，或若源文件搜索或头文件搜索标识了一个实现无法处理的头文件或源文件，则程序非良构。
+\begin{note}
+若头文件或源文件无法被处理，则即使在评估\xname{has_include}时程序也是非良构的。
+\end{note}
+
+\pnum
+形如以下的预处理指令：
+\begin{ncsimplebnf}
+\terminal{\# include} pp-tokens new-line
+\end{ncsimplebnf}
+（与前一种形式不匹配）是允许的。指令中\tcode{include}之后的预处理记号会像在普通文本中一样被处理（即，每个当前被定义为宏名的标识符会被其预处理记号的替换列表替换）。然后，尝试由空白字符以及所得的预处理记号序列的字符拼写组成一个\grammarterm{header-name}预处理记号\iref{lex.header}；空白字符的处理是\impldef{处理\tcode{\#include}指令时对空白字符的处理}。若尝试成功，则按前一种形式指定的方式处理带有如此形成的\grammarterm{header-name}的指令。否则，程序非良构，不要求诊断。
+\begin{note}
+相邻的\grammarterm{string-literal}不会被连接为单个\grammarterm{string-literal}
+（见~\ref{lex.phases}中的翻译阶段）；
+因此，产生两个\grammarterm{string-literal}的展开是无效的指令。
+\end{note}
+
+\pnum
+实现应为由一个或多个\grammarterm{nondigit}或\grammarterm{digit}\iref{lex.name}后跟一个句点（\tcode{.}）和一个\grammarterm{nondigit}组成的序列提供唯一的映射。首字符不得是\grammarterm{digit}。实现可以忽略字母大小写的区别。
+
+\pnum
+\tcode{\#include}预处理指令可以出现在因另一个文件中的\tcode{\#include}指令而被读取的源文件中，直到某个\impldef{\tcode{\#include}指令的嵌套限制}的嵌套限制为止。
+
+\pnum
+若由\grammarterm{header-name}标识的头文件表示一个可导入头文件\iref{module.import}，则是否将\tcode{\#include}预处理指令替换为形如下式的\tcode{import}指令\iref{cpp.import}是\impldef{用\tcode{import}指令替换可导入头文件的源文件包含}的：
+\begin{ncbnf}
+\keyword{import} header-name \terminal{;} new-line
+\end{ncbnf}
+
+\pnum
+\begin{note}
+实现可以提供一种机制，使得任意源文件对\tcode{< >}搜索可用。然而，对实现提供的头文件使用\tcode{< >}形式，对不受实现控制的源文件使用\tcode{" "}形式，能获得更好的可移植性。例如：
+
+\begin{codeblock}
+#include <stdio.h>
+#include <unistd.h>
+#include "usefullib.h"
+#include "myprog.h"
+\end{codeblock}
+
+\end{note}
+
+\pnum
+\begin{example}
+以下示例说明了被宏替换的\tcode{\#include}指令：
+
+\begin{codeblock}
+#if VERSION == 1
+    #define INCFILE  "vers1.h"
+#elif VERSION == 2
+    #define INCFILE  "vers2.h"  // and so on
+#else
+    #define INCFILE  "versN.h"
+#endif
+#include INCFILE
+\end{codeblock}
+\end{example}
+
+\rSec1[cpp.embed]{资源包含}
+\indextext{预处理指令!嵌入资源}
+\indextext{\idxcode{\#embed}}%
+
+\rSec2[cpp.embed.gen]{概述}
+
+\pnum
+对字符序列的\defnadj{括号式资源}{搜索}会在一组位置中搜索由该字符序列唯一标识的资源。
+如何确定这些位置或如何标识该资源由实现定义\impldef{determination of places and identification of resources during bracket resource search}。
+
+\pnum
+对字符序列的\defnadj{引号式资源}{搜索}尝试标识由该字符序列命名的资源。
+该命名资源以实现定义\impldef{search for resources during quote resource search}的方式搜索。
+如果实现不支持对该字符序列进行引号式资源搜索，或者搜索失败，
+则引号式资源搜索的结果等同于对同一字符序列进行括号式资源搜索的结果。
+
+\pnum
+形如
+\begin{ncsimplebnf}
+\terminal{\# embed} header-name \opt{pp-tokens} new-line
+\end{ncsimplebnf}
+的预处理指令将导致该指令被替换为
+由 \grammarterm{header-name} 所标识资源中的数据导出的预处理记号，
+具体如下。
+
+\pnum
+如果 \grammarterm{header-name} 的形式为
+\begin{ncsimplebnf}
+\terminal{<} h-char-sequence \terminal{>}
+\end{ncsimplebnf}
+则资源通过对 \grammarterm{h-char-sequence} 的字符序列进行括号式资源搜索来标识。
+
+\pnum
+如果 \grammarterm{header-name} 的形式为
+\begin{ncsimplebnf}
+\terminal{"} q-char-sequence \terminal{"}
+\end{ncsimplebnf}
+则资源通过对 \grammarterm{q-char-sequence} 的字符序列进行引号式资源搜索来标识。
+
+\pnum
+若括号式资源搜索失败，
+或引号式或括号式资源搜索标识的资源实现无法处理，则程序为病式。
+\begin{note}
+若资源无法处理，则程序为病式，
+即使使用 \tcode{limit(0)}\iref{cpp.embed.param.limit} 处理 \tcode{\#embed}
+或求值 \xname{has_embed} 时亦如此。
+\end{note}
+
+\pnum
+\recommended 建议使用一种与 \tcode{\#include}\iref{cpp.include}
+所用搜索路径类似但不同的机制\impldef{sequence of places searched for a header}。
+
+\pnum
+两种形式的 \tcode{\#embed} 指令均会（如果存在）按正常文本方式处理
+\grammarterm{pp-tokens}。
+之后 \grammarterm{pp-tokens} 必须具有
+\grammarterm{embed-parameter-seq} 的形式。
+
+\pnum
+资源是翻译环境中可访问的数据源。
+资源具有一个\defn{实现资源宽度}，即
+实现定义\impldef{size in bits of a resource}的位大小。
+若实现资源宽度不是
+\libmacro{CHAR_BIT} 的整数倍，则程序为病式。
+设\defn{实现资源计数}为
+实现资源宽度除以 \libmacro{CHAR_BIT}。
+每个资源还有一个\defn{资源计数}，其值为
+
+\begin{itemize}
+\item
+  若提供了 \tcode{limit}
+  \grammarterm{embed-parameter}\iref{cpp.embed.param.limit}，则取该参数计算出的值；
+\item
+  否则取实现资源计数。
+\end{itemize}
+
+若资源计数为零，则资源为空。
+
+\pnum
+\begin{example}
+\begin{codeblock}
+// 若实现资源宽度为 6 位则程序为病式
+#embed "6_bits.bin"
+\end{codeblock}
+\end{example}
+
+\pnum
+除非被嵌入参数\iref{cpp.embed.param}修改，
+否则 \tcode{\#embed} 指令被替换为类型为 \tcode{int} 的整数字面量逗号分隔列表。
+
+\pnum
+该逗号分隔列表中的整数字面量对应于
+对作为二进制文件的资源连续调用 \tcode{std::fgetc}\iref{cstdio.syn} resource-count 次。
+若任何一次 \tcode{std::fgetc} 返回 \tcode{EOF}，则程序为病式。
+
+\pnum
+\recommended 每个整数字面量的值应尽可能准确地表示未经修改的资源比特流。
+这可能要求实现考虑翻译环境与执行环境之间的潜在差异
+以及其他可能引起不匹配的因素。
+
+\begin{example}
+\begin{codeblock}
+#include <cstring>
+#include <cstddef>
+#include <fstream>
+#include <vector>
+#include <cassert>
+
+int main() {
+  // 若文件与翻译环境中的资源相同，则程序中的断言均不应失败。
+  constexpr unsigned char d[] = {
+#embed <data.dat>
+  };
+  const std::vector<unsigned char> vec_d = {
+#embed <data.dat>
+  };
+
+  constexpr std::size_t expected_size = sizeof(d);
+
+  // 执行环境中使用的文件与翻译环境中嵌入的相同
+  std::ifstream f_source("data.dat", std::ios::binary | std::ios::in);
+  unsigned char runtime_d[expected_size];
+  char* ifstream_ptr = reinterpret_cast<char*>(runtime_d);
+  assert(!f_source.read(ifstream_ptr, expected_size));
+  std::size_t ifstream_size = f_source.gcount();
+  assert (ifstream_size == expected_size);
+  int is_same = std::memcmp(&d[0], ifstream_ptr, ifstream_size);
+  assert(is_same == 0);
+  int is_same_vec = std::memcmp(vec_d.data(), ifstream_ptr, ifstream_size);
+  assert(is_same_vec == 0);
+}
+\end{codeblock}
+\end{example}
+
+\begin{example}
+\begin{codeblock}
+int i = {
+#embed "i.dat"
+};  // 若 i.dat 产生单个值则良式
+int i2 =
+#embed "i.dat"
+;   // 若 i.dat 产生单个值亦良式
+struct s {
+  double a, b, c;
+  struct { double e, f, g; } x;
+  double h, i, j;
+};
+s x = {
+// 若该指令产生九个或更少值则良式
+#embed "s.dat"
+};
+\end{codeblock}
+\end{example}
+
+\pnum
+形如
+\begin{ncsimplebnf}
+\terminal{\# embed} pp-tokens new-line
+\end{ncsimplebnf}
+（且与前述形式不匹配）的预处理指令是允许的。
+指令中 \tcode{embed} 之后的预处理记号按正常文本方式处理
+（即，当前定义为宏名的每个标识符被其预处理记号替换列表替换）。
+然后尝试从紧随 \tcode{embed} 之后的结果预处理记号序列的词法拼写及空格
+构造 \grammarterm{header-name} 预处理记号\iref{lex.header}；
+空格的处理方式由实现定义\impldef{treatment of whitespace when processing a \tcode{\#embed} directive}。
+若构造成功，则按前述形式处理带该 \grammarterm{header-name} 的指令。
+否则程序为病式。
+\begin{note}
+相邻的 \grammarterm{string-literal}{s} 不会被连接为单个
+\grammarterm{string-literal}（见~\ref{lex.phases} 中的翻译阶段）；
+因此，展开后得到两个 \grammarterm{string-literal}{s} 的指令无效。
+\end{note}
+不会再执行前述形式中描述的进一步正常文本处理。
+\begin{note}
+即，对整个指令而言，正常文本处理只发生一次。
+\end{note}
+\begin{example}
+若指令匹配第二种形式，则整个指令被替换。
+若指令匹配第一种形式，则 \grammarterm{header-name} 之后的所有内容被替换。
+\begin{codeblock}
+#define EMPTY
+#define X myfile
+#define Y rsc
+#define Z 42
+#embed <myfile.rsc> prefix(Z)
+#embed EMPTY <X.Y>  prefix(Z)
+\end{codeblock}
+等价于：
+\begin{codeblock}
+#embed <myfile.rsc> prefix(42)
+#embed <myfile.rsc> prefix(42)
+\end{codeblock}
+\end{example}
+
+\rSec2[cpp.embed.param]{嵌入参数}
+
+\rSec3[cpp.embed.param.limit]{limit 参数}
+
+\pnum
+形如 \tcode{limit (} \grammarterm{pp-balanced-token-seq} \tcode{)} 的 \grammarterm{embed-parameter}
+指定了逗号分隔列表中的最大可能元素数量。
+它在 \grammarterm{embed-parameter-seq} 中至多出现一次。
+预处理记号 \tcode{defined} 不应出现在 \grammarterm{pp-balanced-token-seq} 中。
+
+\pnum
+该 \grammarterm{pp-balanced-token-seq} 作为 \grammarterm{constant-expression} 被求值，
+使用条件包含\iref{cpp.cond}中描述的规则，但不额外像普通文本那样被处理一次。
+
+\begin{example}
+\begin{codeblock}
+#undef DATA_LIMIT
+#if __has_embed(<data.dat> limit(DATA_LIMIT))
+#endif
+\end{codeblock}
+
+等价于：
+
+\begin{codeblock}
+#if __has_embed(<data.dat> limit(0))
+#endif
+\end{codeblock}
+\end{example}
+
+\begin{example}
+\begin{codeblock}
+#embed <data.dat> limit(__has_include("a.h"))
+
+#if __has_embed(<data.dat> limit(__has_include("a.h")))
+// 非良构：\tcode{__has_include}\iref{cpp.cond} 不能出现在这里
+#endif
+\end{codeblock}
+\end{example}
+
+\pnum
+该 \grammarterm{constant-expression} 应是一个其值大于或等于零的整数常量表达式。
+资源数量\iref{cpp.embed.gen}变为实现资源数量，如果该
+\grammarterm{constant-expression} 的值大于实现资源数量；否则，取
+\grammarterm{constant-expression} 的值。
+\begin{example}
+\begin{codeblock}
+constexpr unsigned char sound_signature[] = {
+  // 一个假设能够展开为四个或更多元素的资源
+#embed <sdk/jump.wav> limit(2+2)
+};
+
+static_assert(sizeof(sound_signature) == 4);    // OK
+\end{codeblock}
+\end{example}
+
+\rSec3[cpp.embed.param.prefix]{前缀参数}
+\pnum
+形式如下的\grammarterm{embed-parameter}
+\begin{ncsimplebnf}
+\terminal{prefix (} \opt{pp-balanced-token-seq} \terminal{)}
+\end{ncsimplebnf}
+在\grammarterm{embed-parameter-seq}中最多出现一次。
+
+\pnum
+若资源为空，则忽略此\grammarterm{embed-parameter}。
+否则，将\grammarterm{pp-balanced-token-seq}直接置于以逗号分隔的整数字面量列表之前。
+
+\rSec3[cpp.embed.param.suffix]{后缀参数}
+\pnum
+形式为
+\begin{ncsimplebnf}
+\terminal{suffix (} \opt{pp-balanced-token-seq} \terminal{)}
+\end{ncsimplebnf}
+的 \grammarterm{embed-parameter} 在 \grammarterm{embed-parameter-seq} 中最多出现一次。
+
+\pnum
+若资源为空，则此 \grammarterm{embed-parameter} 被忽略。
+否则，该 \grammarterm{pp-balanced-token-seq} 被紧接置于以逗号分隔的整数常量表达式列表之后。
+
+\begin{example}
+\begin{codeblock}
+constexpr unsigned char whl[] = {
+#embed "ches.glsl" \
+  prefix(0xEF, 0xBB, 0xBF, ) /* 一个字节序列 */ \
+  suffix(,)
+  0
+};
+// 总是以空字符结尾，若非空则包含该序列
+constexpr bool is_empty = sizeof(whl) == 1 && whl[0] == '\0';
+constexpr bool is_not_empty = sizeof(whl) >= 4
+  && whl[sizeof(whl) - 1] == '\0'
+  && whl[0] == '\xEF' && whl[1] == '\xBB' && whl[2] == '\xBF';
+static_assert(is_empty || is_not_empty);
+\end{codeblock}
+\end{example}
+
+\rSec3[cpp.embed.param.if.empty]{\tcode{if_empty} 参数}
+\pnum
+形如
+\begin{ncsimplebnf}
+\terminal{if_empty (} \opt{pp-balanced-token-seq} \terminal{)}
+\end{ncsimplebnf}
+的 embed-parameter 在 \grammarterm{embed-parameter-seq} 中至多出现一次。
+
+\pnum
+若资源非空，则忽略此 \grammarterm{embed-parameter}。
+否则，\tcode{\#embed} 指令被替换为
+\grammarterm{pp-balanced-token-seq}。
+
+\begin{example}
+\tcode{limit(0)} 会影响资源何时被视为空。
+因此，以下程序：
+
+\begin{codeblock}
+#embed </owo/uwurandom> \
+  if_empty(42203) limit(0)
+\end{codeblock}
+展开为
+\begin{codeblock}
+42203
+\end{codeblock}
+\end{example}
+
+\begin{example}
+由于 \tcode{limit(0)} \grammarterm{embed-parameter}，此资源始终被视为空，包括在 \tcode{__has_embed} 子句中。
+
+\begin{codeblock}
+int infinity_zero () {
+#if __has_embed(</owo/uwurandom> limit(0) prefix(some tokens)) == __STDC_EMBED_EMPTY__
+  // 如果 \tcode{</owo/uwurandom>} 存在，则采用此条件包含分支，函数返回 \tcode{0}。
+  return 0;
+#else
+  // 否则，资源不存在
+#error "The resource does not exist"
+#endif
+}
+\end{codeblock}
+\end{example}
+
+\rSec1[cpp.module]{模块指令}
+\indextext{预处理指令!module}%
+
+\begin{bnf}
+\nontermdef{pp-module}\br
+    \opt{\keyword{export}} \keyword{module} \opt{pp-tokens} \terminal{;} new-line
+\end{bnf}
+
+\pnum
+\grammarterm{pp-module} 不应出现于这样的上下文中：其中 \tcode{module}
+或（如果它是 \grammarterm{pp-module} 的第一个预处理词元）\tcode{export}
+是被定义为类对象宏的标识符。
+
+\pnum
+\grammarterm{pp-module} 的 \grammarterm{pp-tokens}（如果有）应当具有如下形式：
+\begin{ncsimplebnf}
+pp-module-name \opt{pp-module-partition} \opt{pp-tokens}
+\end{ncsimplebnf}
+其中 \grammarterm{pp-tokens}（如果有）不应以 \tcode{(} 预处理词元开始，
+且文法非终结符定义如下：
+\begin{ncbnf}
+\nontermdef{pp-module-name}\br
+    \opt{pp-module-name-qualifier} identifier
+\end{ncbnf}
+\begin{ncbnf}
+\nontermdef{pp-module-partition}\br
+    \terminal{:} \opt{pp-module-name-qualifier} identifier
+\end{ncbnf}
+\begin{ncbnf}
+\nontermdef{pp-module-name-qualifier}\br
+    identifier \terminal{.}\br
+    pp-module-name-qualifier identifier \terminal{.}
+\end{ncbnf}
+\grammarterm{pp-module-name} 或 \grammarterm{pp-module-partition} 中的任何
+\grammarterm{identifier} 当前都不应被定义为类对象宏。
+
+\pnum
+\tcode{module} 指令中位于 \tcode{module} 预处理词元之后的任何预处理词元，
+会像在普通文本中一样被处理。
+\begin{note}
+每个当前定义为宏名的标识符，
+会被其预处理词元的替换列表所替换。
+\end{note}
+
+\pnum
+\tcode{module} 和 \tcode{export}（如果存在）预处理词元，
+分别被 \grammarterm{module-keyword} 和 \grammarterm{export-keyword}
+预处理词元所替换。
+\begin{note}
+这使得该行不再是指令，
+因此它不会在第 4 阶段结束时被移除。
+\end{note}
+
+\rSec1[cpp.import]{头文件单元导入}
+\indextext{header unit!preprocessing}%
+\indextext{preprocessing directive!import}%
+\indextext{macro!import|(}%
+
+\begin{bnf}
+\nontermdef{pp-import}\br
+    \opt{\keyword{export}} \keyword{import} header-name \opt{pp-tokens} \terminal{;} new-line\br
+    \opt{\keyword{export}} \keyword{import} header-name-tokens \opt{pp-tokens} \terminal{;} new-line\br
+    \opt{\keyword{export}} \keyword{import} pp-tokens \terminal{;} new-line
+\end{bnf}
+
+\pnum
+\grammarterm{pp-import}不得出现在以下语境中：其中\tcode{import}或（若\tcode{export}是\grammarterm{pp-import}的首个预处理记号且它）是定义作对象式宏的标识符。
+
+\pnum
+\tcode{import}控制行中位于\tcode{import}预处理记号之后的预处理记号，其处理方式与常规文本相同（即每个当前定义为宏名的标识符，会被其预处理记号的替换列表所替换）。
+\begin{note}
+匹配\grammarterm{pp-import}前两种形式的\tcode{import}指令，指示预处理器从由\grammarterm{header-name}所指示的头文件单元\iref{module.import}导入宏，如下文所述。
+\end{note}
+\indextext{point of!macro import|see{macro, point of import}}%
+对于\grammarterm{pp-import}的前两种形式，其宏导入点的位置，紧接在终止该\grammarterm{pp-import}的\grammarterm{new-line}之后。
+\grammarterm{pp-import}的最后一种形式，仅当前两种形式不匹配时才予以考虑，并且它没有宏导入点。
+
+\pnum
+若在处理\grammarterm{module-file}的\grammarterm{group}过程中，某个\grammarterm{pp-import}是通过源文件包含所产生（包括由命名可导入头文件的\tcode{\#include}指令所产生的改写），则该程序为非良构。
+
+\pnum
+在\grammarterm{pp-import}的所有三种形式中，预处理记号\tcode{import}和\tcode{export}（若存在）分别被\grammarterm{import-keyword}和\grammarterm{export-keyword}预处理记号所替换。
+\begin{note}
+这使得该行不再是指令，因此在阶段 4 结束时不会被移除。
+\end{note}
+此外，在\grammarterm{pp-import}的第二种形式中，将形成一个\grammarterm{header-name}记号，其方式如同将\grammarterm{header-name-tokens}视为\tcode{\#include}指令的\grammarterm{pp-tokens}。
+\grammarterm{header-name-tokens}被该\grammarterm{header-name}记号所替换。
+\begin{note}
+这确保导入操作在预处理器及翻译的后续阶段中得到一致的处理。
+\end{note}
+
+\pnum
+在程序中预处理每个翻译单元时遇到的每个\tcode{\#define}指令，都会产生一个独特的\defnx{宏定义}{macro!definition}。
+\begin{note}
+预定义宏名\iref{cpp.predefined}并非由\tcode{\#define}指令所引入。
+鼓励提供额外预定义宏机制的实现，不要将它们视为由\tcode{\#define}指令所引入。
+\end{note}
+每个宏定义在每个翻译单元中最多有一个定义点，且最多有一个未定义点，如下所示：
+\begin{itemize}
+\item
+\indextext{point of!macro definition|see{macro, point of definition}}%
+宏定义在翻译单元 $T$ 内的\defnx{定义点}{macro!point of definition}是：
+\begin{itemize}
+\item
+若该宏定义的\tcode{\#define}指令出现在 $T$ 内，则为该指令出现的位置；否则，
+\item
+若该宏名在词法上不与关键词\iref{lex.key}或\grammarterm{identifier}{s} \tcode{module}或\tcode{import}相同，且存在某个包含该宏定义定义点的头文件单元，则为该头文件单元在 $T$ 中的第一个宏导入点（若有）。
+\end{itemize}
+在后一种情况下，称该宏是从头文件单元\defnx{导入}{macro!import}的。
+
+\item
+\indextext{point of!macro undefinition|see{macro, point of undefinition}}%
+宏定义在翻译单元内的\defnx{未定义点}{macro!point of undefinition}是：在其定义点之后，首个出现命名为该宏的\tcode{\#undef}指令的位置，或者首个出现包含该宏定义未定义点头文件单元的宏导入点的位置，以先发生的（若有）为准。
+\end{itemize}
+
+\pnum
+\indextext{active macro definition|see{macro, active}}%
+若宏定义在某翻译单元内在该源位置之前存在一个定义点，并且在该翻译单元内该位置之前不存在未定义点，则该宏定义在该源位置处是\defnx{活跃}{macro!active}的。
+
+\pnum
+若一个宏将被替换或重定义，并且对该宏名存在多个活跃的宏定义，则这些活跃的宏定义都必须是同一宏的有效重定义\iref{cpp.replace}。
+\begin{note}
+\grammarterm{pp-import}{s}的相对顺序，对于特定宏定义是否活跃并无影响。
+\end{note}
+
+\pnum
+\begin{example}
+\begin{codeblocktu}{可导入头文件\tcode{"a.h"}}
+#define X 123   // \#1
+#define Y 45    // \#2
+#define Z a     // \#3
+#undef X        // \tcode{"a.h"}中\#1的未定义点
+\end{codeblocktu}
+
+\begin{codeblocktu}{可导入头文件\tcode{"b.h"}}
+import "a.h";   // \tcode{"b.h"}中\#1、\#2、\#3的定义点及\#1的未定义点
+#define X 456   // OK, \#1不活跃
+#define Y 6     // 错误：\#2活跃
+\end{codeblocktu}
+
+\begin{codeblocktu}{可导入头文件\tcode{"c.h"}}
+#define Y 45    // \#4
+#define Z c     // \#5
+\end{codeblocktu}
+
+\begin{codeblocktu}{可导入头文件\tcode{"d.h"}}
+import "c.h";   // \tcode{"d.h"}中\#4和\#5的定义点
+\end{codeblocktu}
+
+\begin{codeblocktu}{可导入头文件\tcode{"e.h"}}
+import "a.h";   // \tcode{"e.h"}中\#1、\#2、\#3的定义点及\#1的未定义点
+import "d.h";   // \tcode{"e.h"}中\#4和\#5的定义点
+int a = Y;      // OK, 活跃宏定义\#2和\#4是有效的重定义
+int c = Z;      // 错误：活跃宏定义\#3和\#5不是\tcode{Z}的有效重定义
+\end{codeblocktu}
+
+\begin{codeblocktu}{模块单元\tcode{f}}
+export module f;
+export import "a.h";
+
+int a = Y;      // OK
+\end{codeblocktu}
+
+\begin{codeblocktu}{翻译单元\tcode{\#1}}
+import f;
+int x = Y;      // 错误：\tcode{Y}既不是定义的宏也不是声明的名称
+\end{codeblocktu}
+\end{example}
+\indextext{macro!import|)}
+
+\rSec1[cpp.replace]{宏替换}%
+
+\rSec2[cpp.replace.general]{概述}%
+\indextext{macro!replacement|(}%
+\indextext{replacement!macro|see{macro, replacement}}%
+\indextext{preprocessing directive!macro replacement|see{macro, replacement}}
+
+\pnum
+\indextext{macro!replacement list}%
+当且仅当两处替换列表中的预处理记号数量、顺序、拼写及空白分隔均相同，且所有空白分隔被视为相同时，这两处替换列表才是完全相同的。
+
+\pnum
+当前已定义为
+\indextext{macro!object-like}%
+类对象宏的标识符（见下文）可借助另一条
+\tcode{\#define}
+预处理指令重新定义，前提是该第二条定义亦为类对象宏定义且两处替换列表完全相同，否则程序为 ill-formed。
+同样，当前已定义为
+\indextext{macro!function-like}%
+类函数宏的标识符（见下文）可借助另一条
+\tcode{\#define}
+预处理指令重新定义，前提是该第二条定义亦为类函数宏定义且形参数量与拼写均相同，且两处替换列表完全相同，否则程序为 ill-formed。
+
+\pnum
+\begin{example}
+以下序列有效：
+\begin{codeblock}
+#define OBJ_LIKE      (1-1)
+#define OBJ_LIKE      @\tcode{/* 空白 */ (1-1) /* 其他 */}@
+#define FUNC_LIKE(a)   ( a )
+#define FUNC_LIKE( a )(     @\tcode{/* 注意空白 */ \textbackslash}@
+                a @\tcode{/* 此行中的其他内容}@
+                  @\tcode{*/}@ )
+\end{codeblock}
+但以下重新定义无效：
+\begin{codeblock}
+#define OBJ_LIKE    (0)         // 记号序列不同
+#define OBJ_LIKE    (1 - 1)     // 空白不同
+#define FUNC_LIKE(b) ( a )      // 参数使用方式不同
+#define FUNC_LIKE(b) ( b )      // 参数拼写不同
+\end{codeblock}
+\end{example}
+
+\pnum
+\indextext{macro!replacement list}%
+类对象宏定义中，标识符与替换列表之间必须有空白。
+
+\pnum
+若宏定义中的 \grammarterm{identifier-list} 不以省略号结尾，则类函数宏调用中的实参数量（包括不含预处理记号的实参）应等于宏定义中的形参数量；否则，调用中的实参数量应至少等于宏定义中的形参数量（不含 \tcode{...}）。必须存在
+\tcode{)}
+预处理记号以终止调用。
+
+\pnum
+\indextext{__va_args__@\mname{VA_ARGS}}%
+\indextext{__va_opt__@\mname{VA_OPT}}%
+标识符 \mname{VA_ARGS} 与 \mname{VA_OPT} 仅可出现在使用省略号形参记法的类函数宏的 \grammarterm{replacement-list} 中。
+
+\pnum
+类函数宏的形参标识符在其作用域内必须是唯一声明的。
+
+\pnum
+紧随
+\tcode{define}
+的标识符称为
+\indextext{name!macro|see{macro, name}}%
+\defnx{宏名}{macro!name}。
+宏名共用一个名字空间。
+预处理记号替换列表前后的任何空白字符均不被视为替换列表的一部分。
+
+\pnum
+\indextext{unit!translation}%
+除可将宏名 \tcode{likely} 与 \tcode{unlikely} 定义为类函数宏外，翻译单元不得 \tcode{\#define} 或 \tcode{\#undef}
+在词法上与关键字相同，或与 \tref{lex.name.special} 所列标识符相同，或与 \ref{dcl.attr} 描述的 \grammarterm{attribute-token}{s} 相同的宏名。
+
+\pnum
+若
+\indextext{\#\#0 operator@\tcode{\#} operator}
+\tcode{\#}
+预处理记号后接标识符，
+在词法上可开始预处理指令的位置出现，
+则该标识符不受宏替换。
+
+\pnum
+形式为
+\begin{ncsimplebnf}
+\terminal{\# define} identifier replacement-list new-line
+\indextext{\idxcode{\#define}}%
+\end{ncsimplebnf}
+的预处理指令定义一个
+\defnadj{类对象}{宏}，
+它使随后出现的每个宏名
+\begin{footnote}
+由于在宏替换时，所有 \grammarterm{character-literal} 与 \grammarterm{string-literal} 均为预处理记号，而非可能包含类似标识符子序列的字符序列（见 \ref{lex.phases} 翻译阶段），因此它们永远不会被扫描以查找宏名或形参。
+\end{footnote}
+被该指令剩余部分构成的预处理记号替换列表替换。
+\begin{footnote}
+备选记号\iref{lex.digraph} 不是标识符，即使其拼写完全由字母与下划线组成，因此无法定义与备选记号同名的宏。
+\end{footnote}
+然后，该替换列表按 \ref{cpp.rescan} 规定重新扫描以查找更多宏名。
+
+\pnum
+\begin{example}
+该功能最简单的用途是定义“显式常量”，例如：
+\begin{codeblock}
+#define TABSIZE 100
+int table[TABSIZE];
+\end{codeblock}
+\end{example}
+
+\pnum
+形式为
+\begin{ncsimplebnf}
+\terminal{\# define} identifier lparen \opt{identifier-list} \terminal{)} replacement-list new-line\br
+\terminal{\# define} identifier lparen \terminal{...} \terminal{)} replacement-list new-line\br
+\terminal{\# define} identifier lparen identifier-list \terminal{, ...} \terminal{)} replacement-list new-line
+\end{ncsimplebnf}
+的预处理指令定义一个带形参的 \defnadj{类函数}{宏}，
+其用法在句法上类似函数调用。
+\indextext{parameter!macro}%
+形参由可选的标识符列表指定。
+随后出现的每个类函数宏名，若其后紧跟
+\tcode{(}
+作为下一个预处理记号，则引入将被定义中替换列表替换的预处理记号序列
+（即宏调用）。
+\indextext{invocation!macro}%
+被替换的序列由匹配的
+\tcode{)}
+预处理记号终止，跳过其间配对的左右括号预处理记号对。
+在类函数宏调用的预处理记号序列中，
+换行被视为普通空白字符。
+
+\pnum
+\indextext{macro!function-like!arguments}%
+由最外层匹配括号限定的预处理记号序列构成类函数宏的实参列表。
+列表中的各实参由逗号预处理记号分隔，
+但匹配内括号之间的逗号预处理记号不分隔实参。
+若实参列表中存在原本会成为预处理指令的预处理记号序列，
+\begin{footnote}
+无论实现是否支持，\grammarterm{conditionally-supported-directive} 均为预处理指令。
+\end{footnote}
+则程序为 ill-formed。
+
+\pnum
+\begin{example}
+以下定义了一个类函数宏，其值为参数最大值。
+其缺点包括：对其中一个参数进行两次求值
+（包括
+\indextext{side effects}%
+副作用），
+且多次调用时会生成比函数更多的代码。
+它也无法取地址，因为它没有地址。
+
+\begin{codeblock}
+#define max(a, b) ((a) > (b) ? (a) : (b))
+\end{codeblock}
+
+括号确保实参与结果表达式正确绑定。
+\end{example}
+
+\pnum
+\indextext{macro!function-like!arguments}%
+若类函数宏定义中 \tcode{)} 紧前出现 \tcode{...}，则尾部实参（如有），包括任何分隔逗号预处理记号，合并为单个项：\defn{可变实参}。合并后的实参数目应满足：合并后，实参数目等于或比宏定义中的形参数目（不含 \tcode{...}）多一。
+
+\rSec2[cpp.subst]{实参替换}%
+\indextext{macro!argument substitution}%
+\indextext{argument substitution|see{macro, argument substitution}}%
+
+\indextext{__va_opt__@\mname{VA_OPT}}%
+\begin{bnf}
+\nontermdef{va-opt-replacement}\br
+    \terminal{\mname{VA_OPT} (} \opt{pp-tokens} \terminal{)}
+\end{bnf}
+
+\pnum
+在确定了类似函数的宏调用的实参后，进行实参替换。
+对于替换列表中既未被 \tcode{\#} 或 \tcode{\#\#} 预处理记号前置，也未被 \tcode{\#\#} 预处理记号后置的每个形参，
+命名该形参的预处理记号将被替换为按以下方式确定的预处理记号序列：
+\begin{itemize}
+\item
+  若该形参为 \grammarterm{va-opt-replacement} 形式，
+  则替换预处理记号是对应实参的预处理记号序列，如下文所述。
+\item
+  否则，替换预处理记号是对应实参在所有内含宏均已展开后的预处理记号。
+  实参的预处理记号在作为替换输入前，需先像它们独自构成剩余的预处理翻译单元那样被完全宏替换，
+  且此时无其他预处理记号可用。
+\end{itemize}
+\begin{example}
+\begin{codeblock}
+#define LPAREN() (
+#define G(Q) 42
+#define F(R, X, ...)  __VA_OPT__(G R X) )
+int x = F(LPAREN(), 0, <:-);    // 替换为 \tcode{int x = 42;}
+\end{codeblock}
+\end{example}
+
+\pnum
+\indextext{__va_args__@\mname{VA_ARGS}}%
+出现在替换列表中的标识符 \mname{VA_ARGS} 应被当作形参处理，
+可变实参则构成用于替换它的预处理记号。
+
+\pnum
+\begin{example}
+\begin{codeblock}
+#define debug(...) fprintf(stderr, @\mname{VA_ARGS}@)
+#define showlist(...) puts(#@\mname{VA_ARGS}@)
+#define report(test, ...) ((test) ? puts(#test) : printf(@\mname{VA_ARGS}@))
+debug("Flag");
+debug("X = %d\n", x);
+showlist(The first, second, and third items.);
+report(x>y, "x is %d but y is %d", x, y);
+\end{codeblock}
+结果为
+\begin{codeblock}
+fprintf(stderr, "Flag");
+fprintf(stderr, "X = %d\n", x);
+puts("The first, second, and third items.");
+((x>y) ? puts("x>y") : printf("x is %d but y is %d", x, y));
+\end{codeblock}
+\end{example}
+
+\pnum
+\indextext{__va_opt__@\mname{VA_OPT}}%
+标识符 \mname{VA_OPT} 必须始终作为预处理记号序列
+\grammarterm{va-opt-replacement} 的一部分出现；
+通过跳过其 \grammarterm{pp-tokens} 中成对的左右圆括号来确定其结束的 \tcode{)}。
+\grammarterm{va-opt-replacement} 的 \grammarterm{pp-tokens} 不得包含 \mname{VA_OPT}。
+若这些 \grammarterm{pp-tokens} 作为当前类似函数的宏的替换列表会出现 ill-formed，则程序亦 ill-formed。
+将 \grammarterm{va-opt-replacement} 视作形参，
+对应实参的预处理记号序列定义如下。
+若 \mname{VA_ARGS} 既非 \tcode{\#} 也非 \tcode{\#\#} 的操作数，且其替换结果不含任何预处理记号，
+则该实参由一个占位预处理记号组成\iref{cpp.concat,cpp.rescan}。
+否则，该实参由所包含的 \grammarterm{pp-tokens}
+作为当前类似函数的宏的替换列表，在移除占位记号、重新扫描及进一步替换之前的展开结果构成。
+\begin{note}
+占位记号在字符串化前被移除\iref{cpp.stringize}，并可能在重新扫描及进一步替换时被移除\iref{cpp.rescan}。
+\end{note}
+\begin{example}
+\begin{codeblock}
+#define F(...)           f(0 __VA_OPT__(,) __VA_ARGS__)
+#define G(X, ...)        f(0, X __VA_OPT__(,) __VA_ARGS__)
+#define SDEF(sname, ...) S sname __VA_OPT__(= { __VA_ARGS__ })
+#define EMP
+
+F(a, b, c)          // 替换为 \tcode{f(0, a, b, c)}
+F()                 // 替换为 \tcode{f(0)}
+F(EMP)              // 替换为 \tcode{f(0)}
+
+G(a, b, c)          // 替换为 \tcode{f(0, a, b, c)}
+G(a, )              // 替换为 \tcode{f(0, a)}
+G(a)                // 替换为 \tcode{f(0, a)}
+
+SDEF(foo);          // 替换为 \tcode{S foo;}
+SDEF(bar, 1, 2);    // 替换为 \tcode{S bar = \{ 1, 2 \};}
+
+#define H1(X, ...) X __VA_OPT__(##) __VA_ARGS__ // 错误：\tcode{\#\#} 不得出现在替换列表开头\iref{cpp.concat}
+
+#define H2(X, Y, ...) __VA_OPT__(X ## Y,) __VA_ARGS__
+H2(a, b, c, d)      // 替换为 \tcode{ab, c, d}
+
+#define H3(X, ...) #__VA_OPT__(X##X X##X)
+H3(, 0)             // 替换为 \tcode{""}
+
+#define H4(X, ...) __VA_OPT__(a X ## X) ## b
+H4(, 1)             // 替换为 \tcode{a b}
+
+#define H5A(...) __VA_OPT__()@\tcode{/**/}@__VA_OPT__()
+#define H5B(X) a ## X ## b
+#define H5C(X) H5B(X)
+H5C(H5A())          // 替换为 \tcode{ab}
+\end{codeblock}
+\end{example}
+
+\rSec2[cpp.stringize]{\tcode{\#} 运算符}%
+\indextext{\#\#0 operator@\tcode{\#} 运算符}%
+\indextext{stringize|参见{\tcode{\#} 运算符}}
+
+\pnum
+每个
+\tcode{\#}
+预处理记号在类函数宏的替换列表中，其后必须跟随一个参数作为替换列表中的下一个预处理记号。
+
+\pnum
+一个\defn{字符字符串字面量}是没有前缀的 \grammarterm{字符串字面量}。
+若在替换列表中，一个参数紧接在
+\tcode{\#}
+预处理记号之前，
+则它们两者被替换为一个单独的字符字符串字面量预处理记号，该记号包含对应实参的预处理记号序列的拼写（不包括占位记号）。
+令\defn{字符串化实参}为移除了占位记号的对应实参的预处理记号序列。
+字符串化实参的预处理记号之间的每个空白出现都在字符字符串字面量中变为单个空格字符。
+组成字符串化实参的第一个预处理记号之前和最后一个预处理记号之后的空白被删除。
+除此之外，字符串化实参中的每个预处理记号的原始拼写在字符字符串字面量中得以保留，但为生成
+\grammarterm{头文件名}，
+\grammarterm{字符字面量}
+和 \grammarterm{字符串字面量}
+（包括界定符\unicode{0022}{双引号} (\tcode{"})）的拼写而进行的特殊处理除外：
+在每个 \grammarterm{头文件名}，
+\grammarterm{字符字面量}
+或 \grammarterm{字符串字面量}
+的双引号和反斜杠字符前插入一个\unicode{005c}{反斜杠}字符 (\tcode{\textbackslash})，
+并且每个换行符被替换为两字符序列\tcode{\textbackslash n}。
+若结果替换不是有效的字符字符串字面量，则程序非良构。
+对应于空字符串化实参的字符字符串字面量是\tcode{""}。
+\tcode{\#}
+和
+\tcode{\#\#}
+运算符的求值顺序未指明。
+
+\rSec2[cpp.concat]{The \tcode{\#\#} operator}%
+\indextext{\#\#1 operator@\tcode{\#\#} operator}%
+\indextext{concatenation!macro argument|see{\tcode{\#\#} operator}}
+
+\pnum
+A
+\tcode{\#\#}
+preprocessing token shall not occur at the beginning or
+at the end of a replacement list for either form
+of macro definition.
+
+\pnum
+If, in the replacement list of a function-like macro, a parameter is
+immediately preceded or followed by a
+\tcode{\#\#}
+preprocessing token, the parameter is replaced by the
+corresponding argument's preprocessing token sequence; however, if an argument consists of no preprocessing tokens, the parameter is
+replaced by a placemarker preprocessing token instead.
+\begin{footnote}
+Placemarker preprocessing tokens do not appear in the syntax
+because they are temporary entities that exist only within translation phase 4.
+\end{footnote}
+
+\pnum
+For both object-like and function-like macro invocations, before the
+replacement list is reexamined for more macro names to replace,
+each instance of a
+\tcode{\#\#}
+preprocessing token in the replacement list
+(not from an argument) is deleted and the
+preceding preprocessing token is concatenated
+with the following preprocessing token.
+Placemarker preprocessing tokens are handled specially: concatenation
+of two placemarkers results in a single placemarker preprocessing token, and
+concatenation of a placemarker with a non-placemarker preprocessing token results
+in the non-placemarker preprocessing token.
+\begin{note}
+Concatenation can form
+a \grammarterm{universal-character-name}\iref{lex.charset}.
+\end{note}
+If the result is not a valid preprocessing token,
+the program is ill-formed.
+The resulting preprocessing token is available for further macro replacement.
+The order of evaluation of
+\tcode{\#\#}
+operators is unspecified.
+
+\pnum
+\begin{example}
+The sequence
+\begin{codeblock}
+#define str(s)      # s
+#define xstr(s)     str(s)
+#define debug(s, t) printf("x" # s "= %d, x" # t "= %s", @\textbackslash@
+               x ## s, x ## t)
+#define INCFILE(n)  vers ## n
+#define glue(a, b)  a ## b
+#define xglue(a, b) glue(a, b)
+#define HIGHLOW     "hello"
+#define LOW         LOW ", world"
+
+debug(1, 2);
+fputs(str(strncmp("abc@\textbackslash@0d", "abc", '@\textbackslash@4')        // this goes away
+    == 0) str(: @\atsign\textbackslash@n), s);
+#include xstr(INCFILE(2).h)
+glue(HIGH, LOW);
+xglue(HIGH, LOW)
+\end{codeblock}
+results in
+\begin{codeblock}
+printf("x" "1" "= %d, x" "2" "= %s", x1, x2);
+fputs("strncmp(@\textbackslash@"abc@\textbackslash\textbackslash@0d@\textbackslash@", @\textbackslash@"abc@\textbackslash@", '@\textbackslash\textbackslash@4') == 0" ": @\atsign\textbackslash@n", s);
+#include "vers2.h"      @\textrm{(\textit{after macro replacement, before file access})}@
+"hello";
+"hello" ", world"
+\end{codeblock}
+or, after concatenation of the character string literals,
+\begin{codeblock}
+printf("x1= %d, x2= %s", x1, x2);
+fputs("strncmp(@\textbackslash@"abc@\textbackslash\textbackslash@0d@\textbackslash@", @\textbackslash@"abc@\textbackslash@", '@\textbackslash\textbackslash@4') == 0: @\atsign\textbackslash@n", s);
+#include "vers2.h"      @\textrm{(\textit{after macro replacement, before file access})}@
+"hello";
+"hello, world"
+\end{codeblock}
+
+Space around the \tcode{\#} and \tcode{\#\#} preprocessing tokens in the macro definition
+is optional.
+\end{example}
+
+\pnum
+\begin{example}
+In the following fragment:
+
+\begin{codeblock}
+#define hash_hash # ## #
+#define mkstr(a) # a
+#define in_between(a) mkstr(a)
+#define join(c, d) in_between(c hash_hash d)
+char p[] = join(x, y);          // equivalent to \tcode{char p[] = "x \#\# y";}
+\end{codeblock}
+
+The expansion produces, at various stages:
+
+\begin{codeblock}
+join(x, y)
+in_between(x hash_hash y)
+in_between(x ## y)
+mkstr(x ## y)
+"x ## y"
+\end{codeblock}
+
+In other words, expanding \tcode{hash_hash} produces a new preprocessing token,
+consisting of two adjacent sharp signs, but this new preprocessing token is not the
+\tcode{\#\#} operator.
+\end{example}
+
+\pnum
+\begin{example}
+To illustrate the rules for placemarker preprocessing tokens, the sequence
+\begin{codeblock}
+#define t(x,y,z) x ## y ## z
+int j[] = { t(1,2,3), t(,4,5), t(6,,7), t(8,9,),
+  t(10,,), t(,11,), t(,,12), t(,,) };
+\end{codeblock}
+results in
+\begin{codeblock}
+int j[] = { 123, 45, 67, 89,
+  10, 11, 12, };
+\end{codeblock}
+\end{example}
+
+\rSec2[cpp.rescan]{重扫描与进一步替换}%
+\indextext{宏!重扫描与替换}%
+\indextext{重扫描与替换|参见{宏, 重扫描与替换}}
+
+\pnum
+在替换列表中的所有参数被替换且 \tcode{\#} 和 \tcode{\#\#} 处理完成后，
+所有占位符预处理记号都将被移除。
+然后，将所得的预处理记号序列连同源文件中其后的全部预处理记号一起
+重新扫描，以寻找更多待替换的宏名。
+
+\pnum
+\begin{example}
+序列
+\begin{codeblock}
+#define x       3
+#define f(a)    f(x * (a))
+#undef  x
+#define x       2
+#define g       f
+#define z       z[0]
+#define h       g(~
+#define m(a)    a(w)
+#define w       0,1
+#define t(a)    a
+#define p()     int
+#define q(x)    x
+#define r(x,y)  x ## y
+#define str(x)  # x
+
+f(y+1) + f(f(z)) % t(t(g)(0) + t)(1);
+g(x+(3,4)-w) | h 5) & m
+    (f)^m(m);
+p() i[q()] = { q(1), r(2,3), r(4,), r(,5), r(,) };
+char c[2][6] = { str(hello), str() };
+\end{codeblock}
+产生
+\begin{codeblock}
+f(2 * (y+1)) + f(2 * (f(2 * (z[0])))) % f(2 * (0)) + t(1);
+f(2 * (2+(3,4)-0,1)) | f(2 * (~ 5)) & f(2 * (0,1))^m(0,1);
+int i[] = { 1, 23, 4, 5, };
+char c[2][6] = { "hello", "" };
+\end{codeblock}
+\end{example}
+
+\pnum
+若在本次扫描替换列表的过程中发现正被替换的宏名
+（不包括源文件其余预处理记号），
+则不对其进行替换。
+此外，
+若任何嵌套替换遇到正被替换的宏名，
+亦不对其替换。
+这些未被替换的宏名预处理记号此后不再参与进一步替换，
+即使日后再度（重新）出现在本会被替换的上下文中亦然。
+
+\pnum
+最终完全宏替换后的预处理记号序列即便形似预处理指令，也不会当作预处理指令处理，
+但其中的所有 pragma 一元运算符表达式将按后文~\ref{cpp.pragma.op} 的规定处理。
+
+\rSec2[cpp.scope]{宏定义的作用域}%
+\indextext{macro!scope of definition}%
+\indextext{scope!macro definition|see{macro, scope of definition}}
+
+\pnum
+宏定义持续有效
+（与块结构无关）
+直到遇到相应的
+\tcode{\#undef}
+指令为止，或
+（若未遇到此类指令）
+直至翻译单元结束。
+宏定义在翻译阶段4之后不再有意义。
+
+\pnum
+形如
+\begin{ncsimplebnf}
+\terminal{\# undef} identifier new-line
+\indextext{\idxcode{\#undef}}%
+\end{ncsimplebnf}
+的预处理指令
+导致指定的标识符不再被定义为宏名。
+若指定的标识符当前并未被定义为宏名，则该指令被忽略。
+
+\indextext{macro!replacement|)}
+
+\rSec1[cpp.line]{行控制}%
+\indextext{预处理指令!行控制}%
+\indextext{\idxcode{\#line}|see{预处理指令, 行控制}}
+
+\pnum
+\tcode{\#line}
+指令的
+\grammarterm{string-literal}，
+如果存在，
+应为字符字符串字面量。
+
+\pnum
+当前源行的
+\defn{line number}
+是当前物理源行的行号，
+即，在处理源文件至当前预处理记符时，
+其比翻译阶段 1\iref{lex.phases}
+中已读取或引入的换行字符数多一。
+
+\pnum
+形如
+\begin{ncsimplebnf}
+\terminal{\# line} digit-sequence new-line
+\end{ncsimplebnf}
+的预处理指令导致实现表现得如同
+以下源行序列从一个具有由 digit-sequence（解释为十进制整数）
+指定的行号的源行开始。
+如果 digit-sequence 指定为零或大于 2147483647 的数字，
+程序为非良构。
+
+\pnum
+形如
+\begin{ncsimplebnf}
+\terminal{\# line} digit-sequence \terminal{"} \opt{s-char-sequence} \terminal{"} new-line
+\end{ncsimplebnf}
+的预处理指令类似地设置假定行号，
+并将源文件的假定名称更改为该字符字符串字面量的内容。
+
+\pnum
+形如
+\begin{ncsimplebnf}
+\terminal{\# line} pp-tokens new-line
+\end{ncsimplebnf}
+（且不与前两种形式之一匹配）
+的预处理指令是被允许的。
+指令中
+\tcode{line}
+之后的 pp-tokens 的处理方式与普通文本中完全相同
+（每个当前定义为宏名称的标识符均被其替换列表的预处理记符替换）。
+如果所有替换后得到的指令不匹配前两种形式之一，
+程序为非良构；
+否则，结果会得到适当的处理。
+
+\rSec1[cpp.error]{诊断指令}%
+\indextext{预处理指令!error}%
+\indextext{预处理指令!diagnostic}%
+\indextext{预处理指令!warning}%
+\indextext{\idxcode{\#error}|参见{预处理指令, error}}
+
+\pnum
+形式如下的预处理指令
+\begin{ncsimplebnf}
+\terminal{\# error} \opt{pp-tokens} new-line
+\end{ncsimplebnf}
+使程序非良构。形式如下的预处理指令
+\begin{ncsimplebnf}
+\terminal{\# warning} \opt{pp-tokens} new-line
+\end{ncsimplebnf}
+要求实现为此预处理翻译单元\iref{intro.compliance.general}产生至少一条诊断消息。
+
+\pnum
+\recommended
+由这些指令所导致的任何诊断消息，应当包含指定的预处理记号序列。
+
+\rSec1[cpp.pragma]{Pragma 指令}%
+\indextext{预处理指令!pragma}%
+\indextext{\idxcode{\#pragma}|see{预处理指令, pragma}}
+
+\pnum
+形式如下的预处理指令
+\begin{ncsimplebnf}
+\terminal{\# pragma} \opt{pp-tokens} new-line
+\end{ncsimplebnf}
+会使实现以 \impldef{\tcode{\#pragma}} 方式行事。
+该行为可能导致翻译失败，或导致翻译器或生成程序以不符合要求的方式行为。
+实现不能识别的任何 pragma 均被忽略。
+
+\rSec1[cpp.null]{空指令}%
+\indextext{预处理指令!空}
+
+\pnum
+形如
+\begin{ncsimplebnf}
+\terminal{\#} 换行
+\end{ncsimplebnf}
+的预处理指令没有任何效果。
+
+\rSec1[cpp.predefined]{预定义宏名}
+\indextext{宏!预定义}%
+\indextext{名字!预定义宏|see{宏，预定义}}
+
+\pnum
+实现必须定义以下宏名：
+
+\begin{description}
+
+\item
+\indextext{\idxxname{cplusplus}}%
+\xname{cplusplus}\\
+整数字面量 \tcode{\cppver}。
+\begin{note}
+本文档的未来修订版本会
+将此宏的值替换为一个更大的值。
+\end{note}
+
+\item \tref{cpp.predefined.ft} 中列出的宏名。\\
+\tref{cpp.predefined.ft} 中定义的宏必须被定义为相应的整数字面量。
+\begin{note}
+本文档的未来修订版本可能会替换
+这些宏的值为更大的值。
+\end{note}
+
+\item
+\indextext{__date__@\mname{DATE}}%
+\mname{DATE}\\
+源文件的翻译日期：
+形式为 \tcode{"Mmm~dd~yyyy"} 的字符串字面量，
+其中月份的名称与
+\tcode{asctime}
+函数生成的相同，
+且若值小于 10，
+则 \tcode{dd} 的第一个字符是空格字符。
+如果翻译日期不可用，
+则应提供一个 \impldef{当翻译日期不可用时 \mname{DATE} 的文本} 有效日期。
+
+\item
+\indextext{__file__@\mname{FILE}}%
+\mname{FILE}\\
+表示假定当前源文件名的字符串字面量。
+\begin{note}
+假定的源文件名可以通过 \tcode{\#line} 指令改变\iref{cpp.line}。
+\end{note}
+
+\item
+\indextext{__line__@\mname{LINE}}%
+\mname{LINE}\\
+表示假定当前源文件内当前源行行号的整数字面量。
+\begin{note}
+假定的行号可以通过 \tcode{\#line} 指令改变\iref{cpp.line}。
+\end{note}
+
+\item
+\indextext{stdc__embed_not_found__@\mname{STDC_EMBED_NOT_FOUND}}%
+\indextext{stdc__embed_found__@\mname{STDC_EMBED_FOUND}}%
+\indextext{stdc__embed_empty__@\mname{STDC_EMBED_EMPTY}}%
+\mname{STDC_EMBED_NOT_FOUND}、\mname{STDC_EMBED_FOUND} 和 \mname{STDC_EMBED_EMPTY}\\
+分别是整数字面量 \tcode{0}、\tcode{1} 和 \tcode{2}。
+\begin{note}
+这些表示从 \grammarterm{has-embed-expression} 中替换的值\iref{cpp.cond}。
+\end{note}
+
+\item
+\indextext{__stdc_hosted__@\mname{STDC_HOSTED}}%
+\indextext{实现!hosted}%
+\indextext{实现!freestanding}%
+\mname{STDC_HOSTED}\\
+如果实现是托管实现，则为整数字面量 \tcode{1}；
+如果它是独立实现，则为整数字面量 \tcode{0}\iref{intro.compliance}。
+
+\item
+\indextext{__stdcpp_default_new_alignment__@\mname{STDCPP_DEFAULT_NEW_ALIGNMENT}}%
+\mname{STDCPP_DEFAULT_NEW_ALIGNMENT}\\
+类型为 \tcode{std::size_t} 的整数字面量，
+其值是通过调用 \tcode{operator new(std::size_t)}
+或 \tcode{operator new[](std::size_t)} 所保证的对齐。
+\begin{note}
+更大的对齐值将被传递给
+\tcode{operator new(std::size_t, std::align_val_t)} 等\iref{expr.new}。
+\end{note}
+
+\item
+\indextext{__stdcpp_float16_t__@\mname{STDCPP_FLOAT16_T}}%
+\mname{STDCPP_FLOAT16_T}\\
+当且仅当实现支持将 \IsoFloatUndated{} 浮点交换格式 binary16
+作为扩展浮点数类型时\iref{basic.extended.fp}，定义为整数字面量 \tcode{1}。
+
+\item
+\indextext{__stdcpp_float32_t__@\mname{STDCPP_FLOAT32_T}}%
+\mname{STDCPP_FLOAT32_T}\\
+当且仅当实现支持将 \IsoFloatUndated{} 浮点交换格式 binary32
+作为扩展浮点数类型时，定义为整数字面量 \tcode{1}。
+
+\item
+\indextext{__stdcpp_float64_t__@\mname{STDCPP_FLOAT64_T}}%
+\mname{STDCPP_FLOAT64_T}\\
+当且仅当实现支持将 \IsoFloatUndated{} 浮点交换格式 binary64
+作为扩展浮点数类型时，定义为整数字面量 \tcode{1}。
+
+\item
+\indextext{__stdcpp_float128_t__@\mname{STDCPP_FLOAT128_T}}%
+\mname{STDCPP_FLOAT128_T}\\
+当且仅当实现支持将 \IsoFloatUndated{} 浮点交换格式 binary128
+作为扩展浮点数类型时，定义为整数字面量 \tcode{1}。
+
+\item
+\indextext{__stdcpp_bfloat16_t__@\mname{STDCPP_BFLOAT16_T}}%
+\mname{STDCPP_BFLOAT16_T}\\
+当且仅当实现支持一个扩展浮点数类型
+具有 \grammarterm{typedef-name} \tcode{std::bfloat16_t}
+如 \ref{basic.extended.fp} 所描述的性质时，定义为整数字面量 \tcode{1}。
+
+\item
+\indextext{__time__@\mname{TIME}}%
+\mname{TIME}\\
+源文件的翻译时间：
+形式为 \tcode{"hh:mm:ss"}
+的字符串字面量，如同由
+\tcode{asctime}
+函数生成的时间。
+如果翻译时间不可用，
+则应提供一个 \impldef{当翻译时间不可用时 \mname{TIME} 的文本} 有效时间。
+\end{description}
+
+\indextext{宏!feature-test}%
+\indextext{feature-test macro|see{宏，feature-test}}%
+\begin{LongTable}{特性测试宏}{cpp.predefined.ft}{ll}
+\\ \topline
+\lhdr{宏名} & \rhdr{值} \\ \capsep
+\endfirsthead
+\continuedcaption \\
+\hline
+\lhdr{名字} & \rhdr{值} \\ \capsep
+\endhead
+\defnxname{cpp_aggregate_bases}                   & \tcode{201603L} \\ \rowsep
+\defnxname{cpp_aggregate_nsdmi}                   & \tcode{201304L} \\ \rowsep
+\defnxname{cpp_aggregate_paren_init}              & \tcode{201902L} \\ \rowsep
+\defnxname{cpp_alias_templates}                   & \tcode{200704L} \\ \rowsep
+\defnxname{cpp_aligned_new}                       & \tcode{201606L} \\ \rowsep
+\defnxname{cpp_attributes}                        & \tcode{200809L} \\ \rowsep
+\defnxname{cpp_auto_cast}                         & \tcode{202110L} \\ \rowsep
+\defnxname{cpp_binary_literals}                   & \tcode{201304L} \\ \rowsep
+\defnxname{cpp_capture_star_this}                 & \tcode{201603L} \\ \rowsep
+\defnxname{cpp_char8_t}                           & \tcode{202207L} \\ \rowsep
+\defnxname{cpp_concepts}                          & \tcode{202002L} \\ \rowsep
+\defnxname{cpp_conditional_explicit}              & \tcode{201806L} \\ \rowsep
+\defnxname{cpp_consteval}                         & \tcode{202211L} \\ \rowsep
+\defnxname{cpp_constexpr}                         & \tcode{202406L} \\ \rowsep
+\defnxname{cpp_constexpr_dynamic_alloc}           & \tcode{201907L} \\ \rowsep
+\defnxname{cpp_constexpr_exceptions}              & \tcode{202411L} \\ \rowsep
+\defnxname{cpp_constexpr_in_decltype}             & \tcode{201711L} \\ \rowsep
+\defnxname{cpp_constexpr_virtual_inheritance}     & \tcode{202506L} \\ \rowsep
+\defnxname{cpp_constinit}                         & \tcode{201907L} \\ \rowsep
+\defnxname{cpp_contracts}                         & \tcode{202502L} \\ \rowsep
+\defnxname{cpp_decltype}                          & \tcode{200707L} \\ \rowsep
+\defnxname{cpp_decltype_auto}                     & \tcode{201304L} \\ \rowsep
+\defnxname{cpp_deduction_guides}                  & \tcode{202207L} \\ \rowsep
+\defnxname{cpp_delegating_constructors}           & \tcode{200604L} \\ \rowsep
+\defnxname{cpp_deleted_function}                  & \tcode{202403L} \\ \rowsep
+\defnxname{cpp_designated_initializers}           & \tcode{201707L} \\ \rowsep
+\defnxname{cpp_enumerator_attributes}             & \tcode{201411L} \\ \rowsep
+\defnxname{cpp_expansion_statements}              & \tcode{202506L} \\ \rowsep
+\defnxname{cpp_explicit_this_parameter}           & \tcode{202110L} \\ \rowsep
+\defnxname{cpp_fold_expressions}                  & \tcode{201603L} \\ \rowsep
+\defnxname{cpp_generic_lambdas}                   & \tcode{201707L} \\ \rowsep
+\defnxname{cpp_guaranteed_copy_elision}           & \tcode{201606L} \\ \rowsep
+\defnxname{cpp_hex_float}                         & \tcode{201603L} \\ \rowsep
+\defnxname{cpp_if_consteval}                      & \tcode{202106L} \\ \rowsep
+\defnxname{cpp_if_constexpr}                      & \tcode{201606L} \\ \rowsep
+\defnxname{cpp_impl_coroutine}                    & \tcode{201902L} \\ \rowsep
+\defnxname{cpp_impl_destroying_delete}            & \tcode{201806L} \\ \rowsep
+\defnxname{cpp_impl_reflection}                   & \tcode{202506L} \\ \rowsep
+\defnxname{cpp_impl_three_way_comparison}         & \tcode{201907L} \\ \rowsep
+\defnxname{cpp_implicit_move}                     & \tcode{202207L} \\ \rowsep
+\defnxname{cpp_inheriting_constructors}           & \tcode{201511L} \\ \rowsep
+\defnxname{cpp_init_captures}                     & \tcode{201803L} \\ \rowsep
+\defnxname{cpp_initializer_lists}                 & \tcode{200806L} \\ \rowsep
+\defnxname{cpp_inline_variables}                  & \tcode{201606L} \\ \rowsep
+\defnxname{cpp_lambdas}                           & \tcode{200907L} \\ \rowsep
+\defnxname{cpp_modules}                           & \tcode{201907L} \\ \rowsep
+\defnxname{cpp_multidimensional_subscript}        & \tcode{202211L} \\ \rowsep
+\defnxname{cpp_named_character_escapes}           & \tcode{202207L} \\ \rowsep
+\defnxname{cpp_namespace_attributes}              & \tcode{201411L} \\ \rowsep
+\defnxname{cpp_noexcept_function_type}            & \tcode{201510L} \\ \rowsep
+\defnxname{cpp_nontype_template_args}             & \tcode{201911L} \\ \rowsep
+\defnxname{cpp_nontype_template_parameter_auto}   & \tcode{201606L} \\ \rowsep
+\defnxname{cpp_nsdmi}                             & \tcode{200809L} \\ \rowsep
+\defnxname{cpp_pack_indexing}                     & \tcode{202311L} \\ \rowsep
+\defnxname{cpp_placeholder_variables}             & \tcode{202306L} \\ \rowsep
+\defnxname{cpp_pp_embed}                          & \tcode{202502L} \\ \rowsep
+\defnxname{cpp_range_based_for}                   & \tcode{202211L} \\ \rowsep
+\defnxname{cpp_raw_strings}                       & \tcode{200710L} \\ \rowsep
+\defnxname{cpp_ref_qualifiers}                    & \tcode{200710L} \\ \rowsep
+\defnxname{cpp_return_type_deduction}             & \tcode{201304L} \\ \rowsep
+\defnxname{cpp_rvalue_references}                 & \tcode{200610L} \\ \rowsep
+\defnxname{cpp_size_t_suffix}                     & \tcode{202011L} \\ \rowsep
+\defnxname{cpp_sized_deallocation}                & \tcode{201309L} \\ \rowsep
+\defnxname{cpp_static_assert}                     & \tcode{202306L} \\ \rowsep
+\defnxname{cpp_static_call_operator}              & \tcode{202207L} \\ \rowsep
+\defnxname{cpp_structured_bindings}               & \tcode{202411L} \\ \rowsep
+\defnxname{cpp_template_parameters}               & \tcode{202502L} \\ \rowsep
+\defnxname{cpp_template_template_args}            & \tcode{201611L} \\ \rowsep
+\defnxname{cpp_threadsafe_static_init}            & \tcode{200806L} \\ \rowsep
+\defnxname{cpp_trivial_relocatability}            & \tcode{202502L} \\ \rowsep
+\defnxname{cpp_trivial_union}                     & \tcode{202502L} \\ \rowsep
+\defnxname{cpp_unicode_characters}                & \tcode{200704L} \\ \rowsep
+\defnxname{cpp_unicode_literals}                  & \tcode{200710L} \\ \rowsep
+\defnxname{cpp_user_defined_literals}             & \tcode{200809L} \\ \rowsep
+\defnxname{cpp_using_enum}                        & \tcode{201907L} \\ \rowsep
+\defnxname{cpp_variable_templates}                & \tcode{201304L} \\ \rowsep
+\defnxname{cpp_variadic_friend}                   & \tcode{202403L} \\ \rowsep
+\defnxname{cpp_variadic_templates}                & \tcode{200704L} \\ \rowsep
+\defnxname{cpp_variadic_using}                    & \tcode{201611L} \\
+\end{LongTable}
+
+\pnum
+以下宏名根据条件由实现定义：
+
+\begin{description}
+\item
+\indextext{__stdc__@\mname{STDC}}%
+\mname{STDC}\\
+\mname{STDC} 是否被预定义，以及如果被定义，其值为何，
+由\impldef{definition and meaning of \mname{STDC}}定义。
+
+\item
+\indextext{__stdc_mb_might_neq_wc__@\mname{STDC_MB_MIGHT_NEQ_WC}}%
+\mname{STDC_MB_MIGHT_NEQ_WC}\\
+整数字面量 \tcode{1}，旨在表明在
+\keyword{wchar_t} 的编码中，基本字符集的一个成员
+当其作为普通字符字面量中的单一字符使用时，不必具有与其值相等的代码值。
+
+\item
+\indextext{__stdc_version__@\mname{STDC_VERSION}}%
+\mname{STDC_VERSION}\\
+\mname{STDC_VERSION} 是否被预定义，以及如果被定义，其值为何，
+由\impldef{definition and meaning of \mname{STDC_VERSION}}定义。
+
+\item
+\indextext{__stdc_iso_10646__@\mname{STDC_ISO_10646}}%
+\mname{STDC_ISO_10646}\\
+形式为 \tcode{yyyymmL} 的整数字面量
+（例如，\tcode{199712L}）。
+\mname{STDC_ISO_10646} 是否被预定义，
+以及如果被定义，其值为何，
+由\impldef{presence and value of \mname{STDC_ISO_10646}}定义。
+
+\item
+\indextext{__stdcpp_threads__@\mname{STDCPP_THREADS}}%
+\mname{STDCPP_THREADS}\\
+当且仅当一个程序
+可以有多个执行线程时\iref{intro.multithread}，定义为整数字面量 1。
+
+\end{description}
+
+\pnum
+预定义宏的值
+（除了
+\mname{FILE}
+和
+\mname{LINE}
+之外）在整个翻译单元内保持常量。
+
+\pnum
+如果本小节中的任何预定义宏名，
+或标识符
+\tcode{defined}，
+是
+\tcode{\#define}
+或
+\tcode{\#undef}
+预处理指令的对象，
+程序为不合规。
+任何其他预定义宏名必须以
+一个前导下划线后跟一个大写字母或第二个
+下划线开头。
+
+\rSec1[cpp.pragma.op]{Pragma 操作符}%
+\indextext{宏!pragma 操作符}%
+\indextext{操作符!pragma|参见{宏，pragma 操作符}}
+
+\pnum
+形式如下的单目操作符表达式：
+\begin{ncbnf}
+\terminal{_Pragma} \terminal{(} string-literal \terminal{)}
+\end{ncbnf}
+按如下方式处理：对该\grammarterm{string-literal}进行\defnx{去字符串化}{destringization}：若存在 \tcode{L} 前缀，则删除之；删除首尾的双引号；将每个转义序列 \tcode{\textbackslash"} 替换为一个双引号，并将每个转义序列 \tcode{\textbackslash\textbackslash} 替换为单个反斜线。所得到的字符序列经过翻译阶段 3 的处理，产生预处理记号，这些记号的执行方式如同它们是杂注指令中的 \grammarterm{pp-tokens}。原单目操作符表达式中的四个预处理记号被移除。
+
+\pnum
+\begin{example}
+\begin{codeblock}
+#pragma listing on "..\listing.dir"
+\end{codeblock}
+也可以表达为：
+\begin{codeblock}
+_Pragma ( "listing on \"..\\listing.dir\"" )
+\end{codeblock}
+后一种形式无论是如图所示字面出现，还是作为宏替换的结果出现（如下例），均以相同方式处理：
+\begin{codeblock}
+#define LISTING(x) PRAGMA(listing on #x)
+#define PRAGMA(x) _Pragma(#x)
+
+LISTING( ..\listing.dir )
+\end{codeblock}
+\end{example}
+\indextext{preprocessing directive|)}
+
