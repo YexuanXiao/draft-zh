@@ -1,5 +1,31 @@
 import openai, re, os, sys
 
+if len(sys.argv) == 1:
+    print("usage: translate.py prompt.txt target.tex")
+    print("before use, please fill in the api_key.")
+    exit(1)
+
+# model: deepseek-chat
+client = openai.OpenAI(
+    api_key = "",
+    base_url = "https://api.deepseek.com/v1",
+    timeout = 300
+)
+
+# model: kimi-k2-0905-preview
+client1 = openai.OpenAI(
+    api_key = "",
+    base_url = "https://api.moonshot.cn/v1",
+    timeout = 300
+)
+
+# model: doubao-seed-code-preview-251028
+client2 = openai.OpenAI(
+    api_key = "",
+    base_url = "https://ark.cn-beijing.volces.com/api/v3/",
+    timeout = 300
+)
+
 def print_bytes(str):
     num_bytes = len(str)
     if num_bytes < 1024:
@@ -49,27 +75,6 @@ def split_latexScopes(src):
         fragments.append(tail)
 
     return fragments
-
-# deepseek-chat
-client = openai.OpenAI(
-    api_key = "",
-    base_url = "https://api.deepseek.com/v1",
-    timeout = 300
-)
-
-# kimi-k2-0905-preview
-client1 = openai.OpenAI(
-    api_key = "",
-    base_url = "https://api.moonshot.cn/v1",
-    timeout = 300
-)
-
-# doubao-seed-code-preview-251028
-client2 = openai.OpenAI(
-    api_key = "",
-    base_url = "https://ark.cn-beijing.volces.com/api/v3/",
-    timeout = 300
-)
 
 prompt_path, tex_path = sys.argv[1:3]
 
